@@ -3,43 +3,64 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { requestAccess } from "@/lib/firestore";
-import { Heart, Lock, Clock, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Lock } from "lucide-react";
 
 export default function LoginPage() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
-    const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
-    const [status, setStatus] = useState<"idle" | "loading" | "requested">("idle");
-    const [isSignUp, setIsSignUp] = useState(false); // Toggle state
-    const { login } = useAuth();
+    const [status, setStatus] = useState<"idle" | "loading">("idle");
+    const [isSignUp, setIsSignUp] = useState(false);
+    const { login, signup, loginWithGoogle } = useAuth();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
-        if (!name.trim() || !phone.trim()) {
-            setError("Please enter both your name and phone number ✨");
+        if (!email.trim() || !password.trim()) {
+            setError("Please enter both email and password ✨");
             return;
+        }
+
+        if (password.length < 6) {
+            setError("Password should be at least 6 characters.");
+            return;
+        }
+
+        if (isSignUp) {
+            if (!name.trim()) {
+                setError("Please enter your name ✨");
+                return;
+            }
+            if (password !== confirmPassword) {
+                setError("Passwords do not match!");
+                return;
+            }
         }
 
         setStatus("loading");
 
         try {
             if (isSignUp) {
-                // Sign Up Mode: Request Access
-                await requestAccess(name, phone);
-                setStatus("requested");
-            } else {
-                // Login Mode: Try to login
-                const success = await login(name, phone);
-
+                const success = await signup(email, password, name);
                 if (success) {
-                    router.push("/");
+                    router.push("/dashboard");
                 } else {
-                    setError("Access denied. Please Sign Up to request access.");
+                    setError("Failed to create account. Email might be in use.");
+                    setStatus("idle");
+                }
+            } else {
+                const success = await login(email, password);
+                if (success) {
+                    // We check if it's admin or user to redirect correctly
+                    // Though both go to /dashboard/admin or /dashboard
+                    router.push("/dashboard");
+                } else {
+                    setError("Invalid email or password.");
                     setStatus("idle");
                 }
             }
@@ -50,132 +71,100 @@ export default function LoginPage() {
         }
     };
 
-    if (status === "requested") {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-slate-100 text-center relative overflow-hidden"
-                >
-                    {/* Decorative Background Elements */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 to-indigo-500" />
-
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                        className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-6"
-                    >
-                        <Heart className="w-10 h-10 text-sky-500 fill-current" />
-                    </motion.div>
-
-                    <h2 className="text-3xl font-serif text-slate-800 mb-4">Request Sent!</h2>
-
-                    <div className="space-y-4 text-slate-600 mb-8 font-light leading-relaxed">
-                        <p>
-                            Thank you, <span className="font-medium text-slate-900">{name}</span>!
-                        </p>
-                        <p>
-                            Your request to view the album has been sent to the <br />
-                            <span className="font-serif text-lg text-sky-600 font-medium">Administrator</span>.
-                        </p>
-                        <p className="text-sm text-slate-400 pt-4 mt-4 border-t border-slate-100">
-                            Please check back later — once approved, you'll be able to enter directly with your phone number.
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="text-sm text-sky-600 hover:text-sky-800 transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
-                    >
-                        <Clock className="w-4 h-4" />
-                        Check Status Again
-                    </button>
-                </motion.div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 relative overflow-hidden">
-            {/* Background Texture - Clean & Minimal */}
-            <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] opacity-40"></div>
+        <div className="min-h-screen bg-royal-cream text-royal-maroon flex flex-col justify-center py-12 px-6 lg:px-8 font-serif relative overflow-hidden">
+            <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/cream-paper.png')` }}></div>
 
             <motion.div
-                key={isSignUp ? "signup" : "login"} // Re-animate on toggle
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-md border border-white/50 relative z-10"
+                transition={{ duration: 0.8 }}
+                className="sm:mx-auto sm:w-full sm:max-w-md relative z-10"
             >
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sky-100 text-sky-600 mb-4 shadow-sm">
-                        {isSignUp ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+                    <div className="mx-auto h-12 w-12 text-royal-maroon mb-4">
+                        <Lock className="w-12 h-12" />
                     </div>
                     <h1 className="text-3xl font-serif text-slate-800 mb-3 tracking-wide">
                         {isSignUp ? "Join Us" : "Welcome Back"}
                     </h1>
                     <p className="text-slate-600 font-light">
-                        {isSignUp ? "Request access to the gallery." : "Enter your details to access."}
+                        {isSignUp ? "Create an account to access the gallery." : "Enter your credentials to access."}
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {isSignUp && (
+                        <div className="space-y-1">
+                            <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Your Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                className="block w-full px-4 py-3 bg-white/50 border border-stone-300 rounded-lg text-royal-maroon placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-royal-gold focus:border-transparent transition-all shadow-sm"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                    )}
+
                     <div className="space-y-1">
-                        <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Your Name</label>
+                        <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Email Address</label>
                         <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all duration-300"
-                            placeholder="e.g. Aditi Sharma"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            className="block w-full px-4 py-3 bg-white/50 border border-stone-300 rounded-lg text-royal-maroon placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-royal-gold focus:border-transparent transition-all shadow-sm"
+                            placeholder="you@example.com"
                         />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Phone Number</label>
+                        <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Password</label>
                         <input
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all duration-300"
-                            placeholder="e.g. 9876543210"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="block w-full px-4 py-3 bg-white/50 border border-stone-300 rounded-lg text-royal-maroon placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-royal-gold focus:border-transparent transition-all shadow-sm"
+                            placeholder="••••••••"
                         />
                     </div>
 
-                    <AnimatePresence>
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100"
-                            >
-                                {error}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {isSignUp && (
+                        <div className="space-y-1">
+                            <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Confirm Password</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                className="block w-full px-4 py-3 bg-white/50 border border-stone-300 rounded-lg text-royal-maroon placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-royal-gold focus:border-transparent transition-all shadow-sm"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100">
+                            {error}
+                        </div>
+                    )}
 
                     <button
                         type="submit"
                         disabled={status === "loading"}
-                        className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold tracking-wide shadow-lg hover:bg-sky-600 hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 disabled:opacity-70 disabled:cursor-wait mt-4"
+                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-maroon transition-all transform hover:scale-[1.02]"
                     >
                         {status === "loading" ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <motion.span
-                                    animate={{ rotate: 360 }}
-                                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                                    className="block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                                />
-                                {isSignUp ? "Sending Request..." : "Verifying..."}
-                            </span>
-                        ) : (isSignUp ? "Request Access" : "Enter Gallery")}
+                            <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            isSignUp ? "Sign Up" : "Login"
+                        )}
                     </button>
                 </form>
 
-                {/* Toggle between Login and Sign Up */}
                 <div className="mt-8 text-center pt-6 border-t border-slate-100">
                     <p className="text-slate-500 text-sm">
                         {isSignUp ? "Already include in the guest list?" : "Don't have access yet?"}
@@ -194,6 +183,20 @@ export default function LoginPage() {
                 <p className="text-center text-sm text-slate-500 mt-6 font-light">
                     Protected with ❤️
                 </p>
+
+                <div className="mt-4 text-center">
+                    <button
+                        onClick={async () => {
+                            const success = await loginWithGoogle();
+                            if (success) {
+                                router.push("/admin/dashboard");
+                            }
+                        }}
+                        className="text-xs text-slate-300 hover:text-slate-500 transition-colors"
+                    >
+                        Admin Login
+                    </button>
+                </div>
             </motion.div>
         </div>
     );

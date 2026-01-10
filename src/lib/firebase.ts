@@ -45,4 +45,6 @@ if (firebaseConfig.apiKey) {
     googleProvider = new GoogleAuthProvider();
 }
 
-export { app, auth, db, storage, googleProvider };
+const isFirebaseConfigured = !!firebaseConfig.apiKey;
+
+export { app, auth, db, storage, googleProvider, isFirebaseConfigured };

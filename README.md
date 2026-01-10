@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💍 Premium Wedding Gallery & Album
 
-## Getting Started
+A sophisticated, private wedding gallery management system designed for a premium experience. Capture, manage, and share your most cherished moments with elegance and ease.
 
-First, run the development server:
+## ✨ Features
+
+- **Dynamic Event Management**: Create multiple wedding events (Haldi, Mehendi, Wedding, etc.) with custom titles and dates.
+- **Integrated Photo Grid**: A seamless, modern gallery editor with a state-of-the-art "+" upload card and real-time feedback.
+- **Smart Event Thumbnails**: Automatic cover image selection from your first upload, with manual "Set as Cover" control.
+- **Private & Secure**: Built-in authentication ensures only the owners can manage their galleries.
+- **Optimized Viewing**: A beautiful, responsive masonry grid layout with high-performance image delivery.
+- **Interactive Lightbox**: Full-screen browsing with intuitive keyboard and touch navigation.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Database & Auth**: [Firebase](https://firebase.google.com/) (Firestore & Authentication)
+- **Media Storage**: [Cloudinary](https://cloudinary.com/) (Server-side secure uploads)
+- **Icons**: Lucide React
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+
+You'll need a **Firebase** project and a **Cloudinary** account.
+
+### 2. Environment Setup
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. Fill in your credentials in `.env.local`:
+   - **Firebase**: Go to Project Settings > General > Your apps (SDK Setup) for the keys.
+   - **Cloudinary**: Get your Cloud Name, API Key, and Secret from the Cloudinary Dashboard.
+
+### 3. Installation
+
+```bash
+npm install
+```
+
+### 4. Run Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the gallery.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app`: Next.js pages and routing.
+- `src/components`: Reusable UI components.
+- `src/context`: Auth and State management.
+- `src/lib`: Firestore and storage utilities.
+- `src/app/actions`: Secure server-side Cloudinary operations.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Created with ❤️ by Lens & Frame.

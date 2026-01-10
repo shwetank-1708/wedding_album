@@ -1,23 +1,44 @@
-import { storage } from "./firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid";
+import { uploadToCloudinary } from "@/app/actions/upload";
 
 /**
- * Uploads a file to Firebase Storage under /events/{eventId}/{filename}
- * Returns the download URL.
+ * Converts a File object to a base64 string
  */
-export async function uploadEventImage(file: File, eventId: string): Promise<string> {
+async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+    });
+}
+
+/**
+ * Uploads a file to Cloudinary via a Server Action
+ * Returns the download URL and metadata.
+ */
+export async function uploadEventImage(file: File, eventId: string, userId?: string) {
     try {
-        const fileExtension = file.name.split(".").pop();
-        const fileName = `${uuidv4()}.${fileExtension}`;
-        const storageRef = ref(storage, `events/${eventId}/${fileName}`);
+        console.log(`[Cloudinary] Starting upload for: ${file.name} to event: ${eventId}`);
 
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
+        const base64 = await fileToBase64(file);
+        const folder = userId ? `${userId}/${eventId}` : eventId;
 
-        return downloadURL;
-    } catch (error) {
-        console.error("Error uploading image:", error);
+        const result = await uploadToCloudinary(base64, folder);
+
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        console.log(`[Cloudinary] Upload complete: ${result.url?.substring(0, 50)}...`);
+
+        return {
+            url: result.url as string,
+            publicId: result.public_id as string,
+            width: result.width as number,
+            height: result.height as number
+        };
+    } catch (error: any) {
+        console.error("[Cloudinary] Progress Error:", error);
         throw error;
     }
 }

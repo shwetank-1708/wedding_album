@@ -1,38 +1,113 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { notFound } from "next/navigation";
-import { getEvent, getAllEvents } from "@/lib/events"; // NEW: Static Data
-import { getEventPhotos } from "@/lib/firestore"; // Live Data
-// import { getCloudinaryImages } from "@/lib/cloudinary"; // Live Data (Deprecated)
+import { notFound, useParams } from "next/navigation";
+import { getEvent } from "@/lib/events"; // Static Data
+import { getEventPhotos, getEventById, Event, Photo as FirestorePhoto } from "@/lib/firestore"; // Live Data
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
+import { Loader2 } from "lucide-react";
 
-export async function generateStaticParams() {
-    const events = getAllEvents();
-    return events.map((event) => ({ slug: event.id }));
-}
+export default function EventPage() {
+    const params = useParams();
+    const slug = params.slug as string;
+    const { user, loading: authLoading } = useAuth();
 
-export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
+    const [event, setEvent] = useState<Event | any | null>(null);
+    const [photos, setPhotos] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // 1. Get Event Details (Static)
-    const event = getEvent(slug);
-    if (!event) return notFound();
+    useEffect(() => {
+        if (!authLoading && slug) {
+            loadEventData();
+        }
+    }, [authLoading, slug]);
 
-    // 2. Get LIVE Photos from Firestore (Database)
-    // This requires the admin to have run the "Sync" action.
-    const firestorePhotos = await getEventPhotos(slug);
+    const loadEventData = async () => {
+        setLoading(true);
+        console.log(`[EventPage] Loading event for slug: ${slug}`);
 
-    // 3. Transform for the Grid
-    const photos = firestorePhotos.map(p => {
-        return {
-            id: p.id,
-            src: p.url || "", // Fallback if url is missing
-            cloudinaryPublicId: p.cloudinaryPublicId,
-            width: p.width || 800,
-            height: p.height || 600,
-            filename: p.cloudinaryPublicId.split('/').pop()
-        };
-    });
+        try {
+            // 1. Get Event Details
+            // Try Firestore first (Dynamic events)
+            let eventData: Event | null = null;
+            try {
+                eventData = await getEventById(slug);
+            } catch (e: any) {
+                console.error("[EventPage] Error fetching from Firestore:", e);
+                if (e.message?.includes("permissions")) {
+                    setError("permissions");
+                }
+            }
+
+            // Fallback to Static Data
+            if (!eventData && !error) {
+                console.log("[EventPage] Event not found in Firestore, checking static data...");
+                eventData = getEvent(slug);
+            }
+
+            if (!eventData) {
+                setEvent(null);
+                setLoading(false);
+                return;
+            }
+
+            setEvent(eventData);
+
+            // 2. Get LIVE Photos from Firestore (Database)
+            const firestorePhotos = await getEventPhotos(slug);
+            console.log(`[EventPage] Found ${firestorePhotos.length} photos in Firestore`);
+
+            // 3. Transform for the Grid
+            const transformedPhotos = firestorePhotos.map(p => ({
+                id: p.id,
+                src: p.url || "",
+                cloudinaryPublicId: p.cloudinaryPublicId || "",
+                width: p.width || 800,
+                height: p.height || 600,
+                filename: p.cloudinaryPublicId ? p.cloudinaryPublicId.split('/').pop() : 'photo'
+            }));
+
+            setPhotos(transformedPhotos);
+        } catch (err: any) {
+            console.error("[EventPage] Critical error:", err);
+            setError(err.message || "An unexpected error occurred");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (authLoading || loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-stone-50">
+                <Loader2 className="w-8 h-8 animate-spin text-royal-gold" />
+            </div>
+        );
+    }
+
+    if (!event) {
+        return notFound();
+    }
+
+    if (error === "permissions" && !user) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 px-4 text-center">
+                <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+                <p className="text-stone-500 mb-8 max-w-md">
+                    This gallery is private. Please log in to view your memories.
+                </p>
+                <button
+                    onClick={() => window.location.href = "/login"}
+                    className="px-8 py-3 bg-slate-900 text-white rounded-full font-bold shadow-lg hover:bg-slate-800 transition-all"
+                >
+                    Log In
+                </button>
+            </div>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-stone-50">
@@ -63,13 +138,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 <SectionHeader title="Gallery" subtitle={`${photos.length} Photos`} />
 
                 {photos.length > 0 ? (
-                    // Pass the event slug so the button knows which folder (if we had download logic)
                     <MasonryGrid photos={photos} eventSlug={slug} />
                 ) : (
-                    <div className="text-center py-20 bg-gray-50 rounded-lg mx-4 border border-dashed border-gray-300">
+                    <div className="text-center py-20 bg-gray-50 rounded-3xl mx-4 border border-dashed border-gray-300">
                         <p className="text-stone-500 mb-2">No photos found in database.</p>
                         <p className="text-sm text-stone-400">
-                            Please go to the <strong>Admin Dashboard</strong> and click <strong>Sync Photos</strong> for {slug}.
+                            Upload photos from your dashboard to see them here.
                         </p>
                     </div>
                 )}

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Camera } from "lucide-react";
+import { Menu, X, Camera, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-// import { useAuth } from "@/context/AuthContext"; // Keeping commented if needed later
-// import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
+import { AnimatePresence, motion } from "framer-motion";
 
 const navLinks = [
     { name: "Home", href: "/" },
@@ -18,6 +18,7 @@ const navLinks = [
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
+    const { user, logout } = useAuth();
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
@@ -49,12 +50,44 @@ export default function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
-                        <Link
-                            href="/login"
-                            className="px-5 py-2 bg-slate-900 text-white text-sm font-medium rounded-full hover:bg-slate-800 transition-colors shadow-sm"
-                        >
-                            Login
-                        </Link>
+
+                        {user ? (
+                            <div className="flex items-center space-x-6">
+                                <div className="flex items-center space-x-2 text-slate-700">
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                                        <UserIcon className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <span className="text-sm font-medium">Hi, {user.name}</span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <Link
+                                        href="/gallery"
+                                        className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                                    >
+                                        My Gallery
+                                    </Link>
+                                    <Link
+                                        href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
+                                        className="text-sm font-medium text-sky-600 hover:text-sky-800 transition-colors"
+                                    >
+                                        My Dashboard
+                                    </Link>
+                                    <button
+                                        onClick={logout}
+                                        className="px-5 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors shadow-sm"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="px-5 py-2 bg-slate-900 text-white text-sm font-medium rounded-full hover:bg-slate-800 transition-colors shadow-sm"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -93,17 +126,54 @@ export default function Navbar() {
                             {link.name}
                         </Link>
                     ))}
-                    <div className="pt-4 border-t border-slate-100 mt-2">
-                        <Link
-                            href="/login"
-                            onClick={() => setIsOpen(false)}
-                            className="block w-full text-center px-4 py-3 bg-slate-900 text-white rounded-lg text-lg font-medium hover:bg-slate-800 transition-colors"
-                        >
-                            Login
-                        </Link>
+                    <div className="pt-4 border-t border-slate-100 mt-2 space-y-3">
+                        {user ? (
+                            <>
+                                <div className="flex items-center space-x-3 px-4 py-2 bg-slate-50 rounded-lg mb-2">
+                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200">
+                                        <UserIcon className="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-900">{user.name}</p>
+                                        <p className="text-xs text-slate-500">{user.email}</p>
+                                    </div>
+                                </div>
+                                <Link
+                                    href="/gallery"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block w-full text-center px-4 py-3 text-slate-700 rounded-lg text-lg font-medium hover:bg-slate-50 transition-colors"
+                                >
+                                    My Gallery
+                                </Link>
+                                <Link
+                                    href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
+                                    onClick={() => setIsOpen(false)}
+                                    className="block w-full text-center px-4 py-3 bg-sky-50 text-sky-600 rounded-lg text-lg font-medium hover:bg-sky-100 transition-colors"
+                                >
+                                    {user.role === "admin" ? "Admin Dashboard" : "My Dashboard"}
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        logout();
+                                    }}
+                                    className="block w-full text-center px-4 py-3 border border-slate-200 text-slate-600 rounded-lg text-lg font-medium hover:bg-slate-50 transition-colors"
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <Link
+                                href="/login"
+                                onClick={() => setIsOpen(false)}
+                                className="block w-full text-center px-4 py-3 bg-slate-900 text-white rounded-lg text-lg font-medium hover:bg-slate-800 transition-colors"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
-        </nav>
+        </nav >
     );
 }

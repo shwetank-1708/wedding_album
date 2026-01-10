@@ -133,11 +133,25 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
                 })}
             </div>
 
-            {/* Lightbox */}
+            {/* Lightbox with Navigation */}
             <Lightbox
                 isOpen={!!viewingPhoto}
                 photo={viewingPhoto}
                 onClose={() => setViewingPhoto(null)}
+                onNext={() => {
+                    const currentIndex = photos.findIndex(p => p.id === viewingPhoto?.id);
+                    if (currentIndex !== -1) {
+                        const nextIndex = (currentIndex + 1) % photos.length;
+                        setViewingPhoto(photos[nextIndex]);
+                    }
+                }}
+                onPrev={() => {
+                    const currentIndex = photos.findIndex(p => p.id === viewingPhoto?.id);
+                    if (currentIndex !== -1) {
+                        const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
+                        setViewingPhoto(photos[prevIndex]);
+                    }
+                }}
             />
         </div>
     );
