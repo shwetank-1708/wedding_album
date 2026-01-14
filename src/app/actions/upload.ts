@@ -16,6 +16,10 @@ export async function uploadToCloudinary(base64Image: string, folder: string) {
         const result = await cloudinary.uploader.upload(base64Image, {
             folder: `wed_album/${folder}`,
             resource_type: 'auto',
+            transformation: [
+                { quality: 'auto', fetch_format: 'auto' },
+                { width: 2500, height: 2500, crop: 'limit' }
+            ]
         });
 
         console.log(`[Server Action] Cloudinary upload success: ${result.public_id}`);
@@ -26,6 +30,8 @@ export async function uploadToCloudinary(base64Image: string, folder: string) {
             public_id: result.public_id,
             width: result.width,
             height: result.height,
+            bytes: result.bytes,
+            format: result.format,
         };
     } catch (error: any) {
         console.error("[Server Action] Cloudinary Upload Error Detail:", error);

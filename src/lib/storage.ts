@@ -35,7 +35,9 @@ export async function uploadEventImage(file: File, eventId: string, userId?: str
             url: result.url as string,
             publicId: result.public_id as string,
             width: result.width as number,
-            height: result.height as number
+            height: result.height as number,
+            bytes: result.bytes as number,
+            format: result.format as string
         };
     } catch (error: any) {
         console.error("[Cloudinary] Progress Error:", error);

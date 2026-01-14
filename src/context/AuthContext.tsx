@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getAllowedUser, logGuestLogin, createUserProfile } from "@/lib/firestore";
+import { getAllowedUser, logGuestLogin, createUserProfile, getUserProfile } from "@/lib/firestore";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
@@ -51,16 +51,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const name = user.displayName || user.email?.split("@")[0] || "Guest User";
 
-            // Sync to Firestore on login to ensure they appear in the dashboard
-            // even if their initial signup sync failed or was blocked by rules.
-            console.log("Syncing profile to Firestore...");
-            await createUserProfile(user.uid, name, user.email || "");
-            console.log("Sync complete.");
+            // 3. Fetch full profile to get the correct role
+            const profile = await getUserProfile(user.uid) as any;
 
             const userData = {
-                name: name,
+                name: profile?.name || name,
                 phone: "",
-                role: "user",
+                role: profile?.role || "user",
                 email: user.email
             };
             setUser(userData);
@@ -139,13 +136,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const result = await signInWithPopup(auth, googleProvider);
             const googleUser = result.user;
 
-            // For now, treat any Google Login as an Admin or map it.
-            // In a real app, you'd check if this email is in an 'admins' collection.
-            // Let's assume the owner's email is the admin.
+            // Sync to Firestore and ensure they have a role.
+            // We default to 'user' now that the owner is established, 
+            // allowing the owner to promote others manually.
+            await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "user");
+            const profile = await getUserProfile(googleUser.uid) as any;
+
             const adminUser = {
-                name: googleUser.displayName || "Admin",
+                name: profile?.name || googleUser.displayName || "Admin",
                 phone: "admin-google",
-                role: "admin",
+                role: profile?.role || "admin",
                 email: googleUser.email
             };
 

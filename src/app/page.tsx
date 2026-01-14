@@ -18,7 +18,7 @@ export default function Home() {
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50" ref={containerRef}>
+    <div className="flex flex-col min-h-screen bg-slate-50 relative" ref={containerRef}>
       {/* Light & Airy Hero Section with Parallax */}
       <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
         {/* Background Image - Clean without dark overlay */}

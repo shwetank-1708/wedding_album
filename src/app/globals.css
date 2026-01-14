@@ -46,3 +46,17 @@
 .glass-nav {
   @apply bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm supports-[backdrop-filter]:bg-white/60;
 }
+
+/* Lightbox UX: Hide all headers/navigation when image is expanded */
+body[data-lightbox-open="true"] nav,
+body[data-lightbox-open="true"] header,
+body[data-lightbox-open="true"] .lightbox-hide-ui {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+nav,
+header {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}

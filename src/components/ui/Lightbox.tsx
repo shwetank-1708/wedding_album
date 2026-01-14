@@ -30,11 +30,13 @@ export function Lightbox({ isOpen, onClose, photo, onNext, onPrev }: LightboxPro
         if (isOpen) {
             window.addEventListener("keydown", handleKeyDown);
             document.body.style.overflow = "hidden"; // Prevent scrolling
+            document.body.setAttribute("data-lightbox-open", "true");
         }
 
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             document.body.style.overflow = "unset";
+            document.body.removeAttribute("data-lightbox-open");
         };
     }, [isOpen, onClose, onNext, onPrev]);
 
@@ -50,7 +52,7 @@ export function Lightbox({ isOpen, onClose, photo, onNext, onPrev }: LightboxPro
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
                 >
                     {/* Background overlay to close on click */}
                     <div className="absolute inset-0 z-0 cursor-zoom-out" onClick={onClose} />

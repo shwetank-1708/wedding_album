@@ -24,7 +24,8 @@ export async function getCloudinaryImages(folderName: string, nextCursor?: strin
         // Structure: wed_Album -> [haldi, mehendi, etc.]
         // Asset Folders require using the Search API, not the Admin API prefix method.
 
-        const folderPath = `wed_album/${folderName}`;
+        // Check both common casings for maximum resilience
+        const folderPath = `wed_Album/${folderName}`;
 
         let expression = `folder:"${folderPath}"`;
 

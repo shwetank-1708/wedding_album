@@ -55,7 +55,7 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
 
     return (
         <div className={cn("container mx-auto px-4 py-8", className)}>
-            <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
+            <div className="columns-1 sm:columns-2 md:columns-3 gap-2 space-y-2">
                 {photos.map((photo, index) => {
                     const useCloudinary = !!photo.cloudinaryPublicId || !photo.src.startsWith("http");
                     const isDownloading = downloadingId === photo.id;
@@ -67,7 +67,8 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true, margin: "-50px" }}
                             transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
-                            className="break-inside-avoid rounded-2xl overflow-hidden group relative mb-6 shadow-md hover:shadow-xl transition-shadow duration-500 bg-stone-200 cursor-pointer"
+                            onClick={() => setViewingPhoto(photo)}
+                            className="break-inside-avoid overflow-hidden group relative mb-2 shadow-sm hover:shadow-xl transition-shadow duration-500 bg-stone-200 cursor-pointer"
                         >
                             <div className="relative w-full">
                                 {useCloudinary ? (
@@ -79,7 +80,7 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
                                         crop="fill"
                                         gravity="auto"
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        className="w-full h-auto object-cover transform transition-all duration-700 group-hover:scale-110"
+                                        className="w-full h-auto object-cover transform transition-all duration-700 group-hover:scale-105"
                                         placeholder="blur"
                                         blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxIDEiPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNlN2U1ZTQiLz48L3N2Zz4="
                                     />
@@ -87,45 +88,36 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
                                     <img
                                         src={photo.src}
                                         alt={photo.alt || "Event Photo"}
-                                        className="w-full h-auto object-cover transform transition-all duration-700 group-hover:scale-110"
+                                        className="w-full h-auto object-cover transform transition-all duration-700 group-hover:scale-105"
                                         loading="lazy"
                                     />
                                 )}
 
-                                {/* Overlay */}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-500 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                    <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500 flex gap-2">
-
-                                        {/* View Button */}
-                                        <button
-                                            onClick={() => setViewingPhoto(photo)}
-                                            className="p-3 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-white hover:bg-white/40 transition-colors"
-                                            title="View Fullscreen"
-                                        >
-                                            <span className="sr-only">View</span>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
-                                        </button>
-
-                                        {/* Download Button */}
-                                        {eventSlug && photo.filename && (
+                                {/* Overlay & Download Button */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500">
+                                    {eventSlug && photo.filename && (
+                                        <div className="absolute top-4 right-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-10">
                                             <button
-                                                onClick={() => handleDownload(photo)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownload(photo);
+                                                }}
                                                 disabled={isDownloading}
-                                                className="p-3 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-white hover:bg-white/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-white hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                                                 title="Download Original"
                                             >
                                                 <span className="sr-only">Download</span>
                                                 {isDownloading ? (
-                                                    <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                     </svg>
                                                 ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
                                                 )}
                                             </button>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

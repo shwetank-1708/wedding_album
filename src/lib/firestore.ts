@@ -10,6 +10,9 @@ export interface Event {
     coverImage: string;
     description: string;
     createdBy?: string; // UID of the user who created it
+    type?: 'main' | 'sub';
+    parentId?: string;
+    legacyId?: string; // Captures original truncated/mismatched ID for backward compatibility
 }
 
 export interface Photo {
@@ -23,6 +26,8 @@ export interface Photo {
     uploadedAt: Timestamp;
     tags?: string[];
     userId?: string;            // UID of the owner
+    size?: number;              // File size in bytes
+    format?: string;            // e.g., 'jpg', 'png'
 }
 
 export interface FaceRecord {
@@ -45,7 +50,7 @@ export async function getEvents(): Promise<Event[]> {
     try {
         const eventsCol = collection(db, "events");
         const snapshot = await getDocs(eventsCol);
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Event));
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Event));
     } catch (error) {
         console.error("Error fetching events:", error);
         return [];
@@ -60,7 +65,7 @@ export async function getEvent(id: string): Promise<Event | null> {
         const docRef = doc(db, "events", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Event;
+            return { ...docSnap.data(), id: docSnap.id } as Event;
         } else {
             console.log("No such event!");
             return null;
@@ -72,18 +77,36 @@ export async function getEvent(id: string): Promise<Event | null> {
 }
 
 /**
- * Fetches photos for a specific event.
+ * Fetches photos for a specific event with legacy ID support.
  */
-export async function getEventPhotos(eventId: string): Promise<Photo[]> {
+export async function getEventPhotos(eventId: string, legacyId?: string): Promise<Photo[]> {
     try {
+        const ids = legacyId && legacyId !== eventId ? [eventId, legacyId] : [eventId];
         const photosCol = collection(db, "photos");
         const q = query(
             photosCol,
-            where("eventId", "==", eventId)
-            // orderBy("uploadedAt", "desc") // Commented out to debug missing index
+            where("eventId", "in", ids)
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Photo));
+        return snapshot.docs
+            .map((doc) => {
+                const data = doc.data() as any;
+                const rawDate = data.uploadedAt;
+                let uploadedAt: number;
+
+                if (rawDate?.toMillis) {
+                    uploadedAt = rawDate.toMillis();
+                } else if (rawDate?.seconds) {
+                    uploadedAt = rawDate.seconds * 1000;
+                } else if (typeof rawDate === 'number') {
+                    uploadedAt = rawDate;
+                } else {
+                    uploadedAt = Date.now();
+                }
+
+                return { ...data, id: doc.id, uploadedAt };
+            })
+            .sort((a, b) => b.uploadedAt - a.uploadedAt);
     } catch (error) {
         console.error("Error fetching photos:", error);
         return [];
@@ -259,20 +282,42 @@ export async function denyRequest(phone: string) {
 /**
  * Creates or updates a user profile in the 'users' collection.
  */
-export async function createUserProfile(uid: string, name: string, email: string) {
+export async function createUserProfile(uid: string, name: string, email: string, role: string = "user") {
     try {
         const docRef = doc(db, "users", uid);
+        const docSnap = await getDoc(docRef);
+
+        const existingData = docSnap.exists() ? docSnap.data() : {};
+
+        // Sync logic: Keep existing role if it exists, otherwise use provided role
         await setDoc(docRef, {
             name,
             email,
-            role: "user",
-            createdAt: Timestamp.now(),
+            role: existingData.role || role,
+            createdAt: existingData.createdAt || Timestamp.now(),
             lastLogin: Timestamp.now()
         }, { merge: true });
         return true;
     } catch (error) {
         console.error("Error creating user profile:", error);
         return false;
+    }
+}
+
+/**
+ * Fetches a user profile from Firestore by UID.
+ */
+export async function getUserProfile(uid: string) {
+    try {
+        const docRef = doc(db, "users", uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        return null;
     }
 }
 
@@ -290,20 +335,143 @@ export async function getUsers(): Promise<any[]> {
         return [];
     }
 }
+
+/**
+ * Fetches events created by a specific user, optionally filtered by type.
+ * Uses a broad fetch + client-side filter to be 100% resilient to legacy data & index building.
+ */
+export async function getUserEvents(userId: string, type?: 'main' | 'sub', parentId?: string, legacyParentId?: string): Promise<Event[]> {
+    try {
+        const eventsCol = collection(db, "events");
+        const q = query(eventsCol, where("createdBy", "==", userId));
+        const snapshot = await getDocs(q);
+        let events = snapshot.docs.map(doc => {
+            const data = doc.data() as any;
+            const event = { ...data, id: doc.id } as Event;
+            if (data.id && data.id !== doc.id) {
+                event.legacyId = data.id;
+            }
+            return event;
+        });
+
+        // perform filtering client-side for maximum resilience
+        let filteredEvents = [...events];
+
+        if (type === 'sub') {
+            filteredEvents = filteredEvents.filter(e => {
+                const isMatch = e.parentId === parentId || (legacyParentId && e.parentId === legacyParentId);
+                const isNotSelf = e.id !== parentId && (!legacyParentId || e.id !== legacyParentId);
+                const isSubLevel = e.type === 'sub' || (!!e.parentId);
+                return isMatch && isNotSelf && isSubLevel;
+            });
+        } else {
+            // Main collections: include explicit 'main' type OR legacy events (no type AND no parent)
+            filteredEvents = filteredEvents.filter(e => {
+                const isMain = e.type === 'main' || (!e.type && !e.parentId);
+                if (!isMain) {
+                    // Check if parent actually exists in the user's event list
+                    const parentExists = events.some(ev => ev.id === e.parentId);
+                    if (!parentExists) {
+                        return true;
+                    }
+                }
+                return isMain;
+            });
+        }
+
+        // Sort by date (descending)
+        return filteredEvents.sort((a, b) => {
+            const dateA = a.date || "";
+            const dateB = b.date || "";
+            return dateB.localeCompare(dateA);
+        });
+    } catch (error: any) {
+        console.error("Error fetching user events:", error);
+        return [];
+    }
+}
+
+/**
+ * Fetches all sub-events for a given parent event ID with legacy support.
+ */
+export async function getSubEvents(parentId: string, legacyParentId?: string): Promise<Event[]> {
+    try {
+        const ids = legacyParentId && legacyParentId !== parentId ? [parentId, legacyParentId] : [parentId];
+        const eventsCol = collection(db, "events");
+        const q = query(
+            eventsCol,
+            where("parentId", "in", ids),
+            orderBy("date", "desc")
+        );
+        const snapshot = await getDocs(q);
+
+        // Map and filter out the parent itself to prevent circular display
+        return snapshot.docs
+            .map(doc => {
+                const data = doc.data() as any;
+                const event = { ...data, id: doc.id } as Event;
+                if (data.id && data.id !== doc.id) {
+                    event.legacyId = data.id;
+                }
+                return event;
+            })
+            .filter(e => e.id !== parentId && (!legacyParentId || e.id !== legacyParentId));
+    } catch (error) {
+        console.error("Error fetching sub-events:", error);
+        return [];
+    }
+}
+
+/**
+ * Updates a user's role in Firestore.
+ */
+export async function updateUserRole(uid: string, newRole: string) {
+    try {
+        const docRef = doc(db, "users", uid);
+        await updateDoc(docRef, { role: newRole });
+        return true;
+    } catch (error) {
+        console.error("Error updating user role:", error);
+        return false;
+    }
+}
+
+/**
+ * Deletes a user profile from Firestore.
+ */
+export async function deleteUser(uid: string) {
+    try {
+        const docRef = doc(db, "users", uid);
+        await deleteDoc(docRef);
+        return true;
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        return false;
+    }
+}
 /**
  * Creates a new event in the 'events' collection.
  */
 export async function createEvent(event: Event) {
     try {
         const docRef = doc(db, "events", event.id);
+
+        // Sanitize: remove any undefined fields that Firestore doesn't like
+        const sanitizedEvent = { ...event };
+        Object.keys(sanitizedEvent).forEach(key => {
+            if ((sanitizedEvent as any)[key] === undefined) {
+                delete (sanitizedEvent as any)[key];
+            }
+        });
+
         await setDoc(docRef, {
-            ...event,
+            ...sanitizedEvent,
             createdAt: Timestamp.now()
         });
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating event:", error);
-        return false;
+        throw error;
     }
 }
 
@@ -311,7 +479,8 @@ export async function createEvent(event: Event) {
  * Fetches a single event by ID with fallback support.
  */
 export async function getEventById(eventId: string): Promise<Event | null> {
-    console.log(`[Firestore] getEventById initiated for eventId: "${eventId}"`);
+    const decodedId = decodeURIComponent(eventId);
+    console.log(`[Firestore] getEventById initiated for: "${eventId}" (decoded: "${decodedId}")`);
     try {
         if (!db) {
             console.error("[Firestore] getEventById: Firestore DB instance is not available.");
@@ -319,38 +488,69 @@ export async function getEventById(eventId: string): Promise<Event | null> {
         }
 
         // 1. Point Read (Most efficient)
-        const docRef = doc(db, "events", eventId);
+        const docRef = doc(db, "events", decodedId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
             console.log(`[Firestore] getEventById: Successfully found event by document ID: ${docSnap.id}`);
-            return { id: docSnap.id, ...docSnap.data() } as Event;
+            const data = docSnap.data() as any;
+            const event = { ...data, id: docSnap.id } as Event;
+            if (data.id && data.id !== docSnap.id) {
+                event.legacyId = data.id;
+                console.log(`[Firestore] getEventById: Legacy ID detected: "${data.id}"`);
+            }
+            return event;
         }
 
-        console.warn(`[Firestore] getEventById: No document found for ID: "${eventId}". Attempting fallback search...`);
+        console.warn(`[Firestore] getEventById: No document found for ID: "${decodedId}". Attempting fallback search...`);
 
         // 2. Query Search (Backup for index/ID consistency issues)
         const eventsCol = collection(db, "events");
-        const q = query(eventsCol, where("id", "==", eventId));
+        const q = query(eventsCol, where("id", "==", decodedId));
         const querySnap = await getDocs(q);
 
         if (!querySnap.empty) {
             const firstDoc = querySnap.docs[0];
             console.log(`[Firestore] getEventById: Success through fallback search. ID: ${firstDoc.id}`);
-            return { id: firstDoc.id, ...firstDoc.data() } as Event;
+            const data = firstDoc.data() as any;
+            const event = { ...data, id: firstDoc.id } as Event;
+            if (data.id && data.id !== firstDoc.id) {
+                event.legacyId = data.id;
+            }
+            return event;
         }
 
         // 3. Scan Search (Last Resort - only if index is missing/building)
         console.warn(`[Firestore] getEventById: Fallback query empty. Performing collection scan as last resort...`);
         const allEvents = await getDocs(eventsCol);
-        const match = allEvents.docs.find(d => d.id === eventId || (d.data() as any).id === eventId);
+        console.log(`[Firestore] getEventById: Last resort scan. Total docs: ${allEvents.size}. Searching for: "${decodedId}"`);
 
-        if (match) {
-            console.log(`[Firestore] getEventById: Found via collection scan. ID: ${match.id}`);
-            return { id: match.id, ...match.data() } as Event;
+        // Literal match first
+        let match = allEvents.docs.find(d => d.id === decodedId || (d.data() as any).id === decodedId);
+
+        // Fuzzy match second (DIAGNOSTIC)
+        if (!match && decodedId && decodedId.length >= 3) {
+            match = allEvents.docs.find(d =>
+                d.id.startsWith(decodedId) ||
+                ((d.data() as any).id && (d.data() as any).id.startsWith(decodedId))
+            );
+
+            if (match) {
+                console.warn(`[Firestore] getEventById: ⚠️ HYPER-FUZZY MATCH FOUND! Requested: "${decodedId}", Resolved to: "${match.id}". THIS INDICATES A TRUNCATION BUG UPSTREAM.`);
+            }
         }
 
-        console.error(`[Firestore] getEventById: Event "${eventId}" not found after all attempts.`);
+        if (match) {
+            console.log(`[Firestore] getEventById: Found match. ID: ${match.id}`);
+            const data = match.data() as any;
+            const event = { ...data, id: match.id } as Event;
+            if (data.id && data.id !== match.id) {
+                event.legacyId = data.id;
+            }
+            return event;
+        }
+
+        console.error(`[Firestore][v2-fuzzy] getEventById: Event "${decodedId}" NOT FOUND after full fuzzy scan. Queried ID (JSON): ${JSON.stringify(decodedId)}. All DocIDs in DB: ${JSON.stringify(allEvents.docs.map(d => d.id))}`);
         return null;
     } catch (error: any) {
         console.error("[Firestore] getEventById Error:", error.message || error);
@@ -376,15 +576,19 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
  */
 export async function deleteEvent(eventId: string): Promise<boolean> {
     try {
-        // 1. Delete all photos associated with this event from Firestore
+        // 1. Get event details to find potential legacyId
+        const event = await getEventById(eventId);
+        const ids = event?.legacyId && event.legacyId !== eventId ? [eventId, event.legacyId] : [eventId];
+
+        // 2. Delete all photos associated with this event from Firestore
         const photosRef = collection(db, "photos");
-        const q = query(photosRef, where("eventId", "==", eventId));
+        const q = query(photosRef, where("eventId", "in", ids));
         const photoSnaps = await getDocs(q);
 
         const deletePromises = photoSnaps.docs.map(doc => deleteDoc(doc.ref));
         await Promise.all(deletePromises);
 
-        // 2. Delete the event itself
+        // 3. Delete the event itself
         await deleteDoc(doc(db, "events", eventId));
         return true;
     } catch (error) {
@@ -408,24 +612,24 @@ export async function updateEvent(eventId: string, data: Partial<Event>): Promis
 }
 
 /**
- * Fetches events created by a specific user.
+ * Calculates the total size of all photos uploaded by a specific user.
  */
-export async function getUserEvents(userId: string): Promise<Event[]> {
+export async function getUserTotalStorage(userId: string): Promise<number> {
     try {
-        const eventsCol = collection(db, "events");
-        const q = query(eventsCol, where("createdBy", "==", userId), orderBy("createdAt", "desc"));
+        const photosCol = collection(db, "photos");
+        const q = query(photosCol, where("userId", "==", userId));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
-    } catch (error: any) {
-        if (error.code === 'failed-precondition' || error.message.includes('index')) {
-            console.warn("[Firestore] Query index is still building. Using temporary client-side filtering.");
-        } else {
-            console.error("Error fetching user events:", error);
-        }
-        // Fallback or retry logic if index is missing
-        const snapshot = await getDocs(collection(db, "events"));
-        return snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Event))
-            .filter(e => e.createdBy === userId);
+
+        let totalSize = 0;
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            totalSize += (data.size || 0);
+        });
+
+        return totalSize;
+    } catch (error) {
+        console.error("Error calculating total storage:", error);
+        return 0;
     }
 }
+

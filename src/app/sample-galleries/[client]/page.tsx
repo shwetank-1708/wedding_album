@@ -41,7 +41,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
     }
 
     return (
-        <div className="min-h-screen bg-slate-50" ref={containerRef}>
+        <div className="min-h-screen bg-slate-50 relative" ref={containerRef}>
             {/* Hero Cover Image with Parallax */}
             <div className="relative h-[85vh] w-full overflow-hidden">
                 <motion.div style={{ y, opacity }} className="absolute inset-0 h-[120%] -top-[10%]">

@@ -3,29 +3,20 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { getGuestLogs, getEvents, savePhoto, Photo, getUsers } from "@/lib/firestore";
-import { uploadEventImage } from "@/lib/storage";
-import { Timestamp } from "firebase/firestore";
-import { v4 as uuidv4 } from "uuid";
-import { LogOut, Upload, Users, Image as ImageIcon } from "lucide-react";
+import { getGuestLogs, getEvents, getUsers, updateUserRole } from "@/lib/firestore";
+import { LogOut, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"guests" | "upload" | "users">("guests");
+    const [activeTab, setActiveTab] = useState<"guests" | "users" | "admins">("guests");
 
     // Data State
     const [guests, setGuests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [events, setEvents] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(false);
-
-    // Upload State
-    const [selectedEvent, setSelectedEvent] = useState("");
-    const [uploading, setUploading] = useState(false);
-    const [files, setFiles] = useState<FileList | null>(null);
-    const [uploadStatus, setUploadStatus] = useState("");
 
     useEffect(() => {
         if (!loading) {
@@ -50,49 +41,11 @@ export default function Dashboard() {
         setLoadingData(false);
     };
 
-    const handleUpload = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!files || files.length === 0 || !selectedEvent) {
-            setUploadStatus("Please select an event and files.");
-            return;
+    const handleUpdateRole = async (uid: string, newRole: string) => {
+        const success = await updateUserRole(uid, newRole);
+        if (success) {
+            setUsers(prev => prev.map(u => u.id === uid ? { ...u, role: newRole } : u));
         }
-
-        setUploading(true);
-        setUploadStatus("Uploading...");
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            try {
-                // 1. Upload to Cloudinary
-                const uploadResult = await uploadEventImage(file, selectedEvent);
-
-                // 2. Save Metadata to Firestore
-                const photoId = uuidv4();
-                const newPhoto: Photo = {
-                    id: photoId,
-                    eventId: selectedEvent,
-                    cloudinaryPublicId: uploadResult.publicId,
-                    url: uploadResult.url,
-                    uploadedAt: Timestamp.now(),
-                    width: uploadResult.width,
-                    height: uploadResult.height
-                };
-
-                await savePhoto(newPhoto);
-                successCount++;
-            } catch (err) {
-                console.error(err);
-                failCount++;
-            }
-        }
-
-        setUploading(false);
-        setUploadStatus(`Upload completed. Success: ${successCount}, Failed: ${failCount}`);
-        setFiles(null);
-        // Reset file input manually if needed
     };
 
     if (loading || !user || user.role !== "admin") {
@@ -152,19 +105,19 @@ export default function Dashboard() {
                         )}
                     >
                         <Users className="w-4 h-4 mr-2" />
-                        Users
+                        All Users
                     </button>
                     <button
-                        onClick={() => setActiveTab("upload")}
+                        onClick={() => setActiveTab("admins")}
                         className={cn(
                             "flex-1 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all",
-                            activeTab === "upload"
+                            activeTab === "admins"
                                 ? "bg-white text-slate-900 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"
                         )}
                     >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Photos
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                        Admins
                     </button>
                 </div>
 
@@ -218,6 +171,7 @@ export default function Dashboard() {
                                             <tr>
                                                 <th className="px-6 py-3 font-medium">Name</th>
                                                 <th className="px-6 py-3 font-medium">Email</th>
+                                                <th className="px-6 py-3 font-medium">Role</th>
                                                 <th className="px-6 py-3 font-medium">Joined At</th>
                                             </tr>
                                         </thead>
@@ -226,6 +180,22 @@ export default function Dashboard() {
                                                 <tr key={u.id} className="hover:bg-slate-50/50">
                                                     <td className="px-6 py-4 font-medium text-slate-900">{u.name}</td>
                                                     <td className="px-6 py-4 text-slate-500">{u.email}</td>
+                                                    <td className="px-6 py-4">
+                                                        <select
+                                                            value={u.role || "user"}
+                                                            onChange={(e) => handleUpdateRole(u.id, e.target.value)}
+                                                            className={cn(
+                                                                "bg-transparent border-none text-[10px] font-bold uppercase tracking-wider focus:ring-0 cursor-pointer transition-colors outline-none",
+                                                                u.role === "admin" ? "text-amber-600" : "text-sky-600"
+                                                            )}
+                                                            title="Change user role"
+                                                            disabled={u.email === user?.email}
+                                                        >
+                                                            <option value="user">User</option>
+                                                            <option value="editor">Editor</option>
+                                                            <option value="admin">Admin</option>
+                                                        </select>
+                                                    </td>
                                                     <td className="px-6 py-4 text-slate-500">
                                                         {u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleString() : "N/A"}
                                                     </td>
@@ -238,71 +208,44 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    {activeTab === "upload" && (
-                        <div className="p-6 max-w-2xl mx-auto">
-                            <div className="text-center mb-8">
-                                <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <ImageIcon className="w-6 h-6" />
+                    {activeTab === "admins" && (
+                        <div className="p-6">
+                            <h2 className="text-lg font-serif font-bold text-slate-800 mb-6">Administrator List</h2>
+                            {loadingData ? (
+                                <p>Loading admins...</p>
+                            ) : users.filter(u => u.role === "admin").length === 0 ? (
+                                <p className="text-slate-400 italic">No administrators found.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="text-xs text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-6 py-3 font-medium">Name</th>
+                                                <th className="px-6 py-3 font-medium">Email</th>
+                                                <th className="px-6 py-3 font-medium">Status</th>
+                                                <th className="px-6 py-3 font-medium">Joined At</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {users.filter(u => u.role === "admin").map((u) => (
+                                                <tr key={u.id} className="hover:bg-amber-50/30">
+                                                    <td className="px-6 py-4 font-medium text-slate-900">{u.name}</td>
+                                                    <td className="px-6 py-4 text-slate-500">{u.email}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-600">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-pulse"></div>
+                                                            Full Access
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-500">
+                                                        {u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleString() : "N/A"}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <h2 className="text-lg font-serif font-bold text-slate-800">Upload to Gallery</h2>
-                                <p className="text-slate-500 mt-1">Add new photos to an event album</p>
-                            </div>
-
-                            <form onSubmit={handleUpload} className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Select Event</label>
-                                    <select
-                                        value={selectedEvent}
-                                        onChange={(e) => setSelectedEvent(e.target.value)}
-                                        className="w-full border-slate-200 rounded-lg focus:ring-sky-500 focus:border-sky-500"
-                                        required
-                                    >
-                                        <option value="">-- Choose an Event --</option>
-                                        {events.map(evt => (
-                                            <option key={evt.id} value={evt.id}>{evt.title}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Photos</label>
-                                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
-                                        <input
-                                            type="file"
-                                            multiple
-                                            accept="image/*"
-                                            onChange={(e) => setFiles(e.target.files)}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                                        <p className="text-sm text-slate-600">
-                                            {files && files.length > 0
-                                                ? `${files.length} files selected`
-                                                : "Drag & drop or click to select"}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={uploading}
-                                    className={cn(
-                                        "w-full py-2.5 px-4 text-white font-medium rounded-lg shadow-sm transition-all flex items-center justify-center",
-                                        uploading ? "bg-slate-400 cursor-not-allowed" : "bg-sky-600 hover:bg-sky-500"
-                                    )}
-                                >
-                                    {uploading ? "Uploading..." : "Start Upload"}
-                                </button>
-
-                                {uploadStatus && (
-                                    <div className={cn(
-                                        "p-4 rounded-lg text-sm text-center",
-                                        uploadStatus.includes("Success") ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"
-                                    )}>
-                                        {uploadStatus}
-                                    </div>
-                                )}
-                            </form>
+                            )}
                         </div>
                     )}
                 </div>
