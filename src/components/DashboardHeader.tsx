@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, User, LucideIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, User, LucideIcon, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Tooltip";
@@ -18,6 +18,7 @@ interface DashboardHeaderProps {
     onBack?: () => void;
     backHref?: string;
     logout?: () => void;
+    onShare?: () => void;
     showChevron?: boolean;
     icon?: React.ElementType;
 }
@@ -29,6 +30,7 @@ export function DashboardHeader({
     onBack,
     backHref,
     logout,
+    onShare,
     showChevron = false,
     icon: Icon = LayoutDashboard
 }: DashboardHeaderProps) {
@@ -87,6 +89,17 @@ export function DashboardHeader({
                         <p className="text-sm font-bold">{user?.name || "User"}</p>
                         <p className="text-xs text-slate-500 font-sans">{user?.email || ""}</p>
                     </div>
+
+                    {onShare && (
+                        <Tooltip text="Share this view">
+                            <button
+                                onClick={onShare}
+                                className="p-2 hover:bg-stone-100 rounded-lg text-emerald-600 transition-colors border border-stone-100 shadow-sm"
+                            >
+                                <Share2 className="w-5 h-5" />
+                            </button>
+                        </Tooltip>
+                    )}
 
                     {logout && (
                         <button

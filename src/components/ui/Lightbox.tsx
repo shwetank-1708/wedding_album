@@ -8,17 +8,39 @@ interface LightboxProps {
     isOpen: boolean;
     onClose: () => void;
     photo: {
+        id: string;
         src: string;
         cloudinaryPublicId?: string;
         alt?: string;
         width?: number;
         height?: number;
+        filename?: string;
     } | null;
     onNext?: () => void;
     onPrev?: () => void;
+    disableDownload?: boolean;
 }
 
-export function Lightbox({ isOpen, onClose, photo, onNext, onPrev }: LightboxProps) {
+export function Lightbox({ isOpen, onClose, photo, onNext, onPrev, disableDownload = false }: LightboxProps) {
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!photo || disableDownload) return;
+        try {
+            let downloadUrl = photo.src;
+            if (downloadUrl.includes("cloudinary.com") && downloadUrl.includes("/upload/")) {
+                downloadUrl = downloadUrl.replace("/upload/", "/upload/fl_attachment/");
+            }
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', photo.filename || 'wedding-photo');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Download failed", error);
+        }
+    };
+
     // Handle Keyboard events
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,6 +78,17 @@ export function Lightbox({ isOpen, onClose, photo, onNext, onPrev }: LightboxPro
                 >
                     {/* Background overlay to close on click */}
                     <div className="absolute inset-0 z-0 cursor-zoom-out" onClick={onClose} />
+
+                    {/* Share/Download Button */}
+                    {!disableDownload && (
+                        <button
+                            onClick={handleDownload}
+                            className="absolute top-6 right-24 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50 bg-black/20 backdrop-blur-md"
+                            aria-label="Download photo"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                        </button>
+                    )}
 
                     {/* Close Button */}
                     <button

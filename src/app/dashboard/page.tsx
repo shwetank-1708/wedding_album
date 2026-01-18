@@ -22,7 +22,10 @@ import {
     X,
     Star,
     LayoutGrid,
-    List
+    List,
+    Users,
+    Share2,
+    Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +42,12 @@ import {
     getUsers,
     updateUserRole,
     deleteUser,
-    getUserTotalStorage
+    getUserTotalStorage,
+    getDelegatedAdminsCount,
+    getGuestLogs,
+    getEventLogs,
+    getSubEvents,
+    updateGuestStatus
 } from "@/lib/firestore";
 import { uploadEventImage } from "@/lib/storage";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -76,6 +84,13 @@ export default function UserDashboard() {
     // Permissions State
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
+    const [delegatedCount, setDelegatedCount] = useState(0);
+    const [activePermissionTab, setActivePermissionTab] = useState<"admin_details" | "guest_user">("admin_details");
+    const [trafficLogs, setTrafficLogs] = useState<any[]>([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const [selectedLogEventId, setSelectedLogEventId] = useState<string>("all");
+    const [selectedUserToAssign, setSelectedUserToAssign] = useState<string>("");
+    const [assignedEventsForSelect, setAssignedEventsForSelect] = useState<string[]>([]);
 
     // Form State
     const [eventName, setEventName] = useState("");
@@ -91,21 +106,22 @@ export default function UserDashboard() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user && view === "manage") {
+        if (user && user.uid && view === "manage") {
             fetchUserEvents();
             fetchStorageStats();
-        } else if (user && view === "permissions") {
+        } else if (user && user.uid && view === "permissions") {
+            fetchUserEvents();
             fetchUsersList();
+            fetchDelegatedCount();
+            fetchTrafficLogs();
         }
-    }, [user, view, manageLevel, selectedMainEvent]);
+    }, [user, view, activePermissionTab, selectedLogEventId, manageLevel, selectedMainEvent]);
 
     useEffect(() => {
-        if (selectedEventId) {
+        if (selectedEventId && (manageMode === "add-image" || manageLevel === "photos")) {
             fetchEventPhotos();
-        } else {
-            setCurrentEventPhotos([]);
         }
-    }, [selectedEventId]);
+    }, [selectedEventId, manageMode, manageLevel]);
 
     const compressImage = async (file: File): Promise<File> => {
         // Only compress if larger than 5MB
@@ -156,14 +172,46 @@ export default function UserDashboard() {
     };
 
     const fetchUserEvents = async () => {
-        if (!user) return;
+        if (!user || !user.uid) return;
         setLoadingEvents(true);
-        // Using email as unique identifier for user-created content
-        const type = manageLevel === "events" ? "main" : "sub";
-        const parentId = (manageLevel === "galleries" || manageLevel === "photos") ? selectedMainEvent?.id : undefined;
+        const type = (view === "permissions" || manageLevel === "events") ? "main" : "sub";
+        const parentId = (view === "manage" && (manageLevel === "galleries" || manageLevel === "photos")) ? selectedMainEvent?.id : undefined;
 
-        const events = await getUserEvents(user.email || user.name, type, parentId, selectedMainEvent?.legacyId);
-        setUserEvents(events);
+        // Identity Pool for authorship checks
+        const identifiers = [user.uid];
+        if (user.email) identifiers.push(user.email);
+        if (user.delegatedBy) identifiers.push(user.delegatedBy);
+
+        if (type === "sub" && parentId) {
+            // ... existing complex sub-event logic ...
+            const byRelationship = await getSubEvents(parentId, selectedMainEvent?.legacyId);
+            const byIdentity = await getUserEvents(identifiers, type, parentId, selectedMainEvent?.legacyId);
+            const combined = [...byRelationship];
+            byIdentity.forEach(evt => {
+                if (!combined.some(e => e.id === evt.id)) {
+                    combined.push(evt);
+                }
+            });
+
+            const sorted = combined.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+
+            // Filter by assignedEvents if the current user is an Event Admin
+            if (user.role === 'admin' && user.roleType === 'event' && user.assignedEvents) {
+                setUserEvents(sorted.filter(e => user.assignedEvents?.includes(e.id) || e.parentId === parentId));
+            } else {
+                setUserEvents(sorted);
+            }
+        } else {
+            // Root level: Fetch by identity pool
+            const events = await getUserEvents(identifiers, type, parentId, selectedMainEvent?.legacyId);
+
+            // Filter by assignedEvents if the current user is an Event Admin
+            if (user.role === 'admin' && user.roleType === 'event' && user.assignedEvents) {
+                setUserEvents(events.filter(e => user.assignedEvents?.includes(e.id)));
+            } else {
+                setUserEvents(events);
+            }
+        }
         setLoadingEvents(false);
     };
 
@@ -222,7 +270,9 @@ export default function UserDashboard() {
         setLoadingUsers(true);
         try {
             const users = await getUsers();
-            setAllUsers(users);
+            // Sort all users alphabetically by name
+            const sortedUsers = users.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+            setAllUsers(sortedUsers);
         } catch (error) {
             console.error("Error fetching users:", error);
         } finally {
@@ -230,12 +280,59 @@ export default function UserDashboard() {
         }
     };
 
-    const handleUpdateRole = async (uid: string, newRole: string) => {
-        const success = await updateUserRole(uid, newRole);
+    const fetchDelegatedCount = async () => {
+        if (!user) return;
+        const count = await getDelegatedAdminsCount(user.uid);
+        setDelegatedCount(count);
+    };
+
+    const fetchTrafficLogs = async () => {
+        if (!user) return;
+        setLoadingLogs(true);
+        try {
+            // Enforce strict identity scoping for everyone (Primary, Event, and Web Admins)
+            // This ensures guest activity is only visible on the relevant dashboard.
+            const identifiers = [user.uid];
+            if (user.email) identifiers.push(user.email);
+            if (user.delegatedBy) identifiers.push(user.delegatedBy);
+
+            const logs = await (selectedLogEventId === "all"
+                ? getGuestLogs(identifiers)
+                : getEventLogs(selectedLogEventId));
+
+            // Filter by assignedEvents if the current user is an Event Admin
+            if (user.role === 'admin' && user.roleType === 'event' && user.assignedEvents) {
+                setTrafficLogs(logs.filter(log => user.assignedEvents?.includes(log.parentEventId) || user.assignedEvents?.includes(log.eventId)));
+            } else {
+                setTrafficLogs(logs);
+            }
+        } catch (error) {
+            console.error("Error fetching logs:", error);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
+    const handleUpdateUserRole = async (targetUid: string, currentRole: string, roleType: 'primary' | 'event' = 'primary', assignedEvents: string[] = []) => {
+        if (!user) return;
+
+        const isPromoting = currentRole !== "admin";
+
+        if (isPromoting && delegatedCount >= 2) {
+            setMessage("You can only have a maximum of 2 delegated admins.");
+            setStatus("error");
+            setTimeout(() => setStatus("idle"), 3000);
+            return;
+        }
+
+        const newRole = isPromoting ? "admin" : "user";
+        const success = await updateUserRole(targetUid, newRole, user.uid, roleType, assignedEvents);
+
         if (success) {
-            setMessage("User role updated successfully!");
+            setMessage(`User successfully ${isPromoting ? "promoted to Admin" : "demoted to User"}.`);
             setStatus("success");
             fetchUsersList();
+            fetchDelegatedCount();
         } else {
             setMessage("Failed to update user role.");
             setStatus("error");
@@ -243,10 +340,10 @@ export default function UserDashboard() {
         setTimeout(() => setStatus("idle"), 3000);
     };
 
-    const handleDeleteUserAccount = async (uid: string) => {
+    const handleDeleteUserAccount = async (id: string) => {
         if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
 
-        const success = await deleteUser(uid);
+        const success = await deleteUser(id);
         if (success) {
             setMessage("User deleted successfully!");
             setStatus("success");
@@ -298,7 +395,7 @@ export default function UserDashboard() {
                 date: new Date().toLocaleDateString(),
                 coverImage: randomPlaceholder,
                 description: isSubEvent ? `Gallery of ${selectedMainEvent.title}` : `Main Event: ${eventName}`,
-                createdBy: user.email || "anonymous",
+                createdBy: user.uid, // Using secure UID for new events
                 type: isSubEvent ? "sub" : "main",
                 ...(isSubEvent && { parentId: selectedMainEvent.id })
             };
@@ -540,6 +637,13 @@ export default function UserDashboard() {
                         router.push("/");
                     }
                 }}
+                onShare={(manageLevel === "photos" && selectedEventId) ? () => {
+                    const url = `${window.location.origin}/events/${selectedEventId}?shared=true`;
+                    navigator.clipboard.writeText(url);
+                    setMessage("Share link copied! 🔗");
+                    setStatus("success");
+                    setTimeout(() => setStatus("idle"), 2000);
+                } : undefined}
                 logout={logout}
                 showChevron={view !== "main"}
             />
@@ -721,6 +825,22 @@ export default function UserDashboard() {
                                                                 >
                                                                     <Camera className="w-4 h-4 text-purple-500" />
                                                                     <span>Edit Photos</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const url = `${window.location.origin}/events/${evt.id}?shared=true`;
+                                                                        navigator.clipboard.writeText(url);
+                                                                        setMessage("Share link copied! 🔗");
+                                                                        setStatus("success");
+                                                                        setTimeout(() => setStatus("idle"), 2000);
+                                                                        setActiveMenu(null);
+                                                                    }}
+                                                                    className="w-full px-5 py-3 text-left text-sm font-bold flex items-center space-x-3 hover:bg-stone-50 transition-colors border-t border-stone-50"
+                                                                    title="Copy shareable magic link"
+                                                                >
+                                                                    <Share2 className="w-4 h-4 text-emerald-500" />
+                                                                    <span>Share Link</span>
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
@@ -1186,86 +1306,345 @@ export default function UserDashboard() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                         >
-                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-4">
-                                <div>
-                                    <h2 className="text-3xl font-bold mb-2 font-serif text-slate-800">Permissions & Access</h2>
-                                    <p className="text-slate-500 font-sans">Manage user roles and control access to your galleries.</p>
-                                </div>
-                            </div>
+                            {view === "permissions" && (
+                                <div className="space-y-12">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-12 h-12 bg-slate-900 rounded-[1.2rem] flex items-center justify-center text-white shadow-xl shadow-slate-200">
+                                                <ShieldCheck size={24} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-3xl font-bold mb-1 font-serif text-slate-800">Permissions & Traffic</h2>
+                                                <p className="text-slate-500 font-sans text-sm">Manage your team and monitor guest access.</p>
+                                            </div>
+                                        </div>
 
-                            {loadingUsers ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <Loader2 className="w-10 h-10 animate-spin text-royal-gold" />
-                                </div>
-                            ) : (
-                                <div className="bg-white rounded-[2.5rem] shadow-sm border border-stone-100 overflow-hidden">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="bg-stone-50 border-b border-stone-100">
-                                                    <th className="px-8 py-5 text-sm font-bold uppercase tracking-wider text-stone-400">User</th>
-                                                    <th className="px-8 py-5 text-sm font-bold uppercase tracking-wider text-stone-400">Role</th>
-                                                    <th className="px-8 py-5 text-sm font-bold uppercase tracking-wider text-stone-400">Status</th>
-                                                    <th className="px-8 py-5 text-sm font-bold uppercase tracking-wider text-stone-400 text-right">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-stone-50">
-                                                {allUsers.map((u) => (
-                                                    <tr key={u.id} className="hover:bg-stone-50/50 transition-colors">
-                                                        <td className="px-8 py-6">
-                                                            <div className="flex items-center">
-                                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold mr-4">
-                                                                    {u.name.charAt(0)}
+                                        <div className="flex bg-stone-100 p-1.5 rounded-2xl overflow-x-auto scroller-hidden">
+                                            <button
+                                                onClick={() => setActivePermissionTab("admin_details")}
+                                                className={cn(
+                                                    "px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+                                                    activePermissionTab === "admin_details" ? "bg-white text-stone-900 shadow-sm" : "text-stone-400 hover:text-stone-600"
+                                                )}
+                                            >
+                                                Admin Details
+                                            </button>
+                                            <button
+                                                onClick={() => setActivePermissionTab("guest_user")}
+                                                className={cn(
+                                                    "px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap",
+                                                    activePermissionTab === "guest_user" ? "bg-white text-stone-900 shadow-sm" : "text-stone-400 hover:text-stone-600"
+                                                )}
+                                            >
+                                                Guest User
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {activePermissionTab === "admin_details" ? (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                                            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 font-serif">Primary Administrators</h3>
+                                                        <p className="text-stone-400 text-xs font-sans uppercase tracking-widest mt-1">Full account management access</p>
+                                                    </div>
+                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600">
+                                                        <ShieldCheck size={20} />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    {allUsers.filter(u => u.role === 'admin' && (u.delegatedBy === user?.uid || u.id === user?.uid) && (u.roleType === 'primary' || !u.roleType)).length > 0 ? (
+                                                        allUsers.filter(u => u.role === 'admin' && (u.delegatedBy === user?.uid || u.id === user?.uid) && (u.roleType === 'primary' || !u.roleType)).map((u) => (
+                                                            <div key={u.id} className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                                                                <div className="flex items-center space-x-4">
+                                                                    <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                                                                        {u.name.charAt(0)}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-slate-800 font-bold text-sm">{u.name} {u.id === user?.uid && "(You)"}</p>
+                                                                        <p className="text-stone-400 text-[10px] font-sans">{u.email}</p>
+                                                                    </div>
+                                                                </div>
+                                                                {u.id !== user?.uid && (
+                                                                    <button
+                                                                        onClick={() => handleUpdateUserRole(u.id, "admin")}
+                                                                        className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                                                                    >
+                                                                        Revoke
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="py-10 text-center border-2 border-dashed border-stone-100 rounded-3xl">
+                                                            <p className="text-stone-400 text-sm font-sans italic">No primary admins assigned.</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-8 pt-8 border-t border-stone-100">
+                                                    <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest mb-4">Promote to Primary</p>
+                                                    <div className="flex gap-4">
+                                                        <select
+                                                            className="flex-1 px-4 py-3 bg-stone-100 border-none rounded-2xl text-xs font-bold font-sans outline-none focus:ring-2 focus:ring-slate-200 transition-all"
+                                                            onChange={(e) => {
+                                                                if (e.target.value) handleUpdateUserRole(e.target.value, "user", "primary");
+                                                            }}
+                                                            value=""
+                                                        >
+                                                            <option value="">Select a user...</option>
+                                                            {allUsers.filter(u => u.id !== user?.uid && (u.role !== 'admin' || (u.role === 'admin' && u.delegatedBy !== user?.uid))).map(u => (
+                                                                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-slate-800 font-serif">Event Administrators</h3>
+                                                        <p className="text-stone-400 text-xs font-sans uppercase tracking-widest mt-1">Management per event</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    {loadingEvents ? (
+                                                        <div className="flex items-center justify-center py-12">
+                                                            <Loader2 className="w-8 h-8 animate-spin text-royal-gold" />
+                                                        </div>
+                                                    ) : userEvents.filter(e => e.type === 'main' || (!e.type && !e.parentId)).length > 0 ? (
+                                                        userEvents.filter(e => e.type === 'main' || (!e.type && !e.parentId)).map(event => {
+                                                            const admins = allUsers.filter(u =>
+                                                                u.role === 'admin' &&
+                                                                u.delegatedBy === user?.uid &&
+                                                                u.roleType === 'event' &&
+                                                                u.assignedEvents?.includes(event.id)
+                                                            );
+                                                            return (
+                                                                <div key={event.id} className="p-6 bg-stone-50 rounded-[2rem] border border-stone-100 space-y-4">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center space-x-3">
+                                                                            <div className="w-2 h-2 rounded-full bg-royal-gold"></div>
+                                                                            <span className="text-sm font-bold text-slate-700">{event.title}</span>
+                                                                        </div>
+                                                                        <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">
+                                                                            {admins.length} {admins.length === 1 ? 'Admin' : 'Admins'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="space-y-3">
+                                                                        {admins.map(admin => (
+                                                                            <div key={admin.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-stone-100">
+                                                                                <div className="flex items-center space-x-3">
+                                                                                    <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[10px]">
+                                                                                        {admin.name.charAt(0)}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-slate-800 font-bold text-[11px]">{admin.name}</p>
+                                                                                        <p className="text-stone-400 text-[9px] font-sans">{admin.email}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={() => handleUpdateUserRole(admin.id, "admin")}
+                                                                                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                                                                >
+                                                                                    <Trash2 size={14} />
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                        {admins.length === 0 && (
+                                                                            <p className="text-[10px] text-stone-300 font-sans italic pl-5">No specific admins assigned to this event.</p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className="py-6 text-center border-2 border-dashed border-stone-100 rounded-2xl">
+                                                            <p className="text-stone-400 text-xs font-sans italic">No events created yet.</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Promotion UI relocated here for Admin Details context */}
+                                                <div className="mt-10 pt-10 border-t border-stone-100">
+                                                    <h4 className="text-[10px] text-stone-400 font-bold uppercase tracking-widest mb-6">Promote to Event Admin</h4>
+                                                    <div className="space-y-6 bg-stone-50 p-6 rounded-[2rem] border border-stone-100">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest ml-1">1. Select User</label>
+                                                            <select
+                                                                className="w-full px-4 py-3 bg-white border border-stone-200 rounded-2xl text-xs font-bold font-sans outline-none focus:ring-2 focus:ring-royal-gold/20 transition-all font-sans"
+                                                                onChange={(e) => setSelectedUserToAssign(e.target.value)}
+                                                                value={selectedUserToAssign}
+                                                            >
+                                                                <option value="">Select a user...</option>
+                                                                {allUsers.filter(u => u.id !== user?.uid && (u.role !== 'admin' || (u.role === 'admin' && u.delegatedBy !== user?.uid))).map(u => (
+                                                                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-widest ml-1">2. Assign Galleries</label>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-2 scroller-hidden">
+                                                                {userEvents.filter(e => e.type === 'main' || (!e.type && !e.parentId)).map(e => (
+                                                                    <label key={e.id} className="flex items-center p-3 bg-white rounded-xl border border-stone-100 cursor-pointer hover:border-royal-gold/20 transition-all">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="accent-royal-gold w-4 h-4 rounded"
+                                                                            checked={assignedEventsForSelect.includes(e.id)}
+                                                                            onChange={(ev) => {
+                                                                                if (ev.target.checked) {
+                                                                                    setAssignedEventsForSelect([...assignedEventsForSelect, e.id]);
+                                                                                } else {
+                                                                                    setAssignedEventsForSelect(assignedEventsForSelect.filter(id => id !== e.id));
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <span className="ml-3 text-[11px] font-medium text-slate-700 truncate">{e.title}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!selectedUserToAssign) return;
+                                                                await handleUpdateUserRole(selectedUserToAssign, "user", "event", assignedEventsForSelect);
+                                                                setSelectedUserToAssign("");
+                                                                setAssignedEventsForSelect([]);
+                                                            }}
+                                                            disabled={!selectedUserToAssign}
+                                                            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl active:scale-95 disabled:bg-stone-300"
+                                                        >
+                                                            Create Event Admin
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            {/* Grouping Guest Logs by Event */}
+                                            {userEvents.filter(e => e.type === 'main' || (!e.type && !e.parentId)).map(event => {
+                                                const eventLogs = trafficLogs.filter(log => log.parentEventId === event.id || log.eventId === event.id);
+                                                const pendingCount = eventLogs.filter(l => l.status === 'pending').length;
+
+                                                return (
+                                                    <div key={event.id} className="bg-white rounded-[2.5rem] border border-stone-100 overflow-hidden shadow-sm">
+                                                        <div className="p-8 border-b border-stone-50 bg-stone-50/30 flex items-center justify-between">
+                                                            <div className="flex items-center space-x-4">
+                                                                <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-stone-100 flex items-center justify-center text-royal-gold">
+                                                                    <Users size={20} />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-slate-800 font-bold">{u.name}</p>
-                                                                    <p className="text-stone-400 text-xs font-sans">{u.email}</p>
+                                                                    <h4 className="text-lg font-bold text-slate-800 font-serif">{event.title}</h4>
+                                                                    <div className="flex items-center space-x-2 mt-0.5">
+                                                                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{eventLogs.length} Total Visits</span>
+                                                                        {pendingCount > 0 && (
+                                                                            <span className="flex items-center space-x-1 px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-bold uppercase border border-amber-100">
+                                                                                <div className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+                                                                                <span>{pendingCount} Pending</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </td>
-                                                        <td className="px-8 py-6">
-                                                            <select
-                                                                value={u.role || "user"}
-                                                                onChange={(e) => handleUpdateRole(u.id, e.target.value)}
-                                                                className="bg-transparent border-none text-slate-700 font-sans focus:ring-0 cursor-pointer hover:text-slate-900 transition-colors capitalize"
-                                                                title="Change role for this user"
-                                                            >
-                                                                <option value="user">Viewer</option>
-                                                                <option value="editor">Editor</option>
-                                                                <option value="admin">Administrator</option>
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-8 py-6">
-                                                            <span className={cn(
-                                                                "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                                                u.role === "admin" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
-                                                            )}>
-                                                                Active
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-8 py-6 text-right">
-                                                            <Tooltip text="Remove Access">
-                                                                <button
-                                                                    onClick={() => handleDeleteUserAccount(u.id)}
-                                                                    className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                                                                    disabled={u.email === user?.email}
-                                                                >
-                                                                    <Trash2 className="w-5 h-5" />
-                                                                </button>
-                                                            </Tooltip>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {allUsers.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={4} className="px-8 py-20 text-center text-stone-400">
-                                                            No users found.
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
+
+                                                            <div className="flex bg-white rounded-xl p-1 border border-stone-100">
+                                                                <div className="px-3 py-1.5 text-[10px] font-bold uppercase text-stone-400 tracking-tighter">Event ID: {event.id.slice(0, 8)}...</div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="divide-y divide-stone-50">
+                                                            {eventLogs.length > 0 ? [...eventLogs].sort((a, b) => b.loginAt?.seconds - a.loginAt?.seconds).map(log => {
+                                                                const loginDate = log.loginAt ? new Date(log.loginAt.seconds * 1000).toLocaleString('en-IN', {
+                                                                    day: '2-digit',
+                                                                    month: 'short',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                }) : 'Unknown';
+
+                                                                return (
+                                                                    <div key={log.id} className="p-6 hover:bg-stone-50/30 transition-colors flex items-center justify-between group">
+                                                                        <div className="flex items-center space-x-4">
+                                                                            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+                                                                                {(log.name || 'G').charAt(0)}
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="font-bold text-slate-800 text-sm">{log.name || 'Anonymous'}</p>
+                                                                                <div className="flex items-center space-x-3 text-[10px] text-stone-400 font-sans mt-0.5">
+                                                                                    <span className="flex items-center space-x-1">
+                                                                                        <Phone size={10} />
+                                                                                        <span>{log.phone || 'N/A'}</span>
+                                                                                    </span>
+                                                                                    <span>•</span>
+                                                                                    <span>{loginDate}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="flex items-center space-x-2">
+                                                                            {log.status === 'pending' ? (
+                                                                                <>
+                                                                                    <button
+                                                                                        onClick={async () => {
+                                                                                            await updateGuestStatus(log.id, 'approved');
+                                                                                            fetchTrafficLogs(); // Refresh
+                                                                                        }}
+                                                                                        className="px-4 py-2 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-200 active:scale-95 transition-all"
+                                                                                    >
+                                                                                        Approve
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={async () => {
+                                                                                            await updateGuestStatus(log.id, 'rejected');
+                                                                                            fetchTrafficLogs(); // Refresh
+                                                                                        }}
+                                                                                        className="px-4 py-2 bg-white text-stone-400 border border-stone-200 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100 transition-all"
+                                                                                    >
+                                                                                        Deny
+                                                                                    </button>
+                                                                                </>
+                                                                            ) : (
+                                                                                <span className={cn(
+                                                                                    "px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest border",
+                                                                                    log.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                                                                )}>
+                                                                                    {log.status || 'Approved'}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }) : (
+                                                                <div className="p-12 text-center">
+                                                                    <p className="text-stone-300 font-sans italic text-sm">No guests have visited this event yet.</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {userEvents.filter(e => e.type === 'main' || (!e.type && !e.parentId)).length === 0 && (
+                                                <div className="p-20 bg-white rounded-[3rem] border-2 border-dashed border-stone-100 flex flex-col items-center justify-center text-center">
+                                                    <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center text-stone-300 mb-6">
+                                                        <Users size={32} />
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-slate-800 font-serif mb-2">No Events Found</h3>
+                                                    <p className="text-stone-400 font-sans text-sm max-w-xs">
+                                                        Create an event in the "Manage Gallery" section to start tracking guests.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

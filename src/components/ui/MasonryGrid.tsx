@@ -19,17 +19,19 @@ interface MasonryGridProps {
     photos: Photo[];
     className?: string;
     eventSlug?: string;
+    disableDownload?: boolean;
 }
 
 import { Lightbox } from "./Lightbox";
 
-export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) {
+export function MasonryGrid({ photos, className, eventSlug, disableDownload = false }: MasonryGridProps) {
     // Track which photo is currently "downloading" to show a spinner
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     // Track which photo is currently being viewed in the Lightbox
     const [viewingPhoto, setViewingPhoto] = useState<Photo | null>(null);
 
     const handleDownload = async (photo: Photo) => {
+        if (disableDownload) return;
         setDownloadingId(photo.id);
         try {
             let downloadUrl = photo.src;
@@ -95,7 +97,7 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
 
                                 {/* Overlay & Download Button */}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-500">
-                                    {eventSlug && photo.filename && (
+                                    {eventSlug && photo.filename && !disableDownload && (
                                         <div className="absolute top-4 right-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-10">
                                             <button
                                                 onClick={(e) => {
@@ -130,6 +132,7 @@ export function MasonryGrid({ photos, className, eventSlug }: MasonryGridProps) 
                 isOpen={!!viewingPhoto}
                 photo={viewingPhoto}
                 onClose={() => setViewingPhoto(null)}
+                disableDownload={disableDownload}
                 onNext={() => {
                     const currentIndex = photos.findIndex(p => p.id === viewingPhoto?.id);
                     if (currentIndex !== -1) {

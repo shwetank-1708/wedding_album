@@ -5,7 +5,16 @@ import { getAllowedUser, logGuestLogin, createUserProfile, getUserProfile } from
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
-    user: { name: string; phone: string; role?: string; email?: string | null } | null;
+    user: {
+        uid: string;
+        name: string;
+        phone: string;
+        role?: string;
+        roleType?: 'primary' | 'event';
+        assignedEvents?: string[];
+        email?: string | null;
+        delegatedBy?: string
+    } | null;
     login: (email: string, password: string) => Promise<boolean>;
     signup: (email: string, password: string, name: string) => Promise<boolean>;
     loginWithGoogle: () => Promise<boolean>;
@@ -16,7 +25,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<{ name: string; phone: string; role?: string; email?: string | null } | null>(null);
+    const [user, setUser] = useState<{
+        uid: string;
+        name: string;
+        phone: string;
+        role?: string;
+        roleType?: 'primary' | 'event';
+        assignedEvents?: string[];
+        email?: string | null;
+        delegatedBy?: string
+    } | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -25,7 +43,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem("wedding_guest_user");
         if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                const parsed = JSON.parse(storedUser);
+                // Integrity check: sessions must have a uid now
+                if (parsed && parsed.uid) {
+                    // Silent refresh if role metadata is missing
+                    if (!parsed.roleType) {
+                        getUserProfile(parsed.uid).then(p => {
+                            const profile = p as any;
+                            if (profile) {
+                                const updated = {
+                                    ...parsed,
+                                    role: profile.role || "admin",
+                                    roleType: profile.roleType || (profile.delegatedBy ? "event" : "primary"),
+                                    assignedEvents: profile.assignedEvents || []
+                                };
+                                setUser(updated);
+                                localStorage.setItem("wedding_guest_user", JSON.stringify(updated));
+                            } else {
+                                setUser(parsed);
+                            }
+                        });
+                    } else {
+                        setUser(parsed);
+                    }
+                } else {
+                    console.warn("[Auth] Legacy session detected (missing uid). Clearing...");
+                    localStorage.removeItem("wedding_guest_user");
+                }
             } catch (e) {
                 console.error("Failed to parse stored user", e);
                 localStorage.removeItem("wedding_guest_user");
@@ -55,10 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const profile = await getUserProfile(user.uid) as any;
 
             const userData = {
-                name: profile?.name || name,
-                phone: "",
-                role: profile?.role || "user",
-                email: user.email
+                uid: userCredential.user.uid,
+                name: profile ? profile.name : "Wedding User",
+                phone: profile ? profile.phone : "No Phone",
+                role: profile ? (profile.role || "admin") : "admin",
+                roleType: profile ? (profile.roleType || "primary") : ("primary" as const),
+                assignedEvents: profile ? profile.assignedEvents : [],
+                email: userCredential.user.email,
+                delegatedBy: profile ? profile.delegatedBy : undefined
             };
             setUser(userData);
             localStorage.setItem("wedding_guest_user", JSON.stringify(userData));
@@ -107,9 +155,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const userData = {
+                uid: user.uid,
                 name: name,
                 phone: "",
-                role: "user",
+                role: "admin",
+                roleType: "primary" as const,
                 email: user.email
             };
             setUser(userData);
@@ -142,15 +192,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "user");
             const profile = await getUserProfile(googleUser.uid) as any;
 
-            const adminUser = {
-                name: profile?.name || googleUser.displayName || "Admin",
-                phone: "admin-google",
-                role: profile?.role || "admin",
-                email: googleUser.email
+            const userData = {
+                uid: result.user.uid,
+                name: result.user.displayName || "Wedding Guest",
+                phone: profile ? profile.phone : "No Phone",
+                role: profile ? profile.role : "user",
+                email: result.user.email,
+                delegatedBy: profile ? profile.delegatedBy : undefined
             };
 
-            setUser(adminUser);
-            localStorage.setItem("wedding_guest_user", JSON.stringify(adminUser));
+            setUser(userData);
+            localStorage.setItem("wedding_guest_user", JSON.stringify(userData));
             return true;
         } catch (error: any) {
             console.error("Google Login Error:", error);

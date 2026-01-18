@@ -1,5 +1,5 @@
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, orderBy, Timestamp, addDoc, setDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, orderBy, Timestamp, addDoc, setDoc, deleteDoc, updateDoc, deleteField } from "firebase/firestore";
 
 // --- Types ---
 
@@ -50,7 +50,9 @@ export async function getEvents(): Promise<Event[]> {
     try {
         const eventsCol = collection(db, "events");
         const snapshot = await getDocs(eventsCol);
-        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Event));
+        return snapshot.docs
+            .map((doc) => ({ ...doc.data(), id: doc.id } as Event))
+            .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     } catch (error) {
         console.error("Error fetching events:", error);
         return [];
@@ -80,6 +82,10 @@ export async function getEvent(id: string): Promise<Event | null> {
  * Fetches photos for a specific event with legacy ID support.
  */
 export async function getEventPhotos(eventId: string, legacyId?: string): Promise<Photo[]> {
+    if (!eventId) {
+        console.warn("[Firestore] getEventPhotos: eventId is missing.");
+        return [];
+    }
     try {
         const ids = legacyId && legacyId !== eventId ? [eventId, legacyId] : [eventId];
         const photosCol = collection(db, "photos");
@@ -183,31 +189,133 @@ export async function getAllowedUser(phone: string): Promise<any | null> {
 }
 
 /**
- * Logs a successful login to the guests collection.
+ * Logs a successful login or event access to the guests collection.
  */
-export async function logGuestLogin(name: string, phone: string) {
+export async function logGuestLogin(name: string, phone: string, eventId?: string, parentEventId?: string, eventTitle?: string, ownerId?: string) {
     try {
-        const docRef = doc(db, "guests", phone);
+        // We use a combined ID if eventId is provided to track multiple event accesses per person
+        const logId = eventId ? `${phone}_${eventId}` : phone;
+        const docRef = doc(db, "guests", logId);
+
         await setDoc(docRef, {
             name,
             phone,
-            loginAt: Timestamp.now()
-        }, { merge: true }); // Merge to update login time if they login again
+            eventId: eventId || null,
+            parentEventId: parentEventId || null,
+            parentEventOwnerId: ownerId || null,
+            eventTitle: eventTitle || "General Access",
+            loginAt: Timestamp.now(),
+            status: 'pending' // Default to pending for approval workflow
+        }, { merge: true });
     } catch (error) {
         console.error("Error logging guest login:", error);
     }
 }
 
 /**
- * Fetches all guest logs.
+ * Updates the status of a guest request (e.g., approved, rejected).
  */
-export async function getGuestLogs(): Promise<any[]> {
+export async function updateGuestStatus(logId: string, status: 'pending' | 'approved' | 'rejected') {
     try {
+        const docRef = doc(db, "guests", logId);
+        await updateDoc(docRef, { status });
+        return true;
+    } catch (error) {
+        console.error("Error updating guest status:", error);
+        return false;
+    }
+}
+
+/**
+ * Listens for changes in a guest's status.
+ */
+export function onGuestStatusChange(logId: string, callback: (status: string) => void) {
+    const { onSnapshot } = require("firebase/firestore");
+    const docRef = doc(db, "guests", logId);
+    return onSnapshot(docRef, (doc: any) => {
+        if (doc.exists()) {
+            callback(doc.data().status);
+        }
+    });
+}
+
+/**
+ * Fetches guest logs for a specific event or parent event.
+ */
+export async function getEventLogs(eventId: string): Promise<any[]> {
+    if (!eventId) {
+        console.warn("[Firestore] getEventLogs: eventId is missing.");
+        return [];
+    }
+    try {
+        const guestsCol = collection(db, "guests");
+        const q = query(
+            guestsCol,
+            where("parentEventId", "==", eventId),
+            orderBy("loginAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        // Fallback if index is missing or eventId check
         const guestsCol = collection(db, "guests");
         const q = query(guestsCol, orderBy("loginAt", "desc"));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data());
-    } catch (error) {
+        const allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return allLogs.filter((log: any) => log.eventId === eventId || log.parentEventId === eventId);
+    }
+}
+
+/**
+ * Fetches guest logs, optionally filtered by ownerId(s).
+ */
+export async function getGuestLogs(ownerIds?: string | string[]): Promise<any[]> {
+    try {
+        const guestsCol = collection(db, "guests");
+        let q;
+        if (ownerIds) {
+            const ids = Array.isArray(ownerIds) ? ownerIds.filter(Boolean) : [ownerIds].filter(Boolean);
+            if (ids.length > 0) {
+                q = query(
+                    guestsCol,
+                    where("parentEventOwnerId", "in", ids),
+                    orderBy("loginAt", "desc")
+                );
+            } else {
+                q = query(guestsCol, orderBy("loginAt", "desc"));
+            }
+        } else {
+            q = query(guestsCol, orderBy("loginAt", "desc"));
+        }
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error: any) {
+        // Fallback for missing index: fetch all and filter in-memory
+        if (error.message?.includes("index")) {
+            console.warn("[Firestore] getGuestLogs: Index missing. Falling back to in-memory filter.");
+            try {
+                const guestsCol = collection(db, "guests");
+                const snapshot = await getDocs(guestsCol);
+                let logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+
+                if (ownerIds) {
+                    const ids = Array.isArray(ownerIds) ? ownerIds.filter(Boolean) : [ownerIds].filter(Boolean);
+                    if (ids.length > 0) {
+                        logs = logs.filter(log => ids.includes(log.parentEventOwnerId));
+                    }
+                }
+
+                // Sort in-memory
+                return logs.sort((a, b) => {
+                    const timeA = a.loginAt?.toMillis?.() || 0;
+                    const timeB = b.loginAt?.toMillis?.() || 0;
+                    return timeB - timeA;
+                });
+            } catch (fallbackError) {
+                console.error("Critical error in getGuestLogs fallback:", fallbackError);
+                return [];
+            }
+        }
         console.error("Error fetching guest logs:", error);
         return [];
     }
@@ -282,7 +390,7 @@ export async function denyRequest(phone: string) {
 /**
  * Creates or updates a user profile in the 'users' collection.
  */
-export async function createUserProfile(uid: string, name: string, email: string, role: string = "user") {
+export async function createUserProfile(uid: string, name: string, email: string, role: string = "admin") {
     try {
         const docRef = doc(db, "users", uid);
         const docSnap = await getDoc(docRef);
@@ -294,6 +402,7 @@ export async function createUserProfile(uid: string, name: string, email: string
             name,
             email,
             role: existingData.role || role,
+            roleType: existingData.roleType || (existingData.delegatedBy ? 'event' : 'primary'),
             createdAt: existingData.createdAt || Timestamp.now(),
             lastLogin: Timestamp.now()
         }, { merge: true });
@@ -337,13 +446,20 @@ export async function getUsers(): Promise<any[]> {
 }
 
 /**
- * Fetches events created by a specific user, optionally filtered by type.
+ * Fetches events created by a specific user or group of identifiers, optionally filtered by type.
  * Uses a broad fetch + client-side filter to be 100% resilient to legacy data & index building.
  */
-export async function getUserEvents(userId: string, type?: 'main' | 'sub', parentId?: string, legacyParentId?: string): Promise<Event[]> {
+export async function getUserEvents(userIds: string | string[], type?: 'main' | 'sub', parentId?: string, legacyParentId?: string): Promise<Event[]> {
+    const ids = Array.isArray(userIds) ? userIds.filter(Boolean) : [userIds].filter(Boolean);
+
+    if (ids.length === 0) {
+        console.warn("[Firestore] getUserEvents: userIds are missing.");
+        return [];
+    }
+
     try {
         const eventsCol = collection(db, "events");
-        const q = query(eventsCol, where("createdBy", "==", userId));
+        const q = query(eventsCol, where("createdBy", "in", ids));
         const snapshot = await getDocs(q);
         let events = snapshot.docs.map(doc => {
             const data = doc.data() as any;
@@ -353,6 +469,7 @@ export async function getUserEvents(userId: string, type?: 'main' | 'sub', paren
             }
             return event;
         });
+        // ...
 
         // perform filtering client-side for maximum resilience
         let filteredEvents = [...events];
@@ -379,11 +496,11 @@ export async function getUserEvents(userId: string, type?: 'main' | 'sub', paren
             });
         }
 
-        // Sort by date (descending)
+        // Sort by title alphabetically
         return filteredEvents.sort((a, b) => {
-            const dateA = a.date || "";
-            const dateB = b.date || "";
-            return dateB.localeCompare(dateA);
+            const titleA = a.title || "";
+            const titleB = b.title || "";
+            return titleA.localeCompare(titleB);
         });
     } catch (error: any) {
         console.error("Error fetching user events:", error);
@@ -395,18 +512,21 @@ export async function getUserEvents(userId: string, type?: 'main' | 'sub', paren
  * Fetches all sub-events for a given parent event ID with legacy support.
  */
 export async function getSubEvents(parentId: string, legacyParentId?: string): Promise<Event[]> {
+    if (!parentId) {
+        console.warn("[Firestore] getSubEvents: parentId is missing.");
+        return [];
+    }
     try {
         const ids = legacyParentId && legacyParentId !== parentId ? [parentId, legacyParentId] : [parentId];
         const eventsCol = collection(db, "events");
         const q = query(
             eventsCol,
-            where("parentId", "in", ids),
-            orderBy("date", "desc")
+            where("parentId", "in", ids)
         );
         const snapshot = await getDocs(q);
 
         // Map and filter out the parent itself to prevent circular display
-        return snapshot.docs
+        const subEvents = snapshot.docs
             .map(doc => {
                 const data = doc.data() as any;
                 const event = { ...data, id: doc.id } as Event;
@@ -416,6 +536,9 @@ export async function getSubEvents(parentId: string, legacyParentId?: string): P
                 return event;
             })
             .filter(e => e.id !== parentId && (!legacyParentId || e.id !== legacyParentId));
+
+        // Sort by title alphabetically
+        return subEvents.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     } catch (error) {
         console.error("Error fetching sub-events:", error);
         return [];
@@ -423,16 +546,52 @@ export async function getSubEvents(parentId: string, legacyParentId?: string): P
 }
 
 /**
- * Updates a user's role in Firestore.
+ * Updates a user's role in Firestore, tracking who Delegated the role.
  */
-export async function updateUserRole(uid: string, newRole: string) {
+export async function updateUserRole(uid: string, newRole: string, delegatedBy?: string, roleType?: 'primary' | 'event', assignedEvents?: string[]) {
+    if (!uid) {
+        console.warn("[Firestore] updateUserRole: uid is missing.");
+        return false;
+    }
     try {
         const docRef = doc(db, "users", uid);
-        await updateDoc(docRef, { role: newRole });
+        const updateData: any = { role: newRole };
+
+        if (newRole === "admin") {
+            if (delegatedBy) updateData.delegatedBy = delegatedBy;
+            if (roleType) updateData.roleType = roleType;
+            if (assignedEvents) updateData.assignedEvents = assignedEvents;
+        } else {
+            // Cleanup on demotion
+            updateData.delegatedBy = deleteField();
+            updateData.roleType = deleteField();
+            updateData.assignedEvents = deleteField();
+        }
+
+        await updateDoc(docRef, updateData);
         return true;
     } catch (error) {
         console.error("Error updating user role:", error);
         return false;
+    }
+}
+
+/**
+ * Counts how many people a specific user has promoted to 'admin' or 'editor'.
+ */
+export async function getDelegatedAdminsCount(ownerUid: string): Promise<number> {
+    if (!ownerUid) {
+        console.warn("[Firestore] getDelegatedAdminsCount: ownerUid is missing.");
+        return 0;
+    }
+    try {
+        const usersCol = collection(db, "users");
+        const q = query(usersCol, where("delegatedBy", "==", ownerUid));
+        const snapshot = await getDocs(q);
+        return snapshot.size;
+    } catch (error) {
+        console.error("Error counting delegated admins:", error);
+        return 0;
     }
 }
 
@@ -489,7 +648,15 @@ export async function getEventById(eventId: string): Promise<Event | null> {
 
         // 1. Point Read (Most efficient)
         const docRef = doc(db, "events", decodedId);
-        const docSnap = await getDoc(docRef);
+        console.log(`[Firestore] getEventById: Attempting point read for "${decodedId}"...`);
+        let docSnap;
+        try {
+            docSnap = await getDoc(docRef);
+            console.log(`[Firestore] getEventById: Point read completed. Exists: ${docSnap.exists()}`);
+        } catch (e: any) {
+            console.error(`[Firestore] getEventById: Point read FAILED for "${decodedId}". Permission error likely here:`, e.message || e);
+            throw e; // Reraise to be caught by the outer catch
+        }
 
         if (docSnap.exists()) {
             console.log(`[Firestore] getEventById: Successfully found event by document ID: ${docSnap.id}`);
@@ -502,12 +669,20 @@ export async function getEventById(eventId: string): Promise<Event | null> {
             return event;
         }
 
-        console.warn(`[Firestore] getEventById: No document found for ID: "${decodedId}". Attempting fallback search...`);
+        console.warn(`[Firestore] getEventById: No document found via point read for ID: "${decodedId}". Attempting fallback query...`);
 
         // 2. Query Search (Backup for index/ID consistency issues)
         const eventsCol = collection(db, "events");
         const q = query(eventsCol, where("id", "==", decodedId));
-        const querySnap = await getDocs(q);
+        console.log(`[Firestore] getEventById: Attempting query search (id == "${decodedId}")...`);
+        let querySnap;
+        try {
+            querySnap = await getDocs(q);
+            console.log(`[Firestore] getEventById: Query search completed. Results: ${querySnap.size}`);
+        } catch (e: any) {
+            console.error(`[Firestore] getEventById: Query search FAILED for "${decodedId}":`, e.message || e);
+            throw e;
+        }
 
         if (!querySnap.empty) {
             const firstDoc = querySnap.docs[0];
@@ -520,37 +695,7 @@ export async function getEventById(eventId: string): Promise<Event | null> {
             return event;
         }
 
-        // 3. Scan Search (Last Resort - only if index is missing/building)
-        console.warn(`[Firestore] getEventById: Fallback query empty. Performing collection scan as last resort...`);
-        const allEvents = await getDocs(eventsCol);
-        console.log(`[Firestore] getEventById: Last resort scan. Total docs: ${allEvents.size}. Searching for: "${decodedId}"`);
-
-        // Literal match first
-        let match = allEvents.docs.find(d => d.id === decodedId || (d.data() as any).id === decodedId);
-
-        // Fuzzy match second (DIAGNOSTIC)
-        if (!match && decodedId && decodedId.length >= 3) {
-            match = allEvents.docs.find(d =>
-                d.id.startsWith(decodedId) ||
-                ((d.data() as any).id && (d.data() as any).id.startsWith(decodedId))
-            );
-
-            if (match) {
-                console.warn(`[Firestore] getEventById: ⚠️ HYPER-FUZZY MATCH FOUND! Requested: "${decodedId}", Resolved to: "${match.id}". THIS INDICATES A TRUNCATION BUG UPSTREAM.`);
-            }
-        }
-
-        if (match) {
-            console.log(`[Firestore] getEventById: Found match. ID: ${match.id}`);
-            const data = match.data() as any;
-            const event = { ...data, id: match.id } as Event;
-            if (data.id && data.id !== match.id) {
-                event.legacyId = data.id;
-            }
-            return event;
-        }
-
-        console.error(`[Firestore][v2-fuzzy] getEventById: Event "${decodedId}" NOT FOUND after full fuzzy scan. Queried ID (JSON): ${JSON.stringify(decodedId)}. All DocIDs in DB: ${JSON.stringify(allEvents.docs.map(d => d.id))}`);
+        console.warn(`[Firestore] getEventById: No document found for ID: "${decodedId}" in point read or fallback query.`);
         return null;
     } catch (error: any) {
         console.error("[Firestore] getEventById Error:", error.message || error);

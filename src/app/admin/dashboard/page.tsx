@@ -20,7 +20,8 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (!loading) {
-            if (!user || user.role !== "admin") {
+            // Only allow true global admins (not delegated ones)
+            if (!user || user.role !== "admin" || user.delegatedBy) {
                 router.push("/login");
             } else {
                 fetchInitialData();
@@ -48,7 +49,7 @@ export default function Dashboard() {
         }
     };
 
-    if (loading || !user || user.role !== "admin") {
+    if (loading || !user || user.role !== "admin" || user.delegatedBy) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="animate-pulse flex flex-col items-center">

@@ -7,9 +7,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Camera, ArrowRight, Loader2, Image as ImageIcon, ChevronLeft } from "lucide-react";
+import { Camera, ArrowRight, Loader2, Image as ImageIcon, ChevronLeft, Share2 } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+import { Tooltip } from "@/components/Tooltip";
 import { getEventById } from "@/lib/firestore";
 
 export default function GalleryPage() {
@@ -35,12 +36,24 @@ export default function GalleryPage() {
     }, [user, loading]);
 
     const fetchEvents = async () => {
-        if (!user) return;
+        if (!user || !user.uid) return;
         setLoadingEvents(true);
         try {
-            // Always fetch main events at the root level
-            const userEvents = await getUserEvents(user.email || user.name, "main");
-            setEvents(userEvents);
+            // Identity Pool for authorship checks (Consistent with Dashboard)
+            const identifiers = [user.uid];
+            if (user.email) identifiers.push(user.email);
+            if (user.delegatedBy) identifiers.push(user.delegatedBy);
+
+            // Fetch main events using the same logic as the dashboard oversight
+            const rawEvents = await getUserEvents(identifiers, "main");
+
+            // Filter by assignedEvents if the current user is an Event Admin
+            let visibleEvents = [...rawEvents];
+            if (user.role === 'admin' && user.roleType === 'event' && user.assignedEvents) {
+                visibleEvents = rawEvents.filter(e => user.assignedEvents?.includes(e.id));
+            }
+
+            setEvents(visibleEvents);
         } catch (error) {
             console.error("Error fetching events:", error);
         } finally {
@@ -122,16 +135,37 @@ export default function GalleryPage() {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:via-black/40 transition-all" />
 
-                                    <div className="absolute bottom-0 left-0 p-8 w-full text-left">
-                                        <p className="text-royal-gold text-xs font-bold uppercase tracking-widest mb-3">
-                                            {event.date}
-                                        </p>
-                                        <h3 className="text-2xl font-bold text-white mb-4 italic tracking-tight">
-                                            {event.title}
-                                        </h3>
-                                        <div className="flex items-center text-white text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                                            View Galleries
-                                            <ArrowRight className="w-4 h-4 ml-2" />
+                                    <div className="absolute bottom-0 left-0 p-8 w-full text-left flex items-end justify-between">
+                                        <div>
+                                            <p className="text-royal-gold text-xs font-bold uppercase tracking-widest mb-3">
+                                                {event.date}
+                                            </p>
+                                            <h3 className="text-2xl font-bold text-white mb-4 italic tracking-tight">
+                                                {event.title}
+                                            </h3>
+                                            <div className="flex items-center text-white text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                                View Galleries
+                                                <ArrowRight className="w-4 h-4 ml-2" />
+                                            </div>
+                                        </div>
+
+                                        {/* Share Action on Card */}
+                                        <div className="relative">
+                                            <Tooltip text="Share Event">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const url = `${window.location.origin}/events/${event.id}?shared=true`;
+                                                        navigator.clipboard.writeText(url);
+                                                        // Visual feedback is handled by the tooltip text change in a real app, 
+                                                        // but for now we'll keep it simple as the user requested "Share this event".
+                                                        alert("Link copied to clipboard!");
+                                                    }}
+                                                    className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white hover:bg-royal-gold hover:text-white transition-all active:scale-95 border border-white/20 group/share"
+                                                >
+                                                    <Share2 className="w-4 h-4" />
+                                                </button>
+                                            </Tooltip>
                                         </div>
                                     </div>
                                 </div>

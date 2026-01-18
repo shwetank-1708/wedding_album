@@ -1,1 +1,105 @@
-rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { match /{document=**} { allow read, write: if request.auth != null; } } }
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- BASIC AUTH HELPERS ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Single-fetch user data helper to minimize get() calls and quotas
+    function getUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check if the current user is any type of admin
+    function isAdmin() {
+      return isAuthenticated() && getUser().role == "admin";
+    }
+
+    // Check if the current user is a global Super Admin (Account Owner)
+    function isSuperAdmin() {
+      return isAdmin() && 
+             (!("delegatedBy" in getUser()) || getUser().delegatedBy == null || getUser().delegatedBy == "");
+    }
+    
+    // Check if the user is the specific owner
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    // Helper to extract owner ID from document data (supports 'createdBy' and 'userId')
+    function getDocOwnerId(data) {
+      return "createdBy" in data ? data.createdBy : ("userId" in data ? data.userId : null);
+    }
+
+    // Authorizes management if user is SuperAdmin, direct owner, or primary admin for that owner
+    function isManagementAuthorized(ownerId) {
+      return isAdmin() && (
+        isSuperAdmin() || 
+        request.auth.uid == ownerId ||
+        (getUser().delegatedBy == ownerId && getUser().roleType == "primary")
+      );
+    }
+
+    // Check if user is an event admin for a specific event
+    function isEventAdmin(eventId) {
+      return isAdmin() && 
+             "assignedEvents" in getUser() && 
+             (eventId in getUser().assignedEvents);
+    }
+
+    // --- COLLECTION RULES ---
+
+    // EVENTS: Public read for sharing, Admin-only management
+    match /events/{eventId} {
+      allow read: if true;
+      
+      // CREATE: Allow if authorized for the new creation's pool or its parent's pool
+      allow create: if isAdmin() && (
+        // Case 1: Root event - Authorized for the intended creator ID
+        (request.resource.data.parentId == null && isManagementAuthorized(getDocOwnerId(request.resource.data))) ||
+        // Case 2: Sub-event - Authorized for the parent's creator ID
+        (request.resource.data.parentId != null && isManagementAuthorized(getDocOwnerId(get(/databases/$(database)/documents/events/$(request.resource.data.parentId)).data)))
+      );
+      
+      // UPDATE/DELETE: Allow based on management authorization
+      allow update, delete: if isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(eventId);
+      
+      match /{allSubcollections=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    // PHOTOS: Public read for sharing, Admin-only management
+    match /photos/{photoId} {
+      allow read: if true;
+      
+      // CREATE: Allow if management-authorized for the pool
+      allow create: if isManagementAuthorized(getDocOwnerId(request.resource.data));
+      
+      // UPDATE/DELETE: Allow based on management authorization
+      allow update, delete: if isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(resource.data.eventId);
+    }
+
+    // GUESTS: Guest write (pending), Admin management
+    match /guests/{logId} {
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update: if isAdmin() && isManagementAuthorized(resource.data.parentEventOwnerId);
+    }
+
+    // USERS: Authenticated read, Super/Self/Admin write
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Allow any admin to manage users (e.g., for team promotion)
+      allow write: if isAdmin();
+    }
+
+    // DEFAULT DENY
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
