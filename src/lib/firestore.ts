@@ -721,19 +721,34 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
  */
 export async function deleteEvent(eventId: string): Promise<boolean> {
     try {
-        // 1. Get event details to find potential legacyId
+        console.log(`[Firestore] deleteEvent initiated for: "${eventId}"`);
+
+        // 1. Find and delete all sub-events recursively
+        const eventsRef = collection(db, "events");
+        const subSnap = await getDocs(query(eventsRef, where("parentId", "==", eventId)));
+
+        if (!subSnap.empty) {
+            console.log(`[Firestore] Found ${subSnap.size} sub-events for "${eventId}". Deleting recursively...`);
+            for (const subDoc of subSnap.docs) {
+                await deleteEvent(subDoc.id);
+            }
+        }
+
+        // 2. Get event details to find potential legacyId
         const event = await getEventById(eventId);
         const ids = event?.legacyId && event.legacyId !== eventId ? [eventId, event.legacyId] : [eventId];
 
-        // 2. Delete all photos associated with this event from Firestore
+        // 3. Delete all photos associated with this specific event from Firestore
         const photosRef = collection(db, "photos");
         const q = query(photosRef, where("eventId", "in", ids));
         const photoSnaps = await getDocs(q);
 
-        const deletePromises = photoSnaps.docs.map(doc => deleteDoc(doc.ref));
-        await Promise.all(deletePromises);
+        if (!photoSnaps.empty) {
+            const deletePromises = photoSnaps.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+        }
 
-        // 3. Delete the event itself
+        // 4. Delete the event itself
         await deleteDoc(doc(db, "events", eventId));
         return true;
     } catch (error) {

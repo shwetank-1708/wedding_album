@@ -187,14 +187,21 @@ export default function LoginPage() {
                 <div className="mt-4 text-center">
                     <button
                         onClick={async () => {
-                            const success = await loginWithGoogle();
-                            if (success) {
-                                router.push("/admin/dashboard");
+                            if (status === "loading") return;
+                            setStatus("loading");
+                            try {
+                                const success = await loginWithGoogle();
+                                if (success) {
+                                    router.push("/admin/dashboard");
+                                }
+                            } finally {
+                                setStatus("idle");
                             }
                         }}
-                        className="text-xs text-slate-300 hover:text-slate-500 transition-colors"
+                        disabled={status === "loading"}
+                        className="text-xs text-slate-300 hover:text-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Admin Login
+                        {status === "loading" ? "Connecting..." : "Admin Login"}
                     </button>
                 </div>
             </motion.div>

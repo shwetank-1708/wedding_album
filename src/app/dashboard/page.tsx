@@ -355,6 +355,12 @@ export default function UserDashboard() {
         setTimeout(() => setStatus("idle"), 3000);
     };
 
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push("/login");
+        }
+    }, [user, loading, router]);
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-royal-cream text-slate-800">
@@ -367,7 +373,6 @@ export default function UserDashboard() {
     }
 
     if (!user) {
-        router.push("/login");
         return null;
     }
 

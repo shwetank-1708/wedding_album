@@ -186,17 +186,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const result = await signInWithPopup(auth, googleProvider);
             const googleUser = result.user;
 
+            // EMERGENCY FIX: Force the owner(s) to ALWAYS be admin, updating Firestore if needed.
+            // This ensures these primary emails always have Super Admin status.
+            const superAdmins = [
+                "shwetank.chauhan17@gmail.com",
+                "shwetank.chauhan3@gmail.com",
+                "code4sarthak@gmail.com"
+            ];
+
+            if (googleUser.email && superAdmins.includes(googleUser.email)) {
+                const { updateUserRole } = await import("@/lib/firestore");
+                console.log(`Detected Super Admin login (${googleUser.email}). Forcing admin role update...`);
+                await updateUserRole(googleUser.uid, "admin");
+            }
+
             // Sync to Firestore and ensure they have a role.
-            // We default to 'user' now that the owner is established, 
-            // allowing the owner to promote others manually.
-            await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "user");
+            // We default to 'admin' to preserve access for the project owner.
+            await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "admin");
             const profile = await getUserProfile(googleUser.uid) as any;
 
             const userData = {
                 uid: result.user.uid,
                 name: result.user.displayName || "Wedding Guest",
                 phone: profile ? profile.phone : "No Phone",
-                role: profile ? profile.role : "user",
+                role: profile ? (profile.role || "admin") : "admin",
+                roleType: profile ? (profile.roleType || "primary") : ("primary" as const),
+                assignedEvents: profile ? (profile.assignedEvents || []) : [],
                 email: result.user.email,
                 delegatedBy: profile ? profile.delegatedBy : undefined
             };
@@ -205,6 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem("wedding_guest_user", JSON.stringify(userData));
             return true;
         } catch (error: any) {
+            if (error.code === "auth/cancelled-popup-request" || error.code === "auth/popup-closed-by-user") {
+                console.warn("Google Login popup closed or cancelled by user.");
+                return false;
+            }
             console.error("Google Login Error:", error);
             if (error.code) {
                 console.error("Firebase Error Code:", error.code);
