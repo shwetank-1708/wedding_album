@@ -14,7 +14,7 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [status, setStatus] = useState<"idle" | "loading">("idle");
     const [isSignUp, setIsSignUp] = useState(false);
-    const { login, signup, loginWithGoogle } = useAuth();
+    const { login, signup, loginWithGoogle, resetPassword } = useAuth();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -121,7 +121,32 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="block text-sm uppercase tracking-widest font-bold text-slate-600 ml-1">Password</label>
+                        <div className="flex justify-between items-center ml-1">
+                            <label className="block text-sm uppercase tracking-widest font-bold text-slate-600">Password</label>
+                            {!isSignUp && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!email.trim()) {
+                                            setError("Please enter your email address first to reset password. ✨");
+                                            return;
+                                        }
+                                        setStatus("loading");
+                                        const success = await resetPassword(email);
+                                        if (success) {
+                                            setError("");
+                                            setStatus("idle");
+                                            alert(`We've sent a password reset link to ${email}! Check your inbox. ✨`);
+                                        } else {
+                                            setStatus("idle");
+                                        }
+                                    }}
+                                    className="text-[10px] uppercase tracking-wider font-bold text-sky-600 hover:text-sky-800 transition-colors"
+                                >
+                                    Forgot Password?
+                                </button>
+                            )}
+                        </div>
                         <input
                             type="password"
                             value={password}

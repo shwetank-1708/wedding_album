@@ -18,6 +18,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<boolean>;
     signup: (email: string, password: string, name: string) => Promise<boolean>;
     loginWithGoogle: () => Promise<boolean>;
+    resetPassword: (email: string) => Promise<boolean>;
     logout: () => void;
     loading: boolean;
 }
@@ -39,43 +40,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        // Check local storage on mount
-        const storedUser = localStorage.getItem("wedding_guest_user");
-        if (storedUser) {
-            try {
-                const parsed = JSON.parse(storedUser);
-                // Integrity check: sessions must have a uid now
-                if (parsed && parsed.uid) {
-                    // Silent refresh if role metadata is missing
-                    if (!parsed.roleType) {
-                        getUserProfile(parsed.uid).then(p => {
-                            const profile = p as any;
-                            if (profile) {
-                                const updated = {
-                                    ...parsed,
-                                    role: profile.role || "admin",
-                                    roleType: profile.roleType || (profile.delegatedBy ? "event" : "primary"),
-                                    assignedEvents: profile.assignedEvents || []
-                                };
-                                setUser(updated);
-                                localStorage.setItem("wedding_guest_user", JSON.stringify(updated));
-                            } else {
-                                setUser(parsed);
-                            }
-                        });
-                    } else {
-                        setUser(parsed);
-                    }
+        let unsubscribe: () => void;
+
+        const initAuth = async () => {
+            const { onAuthStateChanged } = await import("firebase/auth");
+            const { auth } = await import("@/lib/firebase");
+            const { getUserProfile, createUserProfile } = await import("@/lib/firestore");
+
+            unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+                if (firebaseUser) {
+                    console.log("[Auth] Live state changed: User is logged in", firebaseUser.uid);
+
+                    // Always ensure a profile exists in Firestore (Handles recreation with new UID)
+                    const name = firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Wedding User";
+                    await createUserProfile(firebaseUser.uid, name, firebaseUser.email || "");
+
+                    // Fetch fresh profile data
+                    const profile = await getUserProfile(firebaseUser.uid) as any;
+
+                    const userData = {
+                        uid: firebaseUser.uid,
+                        name: profile?.name || name,
+                        phone: profile?.phone || "No Phone",
+                        role: profile?.role || "admin",
+                        roleType: profile?.roleType || (profile?.delegatedBy ? "event" : "primary"),
+                        assignedEvents: profile?.assignedEvents || [],
+                        email: firebaseUser.email,
+                        delegatedBy: profile?.delegatedBy
+                    };
+
+                    setUser(userData);
+                    localStorage.setItem("wedding_guest_user", JSON.stringify(userData));
                 } else {
-                    console.warn("[Auth] Legacy session detected (missing uid). Clearing...");
+                    console.log("[Auth] Live state changed: No user found");
+                    setUser(null);
                     localStorage.removeItem("wedding_guest_user");
                 }
-            } catch (e) {
-                console.error("Failed to parse stored user", e);
-                localStorage.removeItem("wedding_guest_user");
-            }
-        }
-        setLoading(false);
+                setLoading(false);
+            });
+        };
+
+        initAuth();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -95,7 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const name = user.displayName || user.email?.split("@")[0] || "Guest User";
 
-            // 3. Fetch full profile to get the correct role
+            // 3. Sync to Firestore: Ensure profile exists even if UID changed (e.g. recreation)
+            console.log("Syncing user data to Firestore on login...");
+            await createUserProfile(user.uid, name, user.email || "");
+
+            // 4. Fetch full profile to get the correct role
             const profile = await getUserProfile(user.uid) as any;
 
             const userData = {
@@ -235,6 +248,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const resetPassword = async (email: string) => {
+        try {
+            const { sendPasswordResetEmail } = await import("firebase/auth");
+            const { auth } = await import("@/lib/firebase");
+            await sendPasswordResetEmail(auth, email);
+            return true;
+        } catch (error: any) {
+            console.error("Reset Password Error:", error);
+            if (error.code === "auth/user-not-found") {
+                alert("No user found with this email address.");
+            } else if (error.code === "auth/invalid-email") {
+                alert("Please enter a valid email address.");
+            } else {
+                alert(`Error: ${error.message}`);
+            }
+            return false;
+        }
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem("wedding_guest_user");
@@ -242,7 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, signup, loginWithGoogle, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, signup, loginWithGoogle, resetPassword, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

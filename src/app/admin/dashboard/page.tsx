@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { getGuestLogs, getEvents, getUsers, updateUserRole, deleteUser, deleteEvent } from "@/lib/firestore";
-import { LogOut, Users, ShieldCheck, Calendar, Trash2, ChevronRight, ChevronDown, Folder, User } from "lucide-react";
+import { deleteUserCompletely, syncAllAuthUsers } from "@/app/actions/userActions";
+import { LogOut, Users, ShieldCheck, Calendar, Trash2, ChevronRight, ChevronDown, Folder, User, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -50,14 +51,52 @@ export default function Dashboard() {
         }
     };
 
-    const handleDeleteUser = async (uid: string, email: string) => {
-        if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) return;
+    const handleSyncUsers = async () => {
+        if (!confirm("This will find all users in Firebase Auth and ensure they have a profile in the database. Continue?")) return;
 
-        const success = await deleteUser(uid);
-        if (success) {
-            setUsers(prev => prev.filter(u => u.id !== uid));
-        } else {
-            alert("Failed to delete user. Please try again.");
+        setLoadingData(true);
+        try {
+            const result = await syncAllAuthUsers(user?.email || "");
+            if (result.success) {
+                alert(`Successfully checked ${result.count} users. Created ${result.synced} missing profiles.`);
+                fetchInitialData(); // Refresh the list
+            } else {
+                alert(`Sync failed: ${result.error}`);
+            }
+        } catch (err) {
+            console.error("Sync error:", err);
+            alert("A sync error occurred.");
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    const handleDeleteUser = async (uid: string, email: string) => {
+        if (!confirm(`Are you sure you want to delete user ${email}? This will delete their login account AND their profile data. This action cannot be undone.`)) return;
+
+        setLoadingData(true);
+        try {
+            // We use the Server Action for full deletion
+            const result = await deleteUserCompletely(uid, user?.email || "");
+
+            if (result.success) {
+                setUsers(prev => prev.filter(u => u.id !== uid));
+            } else {
+                // If Server Action fails (e.g. env variables missing), fallback to Firestore only delete
+                console.warn("Server side deletion failed, falling back to database-only delete:", result.error);
+                const dbSuccess = await deleteUser(uid);
+                if (dbSuccess) {
+                    setUsers(prev => prev.filter(u => u.id !== uid));
+                    alert("User's profile deleted from database, but their login account (Auth) could not be removed automatically. You may need to delete it manually in the Firebase Console.");
+                } else {
+                    alert(`Failed to delete user: ${result.error}`);
+                }
+            }
+        } catch (err) {
+            console.error("Error in delete flow:", err);
+            alert("An error occurred during deletion.");
+        } finally {
+            setLoadingData(false);
         }
     };
 
@@ -182,7 +221,17 @@ export default function Dashboard() {
 
                     {activeTab === "users" && (
                         <div className="p-6">
-                            <h2 className="text-lg font-serif font-bold text-slate-800 mb-6">Registered Users</h2>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-lg font-serif font-bold text-slate-800">Registered Users</h2>
+                                <button
+                                    onClick={handleSyncUsers}
+                                    className="flex items-center px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100"
+                                    title="Fetch all users from Firebase Authentication"
+                                >
+                                    <RefreshCw className={cn("w-3.5 h-3.5 mr-2", loadingData && "animate-spin")} />
+                                    Sync All Users
+                                </button>
+                            </div>
                             {loadingData ? (
                                 <p>Loading users...</p>
                             ) : users.length === 0 ? (

@@ -67,10 +67,19 @@ export default function Navbar() {
                                         My Gallery
                                     </Link>
                                     <Link
-                                        href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
-                                        className="text-sm font-medium text-sky-600 hover:text-sky-800 transition-colors"
+                                        href={user.role === "admin" ? (pathname === "/dashboard" ? "/admin/dashboard" : "/dashboard") : "/dashboard"}
+                                        className={cn(
+                                            "px-6 py-2 rounded-full text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center space-x-2",
+                                            user.role === "admin" && pathname === "/dashboard"
+                                                ? "bg-sky-600 text-white hover:bg-sky-700 shadow-sky-100"
+                                                : "text-sky-600 hover:text-sky-800"
+                                        )}
                                     >
-                                        My Dashboard
+                                        <span>
+                                            {user.role === "admin"
+                                                ? (pathname === "/dashboard" ? "Admin Dashboard" : "Profile Dashboard")
+                                                : "My Dashboard"}
+                                        </span>
                                     </Link>
                                     <button
                                         onClick={logout}
@@ -146,11 +155,13 @@ export default function Navbar() {
                                     My Gallery
                                 </Link>
                                 <Link
-                                    href={user.role === "admin" ? "/admin/dashboard" : "/dashboard"}
+                                    href={user.role === "admin" ? (pathname === "/dashboard" ? "/admin/dashboard" : "/dashboard") : "/dashboard"}
                                     onClick={() => setIsOpen(false)}
                                     className="block w-full text-center px-4 py-3 bg-sky-50 text-sky-600 rounded-lg text-lg font-medium hover:bg-sky-100 transition-colors"
                                 >
-                                    {user.role === "admin" ? "Admin Dashboard" : "My Dashboard"}
+                                    {user.role === "admin"
+                                        ? (pathname === "/dashboard" ? "Admin Dashboard" : "Profile Dashboard")
+                                        : "My Dashboard"}
                                 </Link>
                                 <button
                                     onClick={() => {

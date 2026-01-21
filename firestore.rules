@@ -7,11 +7,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Direct check for hardcoded administrators to bypass database lookups
+    function isKnownAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "shwetank.chauhan17@gmail.com" || 
+              request.auth.token.email == "shwetank.chauhan3@gmail.com" || 
+              request.auth.token.email == "code4sarthak@gmail.com" || 
+              request.auth.token.email == "newone1@email.com");
+    }
+
     // Helper to check if current user matches an ID (UID or Email)
     function isUser(id) {
-      return isAuthenticated() && (
+      return isAuthenticated() && id != null && id != "" && (
         request.auth.uid == id || 
-        (request.auth.token.email != null && request.auth.token.email != "" && request.auth.token.email == id)
+        (request.auth.token.email != null && request.auth.token.email.toLowerCase() == id.toLowerCase())
       );
     }
 
@@ -24,38 +33,51 @@ service cloud.firestore {
 
     // Check if the current user is any type of admin
     function isAdmin() {
-      let data = getUserData();
-      return isAuthenticated() && data != null && data.get('role', '') == "admin";
+      return isKnownAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+      );
     }
 
     // Check if the current user is a global Super Admin
     function isSuperAdmin() {
-      let data = getUserData();
-      return isAdmin() && (data.get('delegatedBy', null) == null || data.get('delegatedBy', '') == "");
+      return isKnownAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('delegatedBy', null) == null || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('delegatedBy', '') == "")
+      );
     }
 
     // Authorizes management if user is direct owner OR authorized admin
     function isManagementAuthorized(ownerId) {
-      if (!isAuthenticated()) { return false; }
-      if (isUser(ownerId)) { return true; }
-      
-      let data = getUserData();
-      if (data == null || data.get('role', '') != "admin") { return false; }
-      
-      // Is SuperAdmin or is delegated primary admin
-      return (data.get('delegatedBy', null) == null || data.get('delegatedBy', '') == "") || 
-             (data.get('delegatedBy', null) == ownerId && data.get('roleType', '') == "primary");
+      return isKnownAdmin() || (
+        isAuthenticated() && (
+          isUser(ownerId) || 
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" && (
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('delegatedBy', null) == null || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('delegatedBy', '') == "") || 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('delegatedBy', null) == ownerId && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('roleType', '') == "primary")
+           )
+          )
+        )
+      );
     }
 
     // Check if user is an event admin for a specific event
     function isEventAdmin(eventId) {
-      let data = getUserData();
-      return isAdmin() && data.get('assignedEvents', []).hasAny([eventId]);
+      return isKnownAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('assignedEvents', []).hasAny([eventId])
+      );
     }
 
     // Helper to extract owner ID from document data
     function getDocOwnerId(data) {
-      return data.get('createdBy', data.get('userId', null));
+      return data.get('createdBy', data.get('userId', ''));
     }
 
     // --- COLLECTION RULES ---
@@ -64,37 +86,44 @@ service cloud.firestore {
       allow read: if true;
       
       allow create: if isAuthenticated() && (
+        isKnownAdmin() ||
         // 1. Root Event: Allow if setting self (UID or Email) as creator
-        (request.resource.data.get('parentId', null) == null && isUser(request.resource.data.get('createdBy', null))) ||
+        (request.resource.data.get('parentId', null) == null && isUser(getDocOwnerId(request.resource.data))) ||
         // 2. Sub Event: Authorized for the parent's creator ID
         (request.resource.data.get('parentId', null) != null && 
          exists(/databases/$(database)/documents/events/$(request.resource.data.parentId)) &&
          isManagementAuthorized(getDocOwnerId(get(/databases/$(database)/documents/events/$(request.resource.data.parentId)).data)))
       );
       
-      allow update, delete: if isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(eventId);
+      allow update, delete: if isKnownAdmin() || isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(eventId);
       
       match /{allSubcollections=**} {
         allow read: if true;
-        allow write: if isManagementAuthorized(getDocOwnerId(get(/databases/$(database)/documents/events/$(eventId)).data));
+        allow write: if isKnownAdmin() || isManagementAuthorized(getDocOwnerId(get(/databases/$(database)/documents/events/$(eventId)).data));
       }
     }
 
     match /photos/{photoId} {
       allow read: if true;
-      allow create: if isManagementAuthorized(getDocOwnerId(request.resource.data));
-      allow update, delete: if isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(resource.data.get('eventId', ''));
+      allow create: if isAuthenticated() && (
+        isKnownAdmin() || 
+        request.auth.uid == request.resource.data.userId ||
+        isManagementAuthorized(getDocOwnerId(request.resource.data))
+      );
+      allow update, delete: if isKnownAdmin() || isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(resource.data.get('eventId', ''));
     }
 
     match /guests/{logId} {
       allow create: if true;
-      allow read: if isAdmin();
-      allow update: if isAdmin() && isManagementAuthorized(resource.data.get('parentEventOwnerId', null));
+      allow read: if isKnownAdmin() || isAdmin();
+      allow update: if isKnownAdmin() || (isAdmin() && isManagementAuthorized(resource.data.get('parentEventOwnerId', '')));
     }
 
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if request.auth.uid == userId || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isKnownAdmin() || isAdmin());
+      allow delete: if isSuperAdmin();
     }
 
     match /{document=**} {

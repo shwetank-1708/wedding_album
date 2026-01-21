@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, User, LucideIcon, Share2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, User, LucideIcon, Share2, ShieldCheck } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Tooltip";
 
@@ -35,6 +35,7 @@ export function DashboardHeader({
     icon: Icon = LayoutDashboard
 }: DashboardHeaderProps) {
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleBackClick = () => {
         if (onBack) {
@@ -100,6 +101,25 @@ export function DashboardHeader({
                             </button>
                         </Tooltip>
                     )}
+                    {user?.role === "admin" && (
+                        <Tooltip text={pathname === "/dashboard" ? "Switch to Admin Panel" : "Switch to Profile Dashboard"}>
+                            <button
+                                onClick={() => router.push(pathname === "/dashboard" ? "/admin/dashboard" : "/dashboard")}
+                                className={cn(
+                                    "flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm active:scale-95",
+                                    pathname === "/dashboard"
+                                        ? "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100"
+                                        : "bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100"
+                                )}
+                            >
+                                <ShieldCheck className="w-4 h-4" />
+                                <span className="hidden md:inline">
+                                    {pathname === "/dashboard" ? "Admin Panel" : "Profile Dashboard"}
+                                </span>
+                            </button>
+                        </Tooltip>
+                    )}
+
 
                     {logout && (
                         <button

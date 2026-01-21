@@ -438,7 +438,7 @@ export default function UserDashboard() {
                     console.log(`[Dashboard] Optimized ${file.name}: ${Math.round(file.size / 1024 / 1024 * 10) / 10}MB -> ${Math.round(optimizedFile.size / 1024 / 1024 * 10) / 10}MB`);
                 }
 
-                const uploadResult = await uploadEventImage(optimizedFile, selectedEventId, user.email || "anonymous");
+                const uploadResult = await uploadEventImage(optimizedFile, selectedEventId, user.uid || "anonymous");
 
                 if (index === 0) firstUploadedUrl = uploadResult.url;
 
@@ -448,7 +448,7 @@ export default function UserDashboard() {
                     cloudinaryPublicId: uploadResult.publicId,
                     url: uploadResult.url,
                     uploadedAt: Timestamp.now(),
-                    userId: user.email || "anonymous",
+                    userId: user.uid || "anonymous",
                     width: uploadResult.width,
                     height: uploadResult.height,
                     size: (uploadResult as any).bytes,
