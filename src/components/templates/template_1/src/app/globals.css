@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-royal-maroon: #5D001E;
+  --color-royal-gold: #D4AF37;
+  --color-royal-cream: #FFFDD0;
+  --color-royal-green: #005D4B;
+
+  --font-serif: var(--font-playfair), serif;
+  --font-sans: var(--font-lato), sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-royal-cream text-royal-maroon font-sans;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
+  }
+}
