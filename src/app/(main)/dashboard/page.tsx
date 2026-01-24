@@ -880,7 +880,7 @@ export default function UserDashboard() {
                                                                 </button>
                                                                 {manageLevel === "events" && (
                                                                     <a
-                                                                        href={process.env.NEXT_PUBLIC_ROOT_DOMAIN ? `//${evt.id}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}` : `/tenant/${evt.id}`}
+                                                                        href={(process.env.NEXT_PUBLIC_ROOT_DOMAIN && !process.env.NEXT_PUBLIC_ROOT_DOMAIN.includes("netlify.app")) ? `//${evt.id}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}` : `/tenant/${evt.id}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         onClick={(e) => {
