@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Lato } from "next/font/google";
-import "../globals.css";
+import "./tenant.css";
 import { AuthProvider } from "@/context/AuthContext";
 
 const playfair = Playfair_Display({
@@ -28,7 +28,7 @@ export default function TenantLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${playfair.variable} ${lato.variable} antialiased bg-slate-50 text-slate-600 font-sans`}>
+      <body className={`${playfair.variable} ${lato.variable} antialiased font-sans`}>
         <AuthProvider>
           <main className="min-h-screen">
             {children}
