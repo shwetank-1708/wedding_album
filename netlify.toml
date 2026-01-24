@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[context.production.environment]
+  NEXT_PUBLIC_ROOT_DOMAIN = "wed-album-v2.netlify.app"
