@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem("wedding_guest_user");
         if (storedUser) {
             try {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUser(JSON.parse(storedUser));
             } catch (e) {
                 console.error("Failed to parse stored user", e);
@@ -36,7 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const allowedUser = await getAllowedUser(phone);
         if (allowedUser) {
             // Use the data from firestore which includes role
-            const userData = { ...allowedUser, name: name || allowedUser.name };
+            const userData = {
+                name: name || allowedUser.name,
+                phone: (allowedUser.phone as string) || phone,
+                role: allowedUser.role as string
+            };
             setUser(userData);
             localStorage.setItem("wedding_guest_user", JSON.stringify(userData));
             await logGuestLogin(name, phone);

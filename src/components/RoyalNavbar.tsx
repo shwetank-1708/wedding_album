@@ -10,21 +10,33 @@ import { Event } from "@/lib/firestore";
 interface RoyalNavbarProps {
     event: Event;
     subEvents: Event[];
+    basePath?: string; // e.g. /tenant/haldi - if provided, links will be relative to this
 }
 
-export function RoyalNavbar({ event, subEvents }: RoyalNavbarProps) {
+export function RoyalNavbar({ event, subEvents, basePath }: RoyalNavbarProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
+    // Construct main links dynamically
+    const homeLink = basePath || "/";
+    const findYouLink = basePath ? `${basePath}/find-you` : "/find-you";
+
+    // Check if we are logged in (Client-side only check for UI)
+    // In a real app we might use a context, but here we just check localStorage
+    // to show "Login" vs "Logout" (or just nothing)
+    // We'll keep it simple: Add Login link if not at root
+    const loginLink = basePath ? `${basePath}/login` : "/login";
+
     // Dynamic Navigation Links
     const navLinks = [
-        { name: "Home", href: "/" }, // Root is the home for tenant
+        { name: "Home", href: homeLink },
         ...subEvents.map(se => ({
             name: se.title,
-            href: `/events/${se.id}` // This needs a corresponding route
+            href: basePath ? `${basePath}/events/${se.id}` : `/events/${se.id}`
         })),
-        { name: "Find You", href: "/find-you" },
-        // { name: "Login", href: "/login" } // Optional, can add later
+        { name: "Find You", href: findYouLink },
+        // Only show Login if on a tenant page
+        ...(basePath ? [{ name: "Guest Access", href: loginLink }] : [])
     ];
 
     return (

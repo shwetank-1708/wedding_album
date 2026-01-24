@@ -20,18 +20,24 @@ export default async function middleware(req: NextRequest) {
     // Get the current domain (e.g. "localhost:3000" or "wedding-album.com")
     // You must set NEXT_PUBLIC_ROOT_DOMAIN in your .env
     // For local development, we'll assume "localhost:3000" if not set.
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+    // Get the current domain (e.g. "localhost:3000" or "wedding-album.com")
+    // You must set NEXT_PUBLIC_ROOT_DOMAIN in your .env
+    // For local development, we'll assume "localhost" if not set, handling ports dynamically.
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost";
+
+    // Normalize hostname to remove port if present (for localhost testing)
+    const hostnameNoPort = hostname ? hostname.split(':')[0] : null;
 
     // Check if we are on a custom subdomain
     // logic: if hostname is NOT the rootDomain (and not www.rootDomain)
     const isCustomDomain =
-        hostname &&
-        hostname !== rootDomain &&
-        hostname !== `www.${rootDomain}`;
+        hostnameNoPort &&
+        hostnameNoPort !== rootDomain &&
+        hostnameNoPort !== `www.${rootDomain}`;
 
-    if (isCustomDomain) {
+    if (isCustomDomain && hostname) {
         // Extract the subdomain/slug
-        // e.g. "alice-bob.localhost:3000" -> "alice-bob"
+        // e.g. "alice.domain.com" -> "alice"
         const subdomain = hostname.split(".")[0];
 
         // Check if it's a known reserved subdomain (like 'app' or 'admin')

@@ -1,0 +1,1 @@
+const { getDocs, collection } = require('firebase/firestore'); const { db } = require('./src/lib/firebase'); async function listEvents() { const snap = await getDocs(collection(db, 'events')); snap.forEach(d => console.log(d.id, d.data().title)); } listEvents();

@@ -27,7 +27,7 @@ export async function getCloudinaryImages(folderName: string, nextCursor?: strin
         // Check both common casings for maximum resilience
         const folderPath = `wed_Album/${folderName}`;
 
-        let expression = `folder:"${folderPath}"`;
+        const expression = `folder:"${folderPath}"`;
 
         const search = cloudinary.search
             .expression(expression) // Exact folder match
@@ -42,7 +42,7 @@ export async function getCloudinaryImages(folderName: string, nextCursor?: strin
 
         // Search API returns resources in slightly different format, but compatible enough
         // We map it to be sure.
-        const resources = result.resources.map((res: any) => ({
+        const resources = result.resources.map((res: CloudinaryResource) => ({
             public_id: res.public_id,
             format: res.format,
             width: res.width,

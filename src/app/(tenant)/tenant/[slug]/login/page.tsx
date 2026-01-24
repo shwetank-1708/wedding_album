@@ -1,22 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { requestAccess } from "@/lib/firestore";
+import { getAllowedUser, requestAccess, logGuestLogin } from "@/lib/firestore";
 import { Heart, Lock, Clock, Sparkles } from "lucide-react";
 
-export default function LoginPage() {
+export default function TenantLoginPage() {
     const params = useParams();
     const slug = params?.slug as string;
+    const router = useRouter();
 
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "requested">("idle");
-    const { login } = useAuth();
-    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,16 +28,32 @@ export default function LoginPage() {
         setStatus("loading");
 
         try {
-            // 1. Try to login
-            const success = await login(name, phone);
+            // 1. Check if user is allowed
+            // We use the Firestore helper directly
+            console.log(`[TenantLogin] Checking access for phone: ${phone}`);
+            const allowedUser = await getAllowedUser(phone);
+            console.log(`[TenantLogin] Allowed User result:`, allowedUser);
 
-            if (success) {
-                // If successful, redirect to the tenant home
-                // We use window.location.href or just router.push to the root of the tenant
-                // Since this is inside /tenant/[slug], we want to go to /tenant/[slug]
+            if (allowedUser) {
+                // 2. Login Successful
+                // Create a session object
+                const sessionData = {
+                    name,
+                    phone,
+                    role: allowedUser.role || "guest",
+                    loginAt: new Date().toISOString()
+                };
+
+                // Save to localStorage specifically for this tenant/session
+                // We use a general key for simplicity, or we could scope it
+                localStorage.setItem(`guest_session_${slug}`, JSON.stringify(sessionData));
+
+                // Also log access in Firestore for analytics/security
+                await logGuestLogin(name, phone, slug, undefined, slug);
+
                 router.push(`/tenant/${slug}`);
             } else {
-                // 2. If not allowed, automatically request access
+                // 3. Not allowed -> Request Access
                 await requestAccess(name, phone);
                 setStatus("requested");
             }
@@ -52,30 +66,30 @@ export default function LoginPage() {
 
     if (status === "requested") {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-royal-cream px-4">
+            <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7] px-4">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-royal-maroon/10 text-center relative overflow-hidden"
+                    className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-[#800000]/10 text-center relative overflow-hidden"
                 >
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-royal-maroon via-royal-gold to-royal-maroon" />
-                    <Sparkles className="absolute top-4 right-4 text-royal-gold/30 w-8 h-8 animate-pulse" />
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#800000] via-[#D4AF37] to-[#800000]" />
+                    <Sparkles className="absolute top-4 right-4 text-[#D4AF37]/30 w-8 h-8 animate-pulse" />
 
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                        className="w-20 h-20 bg-royal-maroon/5 rounded-full flex items-center justify-center mx-auto mb-6"
+                        className="w-20 h-20 bg-[#800000]/5 rounded-full flex items-center justify-center mx-auto mb-6"
                     >
-                        <Heart className="w-10 h-10 text-royal-maroon fill-current" />
+                        <Heart className="w-10 h-10 text-[#800000] fill-current" />
                     </motion.div>
 
-                    <h2 className="text-3xl font-serif text-royal-maroon mb-4">Request Sent!</h2>
+                    <h2 className="text-3xl font-serif text-[#800000] mb-4">Request Sent!</h2>
 
                     <div className="space-y-4 text-gray-600 mb-8 font-light leading-relaxed">
                         <p>
-                            Thank you, <span className="font-medium text-royal-maroon">{name}</span>!
+                            Thank you, <span className="font-medium text-[#800000]">{name}</span>!
                         </p>
                         <p>
                             Your request to view the album has been sent to the hosts.
@@ -87,7 +101,7 @@ export default function LoginPage() {
 
                     <button
                         onClick={() => window.location.reload()}
-                        className="text-sm text-royal-maroon hover:text-royal-gold transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
+                        className="text-sm text-[#800000] hover:text-[#D4AF37] transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
                     >
                         <Clock className="w-4 h-4" />
                         Check Status Again
@@ -98,7 +112,7 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-royal-cream px-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7] px-4 relative overflow-hidden">
             {/* Background Texture */}
             <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #800000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
@@ -109,32 +123,32 @@ export default function LoginPage() {
                 className="bg-white/90 backdrop-blur-sm p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md border border-white/50 relative z-10"
             >
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-royal-maroon text-royal-gold mb-4 shadow-lg">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#800000] text-[#D4AF37] mb-4 shadow-lg">
                         <Lock className="w-5 h-5" />
                     </div>
-                    <h1 className="text-4xl font-serif text-royal-maroon mb-3 tracking-wide">Welcome</h1>
+                    <h1 className="text-4xl font-serif text-[#800000] mb-3 tracking-wide">Welcome</h1>
                     <p className="text-gray-500 font-light">Enter your details to access the memories.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-1">
-                        <label className="block text-xs uppercase tracking-widest font-semibold text-royal-maroon/70 ml-1">Your Name</label>
+                        <label className="block text-xs uppercase tracking-widest font-semibold text-[#800000]/70 ml-1">Your Name</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-royal-maroon/20 focus:border-royal-maroon outline-none transition-all duration-300 text-slate-900"
+                            className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#800000]/20 focus:border-[#800000] outline-none transition-all duration-300"
                             placeholder="e.g. Aditi Sharma"
                         />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="block text-xs uppercase tracking-widest font-semibold text-royal-maroon/70 ml-1">Phone Number</label>
+                        <label className="block text-xs uppercase tracking-widest font-semibold text-[#800000]/70 ml-1">Phone Number</label>
                         <input
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-royal-maroon/20 focus:border-royal-maroon outline-none transition-all duration-300 text-slate-900"
+                            className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-[#800000]/20 focus:border-[#800000] outline-none transition-all duration-300"
                             placeholder="e.g. 9876543210"
                         />
                     </div>
@@ -155,7 +169,7 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={status === "loading"}
-                        className="w-full bg-gradient-to-r from-royal-maroon to-red-900 text-white py-4 rounded-xl font-medium tracking-wide shadow-lg shadow-royal-maroon/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-wait mt-4"
+                        className="w-full bg-gradient-to-r from-[#800000] to-red-900 text-white py-4 rounded-xl font-medium tracking-wide shadow-lg shadow-[#800000]/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-wait mt-4"
                     >
                         {status === "loading" ? (
                             <span className="flex items-center justify-center gap-2">

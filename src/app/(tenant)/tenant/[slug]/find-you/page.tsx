@@ -1,42 +1,27 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { RoyalNavbar } from "@/components/RoyalNavbar";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import * as faceapi from "face-api.js";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
-import { getAllFaceEncodings, FaceRecord, getEventById, getSubEvents, Event } from "@/lib/firestore";
-import { useParams } from "next/navigation";
+import { getEventFaceEncodings, FaceRecord, getEventById, getSubEvents } from "@/lib/firestore";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-export default function FindYouPage() {
-    const params = useParams();
-    const slug = params?.slug as string;
-
-    const [event, setEvent] = useState<Event | null>(null);
-    const [subEvents, setSubEvents] = useState<Event[]>([]);
+export default function FindYouPage({ params }: { params: Promise<{ slug: string }> }) {
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [matchedPhotos, setMatchedPhotos] = useState<any[]>([]);
     const [statusMessage, setStatusMessage] = useState("Loading AI Models...");
     const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+    const [searchScopeIds, setSearchScopeIds] = useState<string[]>([]);
+
+    // Unwrap params
+    const { slug } = React.use(params);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (slug) {
-            const fetchData = async () => {
-                const fetchedEvent = await getEventById(slug);
-                if (fetchedEvent) {
-                    setEvent(fetchedEvent);
-                    const fetchedSubEvents = await getSubEvents(fetchedEvent.id, fetchedEvent.legacyId);
-                    setSubEvents(fetchedSubEvents);
-                }
-            };
-            fetchData();
-        }
-    }, [slug]);
 
     useEffect(() => {
         const loadModels = async () => {
@@ -54,8 +39,34 @@ export default function FindYouPage() {
                 setStatusMessage("Error loading AI models. Please check /public/models folder.");
             }
         };
+
+        const fetchScope = async () => {
+            // Fetch main event and sub-events to scope the search
+            if (!slug) return;
+            try {
+                console.log("[FindYou] Fetching scope for:", slug);
+                const mainEvent = await getEventById(slug);
+                const subEvents = await getSubEvents(slug, mainEvent?.legacyId);
+
+                const ids = [slug];
+                if (mainEvent?.legacyId) ids.push(mainEvent.legacyId);
+                subEvents.forEach(e => {
+                    ids.push(e.id);
+                    if (e.legacyId) ids.push(e.legacyId);
+                });
+
+                console.log("[FindYou] Search scope IDs:", ids);
+                setSearchScopeIds(ids);
+            } catch (error) {
+                console.error("Error fetching event scope:", error);
+                // Fallback to just slug if fetch fails
+                setSearchScopeIds([slug]);
+            }
+        };
+
         loadModels();
-    }, []);
+        fetchScope();
+    }, [slug]);
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.files?.length) return;
@@ -82,14 +93,16 @@ export default function FindYouPage() {
             setProcessing(true);
             setStatusMessage("Searching database for matches...");
 
-            // 2. Fetch all indexed faces from Firestore
-            // This is much faster than processing images
-            // In a real multi-tenant app, we should filter by eventId here on the server side ideally
-            // But for now we filter all
-            const indexedFaces = await getAllFaceEncodings();
+            // 2. Fetch faces for this specific event scope
+            if (searchScopeIds.length === 0) {
+                setStatusMessage("Initializing event data... Please wait.");
+                setProcessing(false);
+                return;
+            }
+            const indexedFaces = await getEventFaceEncodings(searchScopeIds);
 
             if (indexedFaces.length === 0) {
-                setStatusMessage("No photos found in database.");
+                setStatusMessage("No photos found in database. Please ask Admin to run the Indexer.");
                 setProcessing(false);
                 return;
             }
@@ -99,13 +112,7 @@ export default function FindYouPage() {
             const threshold = 0.5; // Stricter threshold
 
             for (const face of indexedFaces) {
-                // Determine if this face belongs to the current event (or sub-events)
-                // This logic depends on face records having the correct eventId
-
-                // Firestore stores descriptor as number[]
-                // We need to convert it back to Float32Array for face-api math
                 const storedDescriptor = new Float32Array(face.descriptor);
-
                 const distance = faceapi.euclideanDistance(selfieDetection.descriptor, storedDescriptor);
 
                 if (distance < threshold) {
@@ -113,7 +120,7 @@ export default function FindYouPage() {
                 }
             }
 
-            // Deduplicate matches by imageId
+            // Deduplicate matches
             const uniqueMatches = Array.from(new Map(matches.map(item => [item.imageId, item])).values());
 
             setMatchedPhotos(uniqueMatches.map(p => ({
@@ -136,22 +143,22 @@ export default function FindYouPage() {
         }
     };
 
-    if (!event) return <div className="min-h-screen bg-royal-cream flex items-center justify-center text-royal-maroon">Loading...</div>;
-
-    // Sanitize for Client Component
-    const serializedEvent = JSON.parse(JSON.stringify(event));
-    const serializedSubEvents = JSON.parse(JSON.stringify(subEvents));
-
     return (
-        <main className="min-h-screen bg-stone-50 font-sans">
-            <RoyalNavbar event={serializedEvent} subEvents={serializedSubEvents} />
+        <>
+            {/* Simple Navigation Back */}
+            <div className="absolute top-4 left-4 z-50">
+                <Link href={`/tenant/${slug}`} className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-all text-stone-600">
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-sm font-medium">Back to Event</span>
+                </Link>
+            </div>
 
             <section className="pt-32 pb-20 px-4">
                 <SectionHeader title="Find You" subtitle="AI-Powered Photo Search" />
 
                 <div className="max-w-2xl mx-auto text-center mb-12">
                     <p className="text-stone-600 mb-8">
-                        Upload a clear selfie, and our AI will magically find all your photos from the events.
+                        Upload a clear selfie, and our AI will magically find all your photos from the event.
                     </p>
 
                     <div className="bg-white p-8 rounded-2xl shadow-xl border border-stone-100">
@@ -208,7 +215,7 @@ export default function FindYouPage() {
                             ref={cameraInputRef}
                             type="file"
                             accept="image/*"
-                            capture="user" // Forces camera on mobile
+                            capture="user"
                             className="hidden"
                             onChange={handleUpload}
                         />
@@ -232,6 +239,6 @@ export default function FindYouPage() {
                     </div>
                 )}
             </section>
-        </main>
+        </>
     );
 }

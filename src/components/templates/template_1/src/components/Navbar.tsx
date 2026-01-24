@@ -3,35 +3,50 @@
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import clsx from "clsx";
+import { Event } from "@/lib/firestore";
 
 import { Menu, X } from "lucide-react";
 
-export default function Navbar() {
+interface RoyalNavbarProps {
+    event: Event;
+    subEvents?: Event[];
+    basePath: string;
+}
+
+export default function Navbar({ event, subEvents = [], basePath }: RoyalNavbarProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const { user } = useAuth();
 
+    // Generate links from sub-events
+    const dynamicLinks = subEvents.map(sub => ({
+        name: sub.title || sub.id, // Fallback to ID if title missing
+        href: `${basePath}/events/${sub.id}` // sub-events routed via /events/[subId]
+    }));
+
     const navLinks = [
-        { name: "Haldi", href: "/events/haldi" },
-        { name: "Mehendi", href: "/events/mehendi" },
-        { name: "Wedding", href: "/events/wedding" },
-        { name: "Reception", href: "/events/reception" },
-        { name: "Find You", href: "/find-you" },
+        ...dynamicLinks,
+        { name: "Find You", href: `${basePath}/find-you` },
     ];
 
     if (user?.role === "admin") {
         navLinks.push({ name: "Admin", href: "/admin" });
     }
 
+    // Dynamic Initials or Title
+    const brandName = event.title
+        ? event.title.split(' ').map(w => w[0]).join(' & ').substring(0, 5)
+        : "W & A";
+
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-royal-maroon/95 backdrop-blur-sm text-royal-gold shadow-2xl border-b-[3px] border-royal-gold playfair-font">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
                     <div className="flex-shrink-0 flex items-center">
-                        <Link href="/" className="font-serif text-2xl font-bold tracking-widest z-50 relative" onClick={() => setIsOpen(false)}>
-                            S & J
+                        <Link href={basePath} className="font-serif text-2xl font-bold tracking-widest z-50 relative" onClick={() => setIsOpen(false)}>
+                            {brandName}
                         </Link>
                     </div>
 

@@ -39,7 +39,7 @@ export async function uploadEventImage(file: File, eventId: string, userId?: str
             bytes: result.bytes as number,
             format: result.format as string
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Cloudinary] Progress Error:", error);
         throw error;
     }

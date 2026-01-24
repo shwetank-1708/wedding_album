@@ -1,8 +1,9 @@
-import { getEventById } from "@/lib/firestore";
-import { TemplateHero } from "@/components/TemplateHero";
+
+import EventHome from "@/components/templates/template_1/src/components/EventHome";
 import { TemplateClassic } from "@/components/TemplateClassic";
-import { TemplateRoyal } from "@/components/TemplateRoyal";
+// import { TemplateRoyal } from "@/components/TemplateRoyal"; // DEPRECATED
 import { notFound } from "next/navigation";
+import { getSubEvents, getEventById } from "@/lib/firestore";
 
 export default async function TenantPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -18,13 +19,21 @@ export default async function TenantPage({ params }: { params: Promise<{ slug: s
     // Dynamic Template Switching
     const templateId = event.templateId || 'hero';
 
+    // Fetch sub-events for the template
+    const subEventsData = await getSubEvents(event.id, event.legacyId);
+
+    // Serialize for Client Component (removes Firestore Timestamps warnings)
+    const plainEvent = JSON.parse(JSON.stringify(event));
+    const plainSubEvents = JSON.parse(JSON.stringify(subEventsData));
+
+    const basePath = `/tenant/${slug}`;
+
     switch (templateId) {
         case 'royal':
-            return <TemplateRoyal event={event} />;
-        case 'classic':
-            return <TemplateClassic event={event} />;
-        case 'hero':
+        case 'hero': // Defaulting hero to royal for now as per user request
         default:
-            return <TemplateHero event={event} />;
+            return <EventHome event={plainEvent} subEvents={plainSubEvents} basePath={basePath} />;
+        case 'classic':
+            return <TemplateClassic event={plainEvent} />;
     }
 }

@@ -1,5 +1,5 @@
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, orderBy, Timestamp, addDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, where, orderBy, Timestamp, addDoc, setDoc, deleteDoc, DocumentData } from "firebase/firestore";
 
 // --- Types ---
 
@@ -31,7 +31,7 @@ export interface FaceRecord {
     imageUrl: string;
     width: number;
     height: number;
-    createdAt?: any;
+    createdAt?: Timestamp;
 }
 
 // --- Functions ---
@@ -127,7 +127,7 @@ export async function getAllFaceEncodings(): Promise<FaceRecord[]> {
 /**
  * Checks if a phone number is allow-listed and returns the user data.
  */
-export async function getAllowedUser(phone: string): Promise<any | null> {
+export async function getAllowedUser(phone: string): Promise<DocumentData | null> {
     try {
         const docRef = doc(db, "allowed_users", phone);
         const docSnap = await getDoc(docRef);
@@ -198,7 +198,7 @@ export async function requestAccess(name: string, phone: string) {
 /**
  * Fetches all pending requests.
  */
-export async function getPendingRequests(): Promise<any[]> {
+export async function getPendingRequests(): Promise<DocumentData[]> {
     try {
         const reqCol = collection(db, "pending_requests");
         const q = query(reqCol, orderBy("requestedAt", "desc"));
@@ -222,4 +222,38 @@ export async function denyRequest(phone: string) {
         console.error("Error denying request:", error);
         return false;
     }
+}
+
+/**
+ * Serializes Firestore data by converting Timestamps to ISO strings.
+ * This is necessary for passing data from Server Components to Client Components.
+ */
+export function serializeFirestoreData<T>(data: T): T {
+    if (data === null || data === undefined) {
+        return data;
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(item => serializeFirestoreData(item)) as unknown as T;
+    }
+
+    if (typeof data === 'object') {
+        const newData: any = {};
+        for (const key in data) {
+            const value = (data as any)[key];
+            if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
+                // It's a Firestore Timestamp (or similar) - convert to ISO string
+                if (typeof value.toDate === 'function') {
+                    newData[key] = value.toDate().toISOString();
+                } else {
+                    newData[key] = new Date(value.seconds * 1000).toISOString();
+                }
+            } else {
+                newData[key] = serializeFirestoreData(value);
+            }
+        }
+        return newData as T;
+    }
+
+    return data;
 }

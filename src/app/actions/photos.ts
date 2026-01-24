@@ -1,7 +1,8 @@
 "use server";
 
 import { getCloudinaryImages } from "@/lib/cloudinary";
-import { getAllEvents } from "@/lib/events";
+import { getEvents } from "@/lib/firestore";
+
 
 export interface SimplePhoto {
     id: string;
@@ -9,16 +10,18 @@ export interface SimplePhoto {
     width: number;
     height: number;
     eventName: string;
+    eventId: string;
 }
 
 export async function getAllPhotos(): Promise<SimplePhoto[]> {
     try {
-        const events = getAllEvents();
+        const events = await getEvents();
         const allPhotos: SimplePhoto[] = [];
+
 
         // Fetch from all events in parallel
         const promises = events.map(async (event) => {
-            const folderName = event.cloudinaryFolder || event.id;
+            const folderName = event.id; // Use event ID as folder name (or add a field if needed)
             const result = await getCloudinaryImages(folderName);
             const images = result.resources || [];
 
@@ -27,7 +30,8 @@ export async function getAllPhotos(): Promise<SimplePhoto[]> {
                 src: img.secure_url,
                 width: img.width,
                 height: img.height,
-                eventName: event.title
+                eventName: event.title,
+                eventId: event.id
             }));
         });
 

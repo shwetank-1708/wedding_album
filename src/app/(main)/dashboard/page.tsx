@@ -308,7 +308,7 @@ export default function UserDashboard() {
 
             // Filter by assignedEvents if the current user is an Event Admin
             if (user.role === 'admin' && user.roleType === 'event' && user.assignedEvents) {
-                setTrafficLogs(logs.filter(log => user.assignedEvents?.includes(log.parentEventId) || user.assignedEvents?.includes(log.eventId)));
+                setTrafficLogs(logs.filter(log => (log.parentEventId && user.assignedEvents?.includes(log.parentEventId)) || (log.eventId && user.assignedEvents?.includes(log.eventId))));
             } else {
                 setTrafficLogs(logs);
             }
@@ -880,7 +880,7 @@ export default function UserDashboard() {
                                                                 </button>
                                                                 {manageLevel === "events" && (
                                                                     <a
-                                                                        href={`${window.location.protocol}//${evt.id}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000'}`}
+                                                                        href={process.env.NEXT_PUBLIC_ROOT_DOMAIN ? `//${evt.id}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}` : `/tenant/${evt.id}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         onClick={(e) => {

@@ -80,7 +80,7 @@ export default function FaceIndexPage() {
                             await saveFaceToIndex({
                                 imageId: photo.id,
                                 descriptor: Array.from(detection.descriptor), // Convert Float32Array to number[]
-                                eventId: "unknown", // getAllPhotos doesn't return eventId ID, only Name. We can fix this later or just store Name.
+                                eventId: photo.eventId,
                                 imageUrl: photo.src,
                                 width: photo.width,
                                 height: photo.height
