@@ -987,13 +987,13 @@ export default function UserDashboard() {
                                             <div>
                                                 <label className="block text-xs font-bold uppercase tracking-[0.2em] text-stone-500 mb-4 ml-1">Choose Style</label>
                                                 <div className="grid grid-cols-3 gap-4">
-                                                    {['hero', 'classic', 'royal'].map(t => (
+                                                    {['hero', 'classic', 'royal', 'editorial'].map(t => (
                                                         <div
                                                             key={t}
                                                             onClick={() => setSelectedTemplate(t)}
                                                             className={`cursor-pointer border-2 rounded-xl p-3 text-center transition-all ${selectedTemplate === t ? 'border-royal-gold bg-royal-gold/5 ring-2 ring-royal-gold/20' : 'border-stone-100 hover:border-stone-300'}`}
                                                         >
-                                                            <div className={`w-full aspect-square rounded-lg mb-2 shadow-sm ${t === 'hero' ? 'bg-slate-900 border-2 border-slate-900' : t === 'royal' ? 'bg-[#4A0E0E] border-2 border-[#4A0E0E]' : 'bg-white border-2 border-stone-200'}`}>
+                                                            <div className={`w-full aspect-square rounded-lg mb-2 shadow-sm ${t === 'hero' ? 'bg-slate-900 border-2 border-slate-900' : t === 'royal' ? 'bg-[#4A0E0E] border-2 border-[#4A0E0E]' : t === 'editorial' ? 'bg-black border-2 border-black' : 'bg-white border-2 border-stone-200'}`}>
                                                                 {/* Mini preview text */}
                                                                 <div className="w-full h-full flex items-center justify-center">
                                                                     <span className={`text-[10px] font-serif ${t === 'classic' ? 'text-slate-800' : t === 'royal' ? 'text-amber-400' : 'text-white'}`}>

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-editorial-black: #111111;
+  --color-editorial-white: #ffffff;
+  --color-editorial-gray: #f4f4f4;
+  --color-editorial-accent: #333333;
+
+  --font-serif: var(--font-playfair), serif;
+  --font-sans: var(--font-inter), sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-editorial-white text-editorial-black font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif text-editorial-black;
+  }
+}

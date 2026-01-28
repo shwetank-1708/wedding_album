@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 uid: user.uid,
                 name: name,
                 phone: "",
-                role: "admin",
+                role: "guest",
                 roleType: "primary" as const,
                 email: user.email
             };
@@ -217,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Sync to Firestore and ensure they have a role.
             // We default to 'admin' to preserve access for the project owner.
-            await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "admin");
+            await createUserProfile(googleUser.uid, googleUser.displayName || "Admin", googleUser.email || "", "guest");
             const profile = await getUserProfile(googleUser.uid);
 
             const userData = {

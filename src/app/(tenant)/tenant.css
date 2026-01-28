@@ -18,8 +18,8 @@
     }
 
     body {
-        /* Apply template_1 base styles */
-        @apply bg-royal-cream text-royal-maroon font-sans antialiased;
+        /* Base styles - Colors should be handled by individual templates */
+        @apply font-sans antialiased;
     }
 
     h1,

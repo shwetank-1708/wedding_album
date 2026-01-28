@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import clsx from "clsx";
 import { Menu, X } from "lucide-react";
 import { Event } from "@/lib/firestore";
@@ -17,15 +17,45 @@ export function RoyalNavbar({ event, subEvents, basePath }: RoyalNavbarProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    // Check Admin Role
+    // We infer slug from basePath: /tenant/[slug]
+    const slug = basePath?.split('/tenant/')[1]?.split('/')[0];
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+        if (!slug) return;
+
+        const checkAdmin = () => {
+            const sessionKey = `guest_session_${slug}`;
+            const stored = localStorage.getItem(sessionKey);
+            setIsAdmin(false); // Default to false
+            if (stored) {
+                try {
+                    const session = JSON.parse(stored);
+                    if (session.role === 'admin') setIsAdmin(true);
+                } catch { }
+            }
+        };
+
+        // Check immediately
+        checkAdmin();
+
+        // Listen for updates
+        window.addEventListener("guest_session_changed", checkAdmin);
+        return () => window.removeEventListener("guest_session_changed", checkAdmin);
+    }, [slug]);
+
+    // Hide Navbar on Login Page (AFTER hooks to prevent React errors)
+    if (pathname?.endsWith("/login")) {
+        return null;
+    }
+
     // Construct main links dynamically
     const homeLink = basePath || "/";
     const findYouLink = basePath ? `${basePath}/find-you` : "/find-you";
-
-    // Check if we are logged in (Client-side only check for UI)
-    // In a real app we might use a context, but here we just check localStorage
-    // to show "Login" vs "Logout" (or just nothing)
-    // We'll keep it simple: Add Login link if not at root
-    const loginLink = basePath ? `${basePath}/login` : "/login";
+    const adminLink = basePath ? `${basePath}/admin` : "/admin";
 
     // Dynamic Navigation Links
     const navLinks = [
@@ -35,14 +65,13 @@ export function RoyalNavbar({ event, subEvents, basePath }: RoyalNavbarProps) {
             href: basePath ? `${basePath}/events/${se.id}` : `/events/${se.id}`
         })),
         { name: "Find You", href: findYouLink },
-        // Only show Login if on a tenant page
-        ...(basePath ? [{ name: "Guest Access", href: loginLink }] : [])
+        ...(isAdmin ? [{ name: "Admin", href: adminLink }] : [])
     ];
 
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-royal-maroon/95 backdrop-blur-sm text-royal-gold shadow-2xl border-b-[3px] border-royal-gold">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-20">
+            <div className="w-full px-4 sm:px-8 lg:px-12">
+                <div className="flex items-center justify-between h-20">
                     <div className="flex-shrink-0 flex items-center">
                         <Link href="/" className="font-serif text-2xl font-bold tracking-widest z-50 relative" onClick={() => setIsOpen(false)}>
                             {event.title.split(' ').map(w => w[0]).join(' & ')}
@@ -50,8 +79,8 @@ export function RoyalNavbar({ event, subEvents, basePath }: RoyalNavbarProps) {
                         </Link>
                     </div>
 
-                    {/* Desktop Menu */}
-                    <div className="hidden md:ml-6 md:flex md:space-x-8 items-center">
+                    {/* Desktop Menu - Pushed to the right */}
+                    <div className="hidden md:flex md:items-center md:space-x-8 ml-auto">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.href}

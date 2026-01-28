@@ -2,7 +2,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Event } from "@/lib/firestore";
-import Navbar from "../components/Navbar";
 
 interface EventHomeProps {
     event: Event;
@@ -17,7 +16,6 @@ export default function EventHome({ event, subEvents }: EventHomeProps) {
 
     return (
         <div className="flex flex-col min-h-screen font-sans bg-royal-cream text-royal-maroon disable-scroll-x overflow-x-hidden">
-            <Navbar event={event} basePath={basePath} />
 
             <main className="pt-20">
                 {/* Full Screen Hero Section */}

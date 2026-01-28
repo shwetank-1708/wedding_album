@@ -445,7 +445,7 @@ export async function denyRequest(phone: string) {
 /**
  * Creates or updates a user profile in the 'users' collection.
  */
-export async function createUserProfile(uid: string, name: string, email: string, role: string = "admin") {
+export async function createUserProfile(uid: string, name: string, email: string, role: string = "guest") {
     try {
         const docRef = doc(db, "users", uid);
         const docSnap = await getDoc(docRef);

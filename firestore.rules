@@ -113,8 +113,19 @@ service cloud.firestore {
       allow update, delete: if isKnownAdmin() || isManagementAuthorized(getDocOwnerId(resource.data)) || isEventAdmin(resource.data.get('eventId', ''));
     }
 
+    match /allowed_users/{phone} {
+      allow get: if true; // Allow checking if user exists
+      allow list: if isKnownAdmin() || isAdmin();
+      allow write: if isKnownAdmin() || isAdmin();
+    }
+
+    match /pending_requests/{phone} {
+      allow create: if true; // Allow guests to request access
+      allow read, update, delete: if isKnownAdmin() || isAdmin();
+    }
+
     match /guests/{logId} {
-      allow create: if true;
+      allow create: if true; // Allow logging guest login
       allow read: if isKnownAdmin() || isAdmin();
       allow update: if isKnownAdmin() || (isAdmin() && isManagementAuthorized(resource.data.get('parentEventOwnerId', '')));
     }

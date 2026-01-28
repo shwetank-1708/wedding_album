@@ -1,5 +1,6 @@
 
 import EventHome from "@/components/templates/template_1/src/components/EventHome";
+import TemplateEditorial from "@/components/templates/template_2/src/app/EventHome"; // Importing from app/EventHome as verified in file structure
 import { TemplateClassic } from "@/components/TemplateClassic";
 // import { TemplateRoyal } from "@/components/TemplateRoyal"; // DEPRECATED
 import { notFound } from "next/navigation";
@@ -35,5 +36,8 @@ export default async function TenantPage({ params }: { params: Promise<{ slug: s
             return <EventHome event={plainEvent} subEvents={plainSubEvents} basePath={basePath} />;
         case 'classic':
             return <TemplateClassic event={plainEvent} />;
+        case 'editorial':
+        case 'template_2':
+            return <TemplateEditorial event={plainEvent} subEvents={plainSubEvents} basePath={basePath} />; // Note: checking props compatibility
     }
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAllowedUser, requestAccess, logGuestLogin } from "@/lib/firestore";
+import { checkAndLogGuest, requestGuestAccessAction } from "@/app/actions/tenant-auth";
 import { Heart, Lock, Clock, Sparkles } from "lucide-react";
 
 export default function TenantLoginPage() {
@@ -15,6 +15,13 @@ export default function TenantLoginPage() {
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "requested">("idle");
+
+    useEffect(() => {
+        // Clear session when visiting login page (effectively logout)
+        // And notify components (Navbar) that session has changed
+        localStorage.removeItem(`guest_session_${slug}`);
+        window.dispatchEvent(new Event("guest_session_changed"));
+    }, [slug]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,34 +35,28 @@ export default function TenantLoginPage() {
         setStatus("loading");
 
         try {
-            // 1. Check if user is allowed
-            // We use the Firestore helper directly
-            console.log(`[TenantLogin] Checking access for phone: ${phone}`);
-            const allowedUser = await getAllowedUser(phone);
-            console.log(`[TenantLogin] Allowed User result:`, allowedUser);
+            // Use Server Action to bypass Firestore Rules
+            const result = await checkAndLogGuest(name, phone, slug);
 
-            if (allowedUser) {
-                // 2. Login Successful
-                // Create a session object
+            if (result.success && result.user) {
+                // Login Successful
                 const sessionData = {
-                    name,
-                    phone,
-                    role: allowedUser.role || "guest",
+                    name: result.user.name,
+                    phone: result.user.phone,
+                    role: result.user.role,
                     loginAt: new Date().toISOString()
                 };
 
-                // Save to localStorage specifically for this tenant/session
-                // We use a general key for simplicity, or we could scope it
                 localStorage.setItem(`guest_session_${slug}`, JSON.stringify(sessionData));
-
-                // Also log access in Firestore for analytics/security
-                await logGuestLogin(name, phone, slug, undefined, slug);
-
+                window.dispatchEvent(new Event("guest_session_changed")); // Notify Navbar
                 router.push(`/tenant/${slug}`);
-            } else {
-                // 3. Not allowed -> Request Access
-                await requestAccess(name, phone);
+            } else if (result.status === 'needs_request') {
+                // Request Access Action
+                await requestGuestAccessAction(name, phone);
                 setStatus("requested");
+            } else {
+                setError(result.error || "Access denied.");
+                setStatus("idle");
             }
         } catch (err) {
             console.error(err);

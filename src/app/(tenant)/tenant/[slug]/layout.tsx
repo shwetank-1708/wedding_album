@@ -1,4 +1,5 @@
 import { RoyalNavbar } from "@/components/RoyalNavbar";
+import EditorialNavbar from "@/components/templates/template_2/src/components/Navbar";
 import { getEventById, getSubEvents, serializeFirestoreData } from "@/lib/firestore";
 import { notFound } from "next/navigation";
 
@@ -27,19 +28,30 @@ export default async function TenantLayout({
     const serializedEvent = serializeFirestoreData(event);
     const serializedSubEvents = serializeFirestoreData(validSubEvents);
 
+    const templateId = event.templateId || 'hero';
+    const isEditorial = templateId === 'editorial' || templateId === 'template_2';
+
     return (
-        <div className="bg-royal-cream text-royal-maroon font-sans min-h-screen disable-scroll-x">
-            {/* Global Royal Navbar */}
-            <RoyalNavbar
-                event={serializedEvent}
-                subEvents={serializedSubEvents}
-                basePath={`/tenant/${slug}`}
-            />
+        <div className={isEditorial
+            ? "bg-editorial-white text-editorial-black font-sans min-h-screen"
+            : "bg-royal-cream text-royal-maroon font-sans min-h-screen disable-scroll-x"
+        }>
+            {isEditorial ? (
+                <EditorialNavbar
+                    event={event} // Pass raw event if compatible, or specialized serialized if needed. EditorialNavbar likely uses dates, check if serialized dates work.
+                    subEvents={validSubEvents}
+                    basePath={`/tenant/${slug}`}
+                />
+            ) : (
+                <RoyalNavbar
+                    event={serializedEvent}
+                    subEvents={serializedSubEvents}
+                    basePath={`/tenant/${slug}`}
+                />
+            )}
+
             {/* Main Content Area */}
-            {/* Padding top to account for fixed navbar */}
-            <div className="pt-20">
-                {children}
-            </div>
+            {children}
         </div>
     );
 }

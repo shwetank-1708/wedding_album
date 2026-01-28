@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Lato } from "next/font/google";
 import "./tenant.css";
 import { AuthProvider } from "@/context/AuthContext";
+import TenantGuard from "@/components/TenantGuard";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -31,7 +32,9 @@ export default function TenantLayout({
       <body className={`${playfair.variable} ${lato.variable} antialiased font-sans`}>
         <AuthProvider>
           <main className="min-h-screen">
-            {children}
+            <TenantGuard>
+              {children}
+            </TenantGuard>
           </main>
         </AuthProvider>
       </body>
