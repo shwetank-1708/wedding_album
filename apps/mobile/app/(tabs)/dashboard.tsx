@@ -42,6 +42,7 @@ import { useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import CakeIcon from '@/components/icons/CakeIcon';
 import HandshakeIcon from '@/components/icons/HandshakeIcon';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -598,8 +599,10 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={styles.headerTitle}>EveBash</Text>
-            <Text style={styles.tagline}>{"Let's capture moments ✨"}</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerTitle}>Dashboard</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -1440,8 +1443,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   datePillText: { fontSize: 10, color: colors.gold, fontFamily: 'Outfit_700Bold', letterSpacing: 0.3 },
-  headerTitle: { fontSize: 28, fontFamily: 'AkayaKanadaka_400Regular', color: colors.white, letterSpacing: 0.5, textAlign: 'center' },
-  tagline: { fontSize: 15, color: colors.slate400, fontFamily: 'AkayaKanadaka_400Regular', marginTop: -18, textAlign: 'center' },
+  headerTitle: { fontSize: 28, lineHeight: 38, fontFamily: 'AkayaKanadaka_400Regular', color: colors.white, letterSpacing: 0.5, textAlign: 'center', includeFontPadding: false },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   avatarRingHeader: {
     padding: 3, borderRadius: 30,
     borderWidth: 1.5, borderColor: colors.gold,

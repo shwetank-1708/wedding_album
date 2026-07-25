@@ -25,9 +25,6 @@ import {
   isValidUsername,
   isUsernameUnique, 
   updateUserProfile,
-  getUsers,
-  followUser,
-  unfollowUser,
   getUserPhotosCount,
   getUserEventCount,
   getApprovedSharedEventsForUser
@@ -36,6 +33,7 @@ import {
 import { removeProfileImage, uploadProfileImage } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { getPlanDetails } from '@/lib/planLimits';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -143,17 +141,8 @@ export default function ProfileScreen() {
   const styles = getStyles(colors, isDark);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [stats, setStats] = useState({ followers: 0, following: 0 });
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
   const [updatingPrivacy, setUpdatingPrivacy] = useState(false);
-
-  // Network list modal states
-  const [networkModalVisible, setNetworkModalVisible] = useState(false);
-  const [networkModalType, setNetworkModalType] = useState<'followers' | 'following'>('followers');
-  const [networkSearchQuery, setNetworkSearchQuery] = useState('');
-  const [allUsersList, setAllUsersList] = useState<any[]>([]);
-  const [followerRelations, setFollowerRelations] = useState<any[]>([]);
-  const [followingRelations, setFollowingRelations] = useState<any[]>([]);
 
   // Edit Profile States
   const [isEditing, setIsEditing] = useState(false);
@@ -384,25 +373,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Real-time listeners stubbed out for stability since relationships are legacy/disabled
-    setFollowerRelations([]);
-    setStats((prev) => ({ ...prev, followers: 0 }));
-
-    setFollowingRelations([]);
-    setStats((prev) => ({ ...prev, following: 0 }));
-
     if (user.isPrivate !== undefined) setIsPrivate(user.isPrivate);
-
-    // Fetch all users list once on mount
-    const fetchAllUsers = async () => {
-      try {
-        const list = await getUsers();
-        setAllUsersList(list);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-      }
-    };
-    fetchAllUsers();
   }, [user?.uid]);
 
   // Fetch activity stats
@@ -430,69 +401,6 @@ export default function ProfileScreen() {
 
     fetchActivityStats();
   }, [user?.uid]);
-
-  const openNetworkModal = (type: 'followers' | 'following') => {
-    setNetworkModalType(type);
-    setNetworkSearchQuery('');
-    setNetworkModalVisible(true);
-  };
-
-  const handleUnfollow = async (targetUserId: string) => {
-    if (!user?.uid) return;
-    try {
-      await unfollowUser(user.uid, targetUserId);
-    } catch (error) {
-      console.error("Error unfollowing user:", error);
-      Alert.alert("Error", "Unable to unfollow user. Please try again.");
-    }
-  };
-
-  const handleFollow = async (targetUserId: string) => {
-    if (!user?.uid) return;
-    try {
-      await followUser(user.uid, targetUserId);
-    } catch (error) {
-      console.error("Error following user:", error);
-      Alert.alert("Error", "Unable to follow user. Please try again.");
-    }
-  };
-
-  const handleRemoveFollower = async (targetUserId: string) => {
-    if (!user?.uid) return;
-    Alert.alert(
-      "Remove Follower?",
-      "They won't be notified that you removed them from your followers.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Remove", 
-          style: "destructive", 
-          onPress: async () => {
-            try {
-              await unfollowUser(targetUserId, user.uid);
-            } catch (error) {
-              console.error("Error removing follower:", error);
-              Alert.alert("Error", "Unable to remove follower. Please try again.");
-            }
-          } 
-        }
-      ]
-    );
-  };
-
-  const getNetworkList = () => {
-    const list = networkModalType === 'followers'
-      ? allUsersList.filter(u => followerRelations.some(r => r.followerId === u.id))
-      : allUsersList.filter(u => followingRelations.some(r => r.followedId === u.id));
-
-    if (!networkSearchQuery.trim()) return list;
-
-    const queryStr = networkSearchQuery.toLowerCase().trim();
-    return list.filter(u => 
-      u.name?.toLowerCase().includes(queryStr) || 
-      u.username?.toLowerCase().includes(queryStr)
-    );
-  };
 
   const togglePrivacy = async () => {
     if (!user?.uid || updatingPrivacy) return;
@@ -542,6 +450,24 @@ export default function ProfileScreen() {
           colors={[colors.deepSlate, colors.background]}
           style={[styles.header, { paddingTop: insets.top + 2 }]}
         >
+          <View style={styles.profileHeaderBar}>
+            <View style={styles.profileHeaderSide} />
+            <View style={styles.profileHeaderTitleWrap}>
+              <View style={styles.headingLogoRow}>
+                <EveBashLogoBadge />
+                <Text style={styles.headerTitle}>Profile</Text>
+              </View>
+            </View>
+            <View style={styles.profileHeaderSide}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.push('/settings' as any)}
+                style={styles.settingsBtn}
+              >
+                <SettingsIcon size={22} color="#d4af37" />
+              </TouchableOpacity>
+            </View>
+          </View>
           <View style={styles.profileRow}>
             <View style={styles.avatarRing}>
               {user.profileImage ? (
@@ -576,39 +502,7 @@ export default function ProfileScreen() {
                   </View>
                 ))}
               </View>
-              <View style={styles.headerBadgeRow}>
-                <View style={styles.socialStatsRow}>
-                  <TouchableOpacity 
-                    activeOpacity={0.7} 
-                    onPress={() => openNetworkModal('followers')}
-                    style={styles.socialStatBtn}
-                  >
-                    <Text style={styles.socialStatText}>
-                      <Text style={styles.socialStatNumber}>{stats.followers}</Text> Followers
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <View style={styles.dotSeparator} />
-                  
-                  <TouchableOpacity 
-                    activeOpacity={0.7} 
-                    onPress={() => openNetworkModal('following')}
-                    style={styles.socialStatBtn}
-                  >
-                    <Text style={styles.socialStatText}>
-                      <Text style={styles.socialStatNumber}>{stats.following}</Text> Following
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             </View>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/settings' as any)}
-              style={styles.settingsBtn}
-            >
-              <SettingsIcon size={22} color="#d4af37" />
-            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -1164,115 +1058,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Followers & Following Network Modal */}
-      <Modal
-        visible={networkModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setNetworkModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { height: '80%' }]}>
-            
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {networkModalType === 'followers' ? 'Followers' : 'Following'}
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setNetworkModalVisible(false)} 
-                style={styles.modalCloseBtn}
-              >
-                <IconSymbol name="xmark" size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Input */}
-            <View style={styles.networkSearchContainer}>
-              <TextInput
-                style={styles.networkSearchInput}
-                placeholder="Search..."
-                placeholderTextColor={colors.slate400}
-                value={networkSearchQuery}
-                onChangeText={setNetworkSearchQuery}
-              />
-            </View>
-
-            {/* List */}
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.networkScrollContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              {getNetworkList().length > 0 ? (
-                getNetworkList().map((item) => {
-                  const isFollowingBack = followingRelations.some(r => r.followedId === item.id);
-                  return (
-                    <View key={item.id} style={styles.networkUserCard}>
-                      <View style={styles.networkUserInfoSimple}>
-                        {item.profileImage ? (
-                          <Image source={{ uri: item.profileImage }} style={styles.networkAvatarImg} />
-                        ) : (
-                          <View style={styles.networkAvatarPlaceholder}>
-                            <Text style={styles.networkAvatarChar}>{item.name?.charAt(0).toUpperCase()}</Text>
-                          </View>
-                        )}
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.networkUserNameText} numberOfLines={1}>{item.name}</Text>
-                          {item.username && (
-                            <Text style={styles.networkUserHandleText} numberOfLines={1}>@{item.username}</Text>
-                          )}
-                        </View>
-                      </View>
-
-                      {/* Network Action Buttons */}
-                      {networkModalType === 'following' ? (
-                        <TouchableOpacity 
-                          style={[styles.networkActionBtn, styles.networkUnfollowBtn]}
-                          onPress={() => handleUnfollow(item.id)}
-                        >
-                          <Text style={[styles.networkActionBtnText, styles.networkUnfollowBtnText]}>Following</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        // Followers tab
-                        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                          <TouchableOpacity 
-                            style={[
-                              styles.networkActionBtn, 
-                              isFollowingBack ? styles.networkUnfollowBtn : styles.networkFollowBtn
-                            ]}
-                            onPress={() => isFollowingBack ? handleUnfollow(item.id) : handleFollow(item.id)}
-                          >
-                            <Text style={[
-                              styles.networkActionBtnText, 
-                              isFollowingBack ? styles.networkUnfollowBtnText : styles.networkFollowBtnText
-                            ]}>
-                              {isFollowingBack ? 'Following' : 'Follow Back'}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity 
-                            style={styles.networkRemoveFollowerBtn}
-                            onPress={() => handleRemoveFollower(item.id)}
-                          >
-                            <Text style={styles.networkRemoveFollowerText}>Remove</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })
-              ) : (
-                <View style={styles.networkEmptyState}>
-                  <Text style={styles.networkEmptyStateText}>
-                    {networkSearchQuery.trim() ? 'No users found' : (networkModalType === 'followers' ? 'No followers yet' : 'Not following anyone yet')}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1287,13 +1072,41 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   header: { 
     position: 'relative',
-    paddingTop: 2, 
-    paddingBottom: 6,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
+  profileHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 22,
+    gap: 14,
+  },
+  profileHeaderSide: {
+    width: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  profileHeaderTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
+    lineHeight: 38,
+    fontFamily: 'AkayaKanadaka_400Regular',
+    color: colors.white,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
@@ -1378,32 +1191,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#cbd5e1',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-  },
-  headerBadgeRow: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 0,
-    marginTop: 0,
-  },
-  socialStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  socialStatText: {
-    fontSize: 12,
-    color: colors.slate400,
-    fontFamily: 'Inter_400Regular',
-  },
-  socialStatNumber: {
-    color: colors.white,
-    fontFamily: 'Outfit_700Bold',
-  },
-  dotSeparator: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.slate700,
   },
   content: { 
     paddingHorizontal: 24, 
@@ -1868,129 +1655,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   themePillTextActive: {
     color: '#050505',
     fontFamily: 'Inter_700Bold',
-  },
-  socialStatBtn: {
-    paddingVertical: 4,
-  },
-  networkSearchContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  networkSearchInput: {
-    height: 44,
-    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    color: colors.white,
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  networkScrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  networkUserCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  networkUserInfoSimple: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    marginRight: 12,
-  },
-  networkAvatarImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  networkAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.slate900,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  networkAvatarChar: {
-    color: colors.gold,
-    fontSize: 16,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkUserNameText: {
-    color: colors.white,
-    fontSize: 15,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkUserHandleText: {
-    color: colors.slate400,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    marginTop: 2,
-  },
-  networkActionBtn: {
-    height: 32,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  networkActionBtnText: {
-    fontSize: 12,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkFollowBtn: {
-    backgroundColor: colors.gold,
-  },
-  networkFollowBtnText: {
-    color: '#050505',
-    fontSize: 12,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkUnfollowBtn: {
-    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  networkUnfollowBtnText: {
-    color: colors.slate400,
-    fontSize: 12,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkRemoveFollowerBtn: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(248, 113, 113, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.15)',
-  },
-  networkRemoveFollowerText: {
-    color: '#f87171',
-    fontSize: 12,
-    fontFamily: 'Outfit_700Bold',
-  },
-  networkEmptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  networkEmptyStateText: {
-    color: colors.slate400,
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
   },
   statsCardCompact: {
     flexDirection: 'row',

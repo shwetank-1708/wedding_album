@@ -32,6 +32,7 @@ import { EVENT_PLACEHOLDER_IMAGES, resolveEventCoverImage } from '@/lib/eventCov
 import { supabase } from '@/lib/supabase';
 import { MidnightColors, Fonts } from '../../constants/theme';
 import { MOBILE_TEMPLATE_THEMES, getDefaultTemplateForEventCategory } from '../../constants/templates';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 import {
   Event as DatabaseEvent,
   getUserEvents,
@@ -575,8 +576,10 @@ export default function PortfolioTabScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={styles.headerName}>Host Event</Text>
-            <Text style={styles.headerGreeting}>Manage events and guests</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerName}>Host Event</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -1468,7 +1471,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     backgroundColor: colors.gold,
   },
   headerGreeting: { fontSize: 15, color: colors.slate400, fontFamily: 'AkayaKanadaka_400Regular', textAlign: 'center', marginTop: -18 },
-  headerName: { fontSize: 28, color: colors.white, fontFamily: 'AkayaKanadaka_400Regular', letterSpacing: 0.5, textAlign: 'center' },
+  headerName: { fontSize: 28, lineHeight: 38, color: colors.white, fontFamily: 'AkayaKanadaka_400Regular', letterSpacing: 0.5, textAlign: 'center', includeFontPadding: false },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   createBtnHeader: {
     paddingHorizontal: 16,
     paddingVertical: 10,

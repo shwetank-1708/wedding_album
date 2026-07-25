@@ -24,6 +24,7 @@ import * as Location from 'expo-location';
 import { onTopRatedBusinesses, getTopRatedBusinesses, toggleShortlistBusiness, Business, getBusinessTypeColor } from '@/lib/database';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -220,8 +221,10 @@ export default function ExploreBusinessScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={styles.headerTitle}>EB Network</Text>
-            <Text style={styles.headerSubtitle}>Elite Deals. Every Event.</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerTitle}>EB Network</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity 
@@ -705,20 +708,16 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerSubtitle: {
-    fontSize: 15,
-    color: colors.slate400,
-    fontFamily: 'AkayaKanadaka_400Regular',
-    textAlign: 'center',
-    marginTop: -18,
-  },
   headerTitle: {
     fontSize: 28,
+    lineHeight: 38,
     color: colors.white,
     fontFamily: 'AkayaKanadaka_400Regular',
     letterSpacing: 0.5,
     textAlign: 'center',
+    includeFontPadding: false,
   },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   iconBtn: {
     width: 44,
     height: 44,

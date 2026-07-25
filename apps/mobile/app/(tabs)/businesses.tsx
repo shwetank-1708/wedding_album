@@ -26,6 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { createBusiness, getUserBusinesses, Business, generateShortId, getBusinessTypeColor, getUserTotalStorage } from '@/lib/database';
 import { uploadEventImage } from '@/lib/storage';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -301,8 +302,10 @@ export default function BusinessLandingScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={styles.headerTitle}>EB Business</Text>
-            <Text style={styles.headerSubtitle}>Create and manage your business presence.</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerTitle}>EB Business</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity 
@@ -903,17 +906,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
+    lineHeight: 38,
     color: colors.white,
     fontFamily: 'AkayaKanadaka_400Regular',
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  headerSubtitle: {
-    fontSize: 15,
-    color: colors.slate400,
-    fontFamily: 'AkayaKanadaka_400Regular',
-    textAlign: 'center',
-    marginTop: -18,
-  },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   iconBtn: {
     width: 44,
     height: 44,

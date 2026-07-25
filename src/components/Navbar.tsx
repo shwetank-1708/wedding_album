@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Camera, User as UserIcon } from "lucide-react";
+import { Menu, X, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { EveBashLogo } from "@/components/EveBashLogo";
 
 const guestNavLinks = [
     { name: "Sample Galleries", href: "/sample-galleries" },
@@ -50,7 +51,7 @@ export default function Navbar() {
                     {/* Logo & Brand */}
                     <Link href="/" className="flex items-center space-x-2 group">
                         <div className="bg-white text-[#0f172a] p-2 rounded-lg group-hover:bg-slate-200 transition-colors">
-                            <Camera className="w-5 h-5" />
+                            <EveBashLogo className="h-6 w-6" aria-hidden="true" />
                         </div>
                         <span className="font-playfair text-xl font-bold text-white">
                             EveBash
