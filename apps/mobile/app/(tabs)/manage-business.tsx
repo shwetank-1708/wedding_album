@@ -28,6 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import * as Location from 'expo-location';
 import { uploadEventImage } from '@/lib/storage';
 import { DEFAULT_EVENT_COVER_IMAGE } from '@/lib/eventCovers';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -955,10 +956,10 @@ export default function ManageBusinessScreen() {
         </View>
 
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={styles.headerTitle}>Manage Business</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
-            {business?.name || "Manage Empire"}
-          </Text>
+          <View style={styles.headingLogoRow}>
+            <EveBashLogoBadge />
+            <Text style={styles.headerTitle}>Manage Business</Text>
+          </View>
         </View>
 
         <View style={styles.headerRight}>
@@ -2359,17 +2360,13 @@ const getStyles = (colors: any, isDark: boolean, insets: any) => StyleSheet.crea
   },
   headerTitle: {
     fontSize: 28,
+    lineHeight: 38,
     color: colors.white,
     fontFamily: 'AkayaKanadaka_400Regular',
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: colors.slate400,
-    fontFamily: 'Inter_500Medium',
-    textAlign: 'center',
-    marginTop: -18,
-  },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -30,8 +30,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { uploadProfileImageToBackblaze } from "@/app/actions/userActions";
 import {
     getApprovedSharedEventsForUser,
-    getFollowersCount,
-    getFollowingCount,
     getUserEventCount,
     getUserPhotosCount,
     getUserTotalStorage,
@@ -158,8 +156,6 @@ export default function ProfilePage() {
     const [photosCount, setPhotosCount] = useState(0);
     const [eventCount, setEventCount] = useState(0);
     const [joinedCount, setJoinedCount] = useState(0);
-    const [followersCount, setFollowersCount] = useState(0);
-    const [followingCount, setFollowingCount] = useState(0);
     const [loadingStats, setLoadingStats] = useState(true);
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -242,20 +238,16 @@ export default function ProfilePage() {
             setLoadingStats(true);
             try {
                 const identifiers = [user.uid, user.email, user.phone].filter(Boolean) as string[];
-                const [storage, photos, hosted, joined, followers, following] = await Promise.all([
+                const [storage, photos, hosted, joined] = await Promise.all([
                     getUserTotalStorage(identifiers),
                     getUserPhotosCount(user.uid),
                     getUserEventCount(user.uid),
                     getApprovedSharedEventsForUser(identifiers),
-                    getFollowersCount(user.uid),
-                    getFollowingCount(user.uid),
                 ]);
                 setStorageUsed(storage);
                 setPhotosCount(photos);
                 setEventCount(hosted);
                 setJoinedCount(joined.length);
-                setFollowersCount(followers);
-                setFollowingCount(following);
             } finally {
                 setLoadingStats(false);
             }
@@ -467,15 +459,6 @@ export default function ProfilePage() {
                                                 {persona}
                                             </span>
                                         ))}
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-3 text-xs font-bold text-slate-400">
-                                        <span>
-                                            <span className="font-black text-white">{followersCount}</span> Followers
-                                        </span>
-                                        <span className="h-1 w-1 rounded-full bg-slate-700" />
-                                        <span>
-                                            <span className="font-black text-white">{followingCount}</span> Following
-                                        </span>
                                     </div>
                                 </div>
                             </div>

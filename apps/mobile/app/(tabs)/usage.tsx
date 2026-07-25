@@ -9,6 +9,7 @@ import { getUserEventCount, getUserTotalStorage, getUserBusinesses } from '@/lib
 import { getPlanDetails, getUsagePercent } from '@/lib/planLimits';
 import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
 import { supabase } from '@/lib/supabase';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -161,7 +162,10 @@ export default function UsageScreen() {
           >
             <IconSymbol name="chevron.left" size={24} color="#d4af37" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Plan & Usage</Text>
+          <View style={styles.headingLogoRow}>
+            <EveBashLogoBadge />
+            <Text style={styles.headerTitle}>Plan & Usage</Text>
+          </View>
           <View style={{ width: 40 }} /> 
         </View>
       </LinearGradient>
@@ -322,12 +326,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(212, 175, 55, 0.2)',
   },
   headerTitle: { 
-    fontSize: 13, 
+    fontSize: 28, 
+    lineHeight: 38,
     fontFamily: 'Inter_700Bold', 
     color: '#94a3b8', 
     textTransform: 'uppercase', 
-    letterSpacing: 2 
+    letterSpacing: 2,
+    includeFontPadding: false,
   },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

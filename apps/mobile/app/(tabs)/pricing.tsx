@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinearGradient } from 'expo-linear-gradient';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -253,7 +254,10 @@ export default function PricingScreen() {
         >
           <IconSymbol name="chevron.left" size={24} color="#d4af37" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Upgrade Plan</Text>
+        <View style={styles.headingLogoRow}>
+          <EveBashLogoBadge />
+          <Text style={styles.headerTitle}>Upgrade Plan</Text>
+        </View>
         <View style={{ width: 40 }} /> 
       </View>
 
@@ -436,12 +440,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerTitle: {
-    fontSize: 13,
+    fontSize: 28,
+    lineHeight: 38,
     fontFamily: 'Inter_700Bold',
     color: '#94a3b8',
     textTransform: 'uppercase',
     letterSpacing: 2,
+    includeFontPadding: false,
   },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,

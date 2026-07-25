@@ -21,6 +21,7 @@ import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 import { 
   getUsers, 
   followUser, 
@@ -1064,7 +1065,10 @@ export default function SocialScreen() {
         {/* Header */}
         <LinearGradient colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]} style={styles.header}>
           <View style={styles.topRow}>
-            <Text style={styles.headerTitle}>Social Hub</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerTitle}>Social Hub</Text>
+            </View>
             <TouchableOpacity 
               style={styles.searchHeaderBtn}
               onPress={() => setSearchModalVisible(true)}
@@ -1072,7 +1076,6 @@ export default function SocialScreen() {
               <IconSymbol name="magnifyingglass" size={22} color={colors.white} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.headerSubtitle}>Connect with loved ones ✨</Text>
         </LinearGradient>
 
         <ScrollView 
@@ -1301,13 +1304,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     elevation: 8,
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 32, fontFamily: 'Outfit_800ExtraBold', color: colors.white, letterSpacing: -1 },
-  headerSubtitle: {
-    fontSize: 13,
-    color: colors.slate400,
-    fontFamily: 'Inter_400Regular',
-    marginTop: 4,
-  },
+  headerTitle: { fontSize: 28, lineHeight: 38, fontFamily: 'Outfit_800ExtraBold', color: colors.white, letterSpacing: -1, includeFontPadding: false },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   content: { flex: 1 },
   centerContainer: { paddingTop: 100, alignItems: 'center', justifyContent: 'center' },
   feedList: { paddingTop: 8 },

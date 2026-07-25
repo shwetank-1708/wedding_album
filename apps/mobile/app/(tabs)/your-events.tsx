@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { MidnightColors, Fonts } from '../../constants/theme';
 import { getUserEvents, getApprovedSharedEventsForUser, Event as DatabaseEvent } from '@/lib/database';
 import { resolveEventCoverImage } from '@/lib/eventCovers';
+import { EveBashLogoBadge } from '@/components/EveBashLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -150,8 +151,10 @@ export default function YourEventsScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={styles.headerTitle}>Gallery</Text>
-            <Text style={styles.tagline}>{"Your curated memories ✨"}</Text>
+            <View style={styles.headingLogoRow}>
+              <EveBashLogoBadge />
+              <Text style={styles.headerTitle}>Gallery</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity 
@@ -292,11 +295,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    fontFamily: 'Inter_500Medium',
-  },
   headerFilterBtn: {
     width: 40,
     height: 40,
@@ -307,18 +305,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
+    lineHeight: 38,
     color: '#ffffff',
     fontFamily: 'AkayaKanadaka_400Regular',
     letterSpacing: 0.5,
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  tagline: {
-    fontSize: 15,
-    color: '#94a3b8',
-    fontFamily: 'AkayaKanadaka_400Regular',
-    marginTop: -18,
-    textAlign: 'center',
-  },
+  headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   iconBtn: {
     width: 44,
     height: 44,
