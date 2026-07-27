@@ -11,7 +11,7 @@ export default function Footer() {
     return (
         <footer className="bg-[#050505] text-slate-400 pt-16 pb-8 border-t border-white/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
                     {/* Brand Section */}
                     <div className="space-y-6">
                         <Link href="/" className="inline-block">
@@ -37,7 +37,7 @@ export default function Footer() {
                     </div>
 
                     {/* Quick Links */}
-                    <div className="space-y-6 md:pl-12">
+                    <div className="space-y-6 lg:pl-8">
                         <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Explore</h4>
                         <ul className="space-y-3 text-base">
                             <li>
@@ -67,6 +67,37 @@ export default function Footer() {
                         </ul>
                     </div>
 
+                    {/* Legal Links */}
+                    <div className="space-y-6">
+                        <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Legal</h4>
+                        <ul className="space-y-3 text-base">
+                            <li>
+                                <Link href="/privacy-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                    Privacy Policy
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/terms-and-conditions" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                    Terms & Conditions
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/cancellation-refund-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                    Cancellation & Refund
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/shipping-delivery-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                    Shipping & Delivery
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+
                     {/* Contact Info */}
                     <div className="space-y-6">
                         <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Contact Us</h4>
@@ -74,17 +105,19 @@ export default function Footer() {
                             <div className="flex items-start">
                                 <MapPin className="w-4 h-4 text-sky-400 mt-1 shrink-0" />
                                 <p className="ml-3">
-                                    123 Kingsway Road,<br />
-                                    Dehradun, Uttarakhand, India
+                                    Dehradun, Uttarakhand, India - 248001
                                 </p>
                             </div>
                             <div className="flex items-center">
                                 <Phone className="w-4 h-4 text-sky-400 shrink-0" />
-                                <p className="ml-3">+91 987 654 3210</p>
+                                <div className="ml-3">
+                                    <p>+91 98712 64964</p>
+                                    <p>+91 85350 29872</p>
+                                </div>
                             </div>
                             <div className="flex items-center">
                                 <Mail className="w-4 h-4 text-sky-400 shrink-0" />
-                                <p className="ml-3">hello@weddingalbum.com</p>
+                                <p className="ml-3">support@evebash.com</p>
                             </div>
                         </div>
                     </div>

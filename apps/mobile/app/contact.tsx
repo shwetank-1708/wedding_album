@@ -48,8 +48,7 @@ export default function ContactUsScreen() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>STUDIO ADDRESS</Text>
-              <Text style={styles.infoText}>123 Kingsway Road, Dehradun,</Text>
-              <Text style={styles.infoText}>Uttarakhand, India - 248001</Text>
+              <Text style={styles.infoText}>Dehradun, Uttarakhand, India - 248001</Text>
             </View>
           </View>
 
@@ -59,8 +58,8 @@ export default function ContactUsScreen() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>PHONE</Text>
-              <Text style={styles.infoText}>+91 987 654 3210</Text>
-              <Text style={styles.infoText}>+91 123 456 7890</Text>
+              <Text style={styles.infoText}>+91 98712 64964</Text>
+              <Text style={styles.infoText}>+91 85350 29872</Text>
             </View>
           </View>
 
@@ -70,8 +69,7 @@ export default function ContactUsScreen() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>EMAIL</Text>
-              <Text style={styles.infoText}>hello@weddingalbum.com</Text>
-              <Text style={styles.infoText}>bookings@weddingalbum.com</Text>
+              <Text style={styles.infoText}>support@evebash.com</Text>
             </View>
           </View>
 
@@ -81,8 +79,7 @@ export default function ContactUsScreen() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>BUSINESS HOURS</Text>
-              <Text style={styles.infoText}>Mon - Sat: 10:00 AM - 7:00 PM</Text>
-              <Text style={styles.infoText}>Sun: By Appointment Only</Text>
+              <Text style={styles.infoText}>Mon - Fri: 10:00 AM - 6:00 PM</Text>
             </View>
           </View>
         </View>

@@ -255,7 +255,7 @@ export default function PricingScreen() {
           <IconSymbol name="chevron.left" size={24} color="#d4af37" />
         </TouchableOpacity>
         <View style={styles.headingLogoRow}>
-          <EveBashLogoBadge />
+          <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
           <Text style={styles.headerTitle}>Upgrade Plan</Text>
         </View>
         <View style={{ width: 40 }} /> 

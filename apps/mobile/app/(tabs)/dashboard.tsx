@@ -600,7 +600,7 @@ export default function DashboardScreen() {
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <View style={styles.headingLogoRow}>
-              <EveBashLogoBadge />
+              <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
               <Text style={styles.headerTitle}>Dashboard</Text>
             </View>
           </View>

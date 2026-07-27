@@ -454,7 +454,7 @@ export default function ProfileScreen() {
             <View style={styles.profileHeaderSide} />
             <View style={styles.profileHeaderTitleWrap}>
               <View style={styles.headingLogoRow}>
-                <EveBashLogoBadge />
+                <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
                 <Text style={styles.headerTitle}>Profile</Text>
               </View>
             </View>

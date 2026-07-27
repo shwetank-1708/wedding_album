@@ -23,7 +23,7 @@ export default function ContactUs() {
                                     </div>
                                     <div className="ml-4">
                                         <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-1">Studio Address</h3>
-                                        <p className="text-slate-700 leading-relaxed">123 Kingsway Road, Dehradun,<br />Uttarakhand, India - 248001</p>
+                                        <p className="text-slate-700 leading-relaxed">Dehradun, Uttarakhand, India - 248001</p>
                                     </div>
                                 </div>
 
@@ -33,8 +33,8 @@ export default function ContactUs() {
                                     </div>
                                     <div className="ml-4">
                                         <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-1">Phone</h3>
-                                        <p className="text-slate-700">+91 987 654 3210</p>
-                                        <p className="text-slate-700">+91 123 456 7890</p>
+                                        <p className="text-slate-700">+91 98712 64964</p>
+                                        <p className="text-slate-700">+91 85350 29872</p>
                                     </div>
                                 </div>
 
@@ -44,8 +44,7 @@ export default function ContactUs() {
                                     </div>
                                     <div className="ml-4">
                                         <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-1">Email</h3>
-                                        <p className="text-slate-700">hello@weddingalbum.com</p>
-                                        <p className="text-slate-700">bookings@weddingalbum.com</p>
+                                        <p className="text-slate-700">support@evebash.com</p>
                                     </div>
                                 </div>
 
@@ -55,8 +54,7 @@ export default function ContactUs() {
                                     </div>
                                     <div className="ml-4">
                                         <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-1">Business Hours</h3>
-                                        <p className="text-slate-700">Mon - Sat: 10:00 AM - 7:00 PM</p>
-                                        <p className="text-slate-700">Sun: By Appointment Only</p>
+                                        <p className="text-slate-700">Mon - Fri: 10:00 AM - 6:00 PM</p>
                                     </div>
                                 </div>
                             </div>
