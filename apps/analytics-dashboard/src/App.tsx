@@ -5,12 +5,16 @@ import {
   fetchEvents,
   fetchGuests,
   fetchPhotos,
+  fetchContactMessages,
+  updateContactMessageStatus,
   computeDashboardStats,
   type DashboardStats,
   type UserProfile,
   type Event as EventType,
   type GuestLog,
-  type Photo
+  type Photo,
+  type ContactMessage,
+  type ContactMessageStatus
 } from './lib/analytics';
 import { AnalyticsOverview } from './components/AnalyticsOverview';
 import { UserGrid } from './components/UserGrid';
@@ -19,6 +23,7 @@ import { PlanDetailsGrid } from './components/PlanDetailsGrid';
 import { ManagePricingGrid } from './components/ManagePricingGrid';
 import { InfraCostGrid } from './components/InfraCostGrid';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { ContactMessagesGrid } from './components/ContactMessagesGrid';
 import { runAdminAction, type AdminAction } from './lib/adminApi';
 import { BarChart3, Users, Folder, LogOut, Key, Mail, AlertTriangle, ShieldCheck, Layers, DollarSign, Settings2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
@@ -54,8 +59,9 @@ export default function App() {
   const [events, setEvents] = useState<EventType[]>([]);
   const [guests, setGuests] = useState<GuestLog[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'plans' | 'pricing' | 'infra' | 'superadmin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'plans' | 'pricing' | 'infra' | 'messages' | 'superadmin'>('overview');
 
   useEffect(() => {
     const isRecoveryLink = isPasswordRecoveryUrl();
@@ -232,16 +238,18 @@ export default function App() {
   const loadDashboardData = async () => {
     setLoadingData(true);
     try {
-      const [u, e, g, p] = await Promise.all([
+      const [u, e, g, p, m] = await Promise.all([
         fetchUsers(),
         fetchEvents(),
         fetchGuests(),
-        fetchPhotos()
+        fetchPhotos(),
+        fetchContactMessages()
       ]);
       setUsers(u);
       setEvents(e);
       setGuests(g);
       setPhotos(p);
+      setContactMessages(m);
       const computed = computeDashboardStats(u, e, g, p);
       setStats(computed);
     } catch (err) {
@@ -277,6 +285,17 @@ export default function App() {
     } finally {
       setLoadingData(false);
     }
+  };
+
+  const handleContactMessageStatusChange = async (id: string, status: ContactMessageStatus) => {
+    await updateContactMessageStatus(id, status);
+    setContactMessages(prev =>
+      prev.map(message =>
+        message.id === id
+          ? { ...message, status, readAt: status === 'new' ? '' : new Date().toISOString() }
+          : message
+      )
+    );
   };
 
   // While checking initial session status
@@ -596,6 +615,18 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setActiveTab('messages')}
+              className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === 'messages'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
+                  : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+              }`}
+            >
+              <Mail className="w-4 h-4 mr-3" />
+              Contact Messages
+            </button>
+
+            <button
               onClick={() => setActiveTab('superadmin')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'superadmin'
@@ -641,6 +672,7 @@ export default function App() {
              activeTab === 'plans' ? 'Subscription Plans Details' :
              activeTab === 'pricing' ? 'Manage Pricing' :
              activeTab === 'infra' ? 'Infrastructure Cost Hub' :
+             activeTab === 'messages' ? 'Contact Messages' :
              'Super Admin Control'}
           </h2>
           <div className="flex items-center space-x-3">
@@ -721,6 +753,12 @@ export default function App() {
               {activeTab === 'plans' && <PlanDetailsGrid users={users} />}
               {activeTab === 'pricing' && <ManagePricingGrid />}
               {activeTab === 'infra' && <InfraCostGrid stats={stats} users={users} events={events} guests={guests} photos={photos} />}
+              {activeTab === 'messages' && (
+                <ContactMessagesGrid
+                  messages={contactMessages}
+                  onStatusChange={handleContactMessageStatusChange}
+                />
+              )}
               {activeTab === 'superadmin' && (
                 <SuperAdminPanel
                   users={users}

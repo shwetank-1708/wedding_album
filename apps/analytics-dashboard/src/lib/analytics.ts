@@ -63,6 +63,20 @@ export interface DashboardStats {
   recentLogins: { name: string; emailOrPhone: string; type: 'User' | 'Guest'; time: string }[];
 }
 
+export type ContactMessageStatus = 'new' | 'read' | 'replied' | 'closed';
+
+export interface ContactMessage {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
+  source: 'web' | 'mobile';
+  status: ContactMessageStatus;
+  createdAt: string;
+  readAt?: string;
+}
+
 export async function fetchUsers(): Promise<UserProfile[]> {
   try {
     const { data, error } = await supabase
@@ -210,6 +224,44 @@ export async function fetchPhotos(): Promise<Photo[]> {
     console.error("Error fetching photos:", err);
     return [];
   }
+}
+
+export async function fetchContactMessages(): Promise<ContactMessage[]> {
+  try {
+    const { data, error } = await supabase
+      .from('contact_messages')
+      .select('id, first_name, last_name, email, message, source, status, created_at, read_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      id: row.id,
+      firstName: row.first_name || '',
+      lastName: row.last_name || '',
+      email: row.email || '',
+      message: row.message || '',
+      source: row.source === 'mobile' ? 'mobile' : 'web',
+      status: (row.status || 'new') as ContactMessageStatus,
+      createdAt: row.created_at,
+      readAt: row.read_at || '',
+    }));
+  } catch (err) {
+    console.error('Error fetching contact messages:', err);
+    return [];
+  }
+}
+
+export async function updateContactMessageStatus(id: string, status: ContactMessageStatus) {
+  const { error } = await supabase
+    .from('contact_messages')
+    .update({
+      status,
+      read_at: status === 'new' ? null : new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) throw error;
 }
 
 export function computeDashboardStats(

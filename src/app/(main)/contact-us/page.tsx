@@ -1,6 +1,52 @@
+"use client";
+
+import { FormEvent, useState } from "react";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 
 export default function ContactUs() {
+    const [form, setForm] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        message: "",
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+    const [submitSuccess, setSubmitSuccess] = useState("");
+
+    const updateField = (field: keyof typeof form, value: string) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+        setSubmitError("");
+        setSubmitSuccess("");
+    };
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setSubmitting(true);
+        setSubmitError("");
+        setSubmitSuccess("");
+
+        try {
+            const response = await fetch("/api/contact-messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...form, source: "web" }),
+            });
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "Unable to send message right now.");
+            }
+
+            setForm({ firstName: "", lastName: "", email: "", message: "" });
+            setSubmitSuccess("Message sent. We will get back to you within 24 hours.");
+        } catch (error) {
+            setSubmitError(error instanceof Error ? error.message : "Unable to send message right now.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 py-24 px-4">
             <div className="max-w-7xl mx-auto">
@@ -66,41 +112,77 @@ export default function ContactUs() {
                         <h2 className="text-3xl font-serif text-slate-800 mb-2">Send Us a Message</h2>
                         <p className="text-slate-600 mb-8 text-sm">Fill out the form below and we will get back to you within 24 hours.</p>
 
-                        <form className="space-y-6">
+                        <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label htmlFor="firstName" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">First Name</label>
-                                    <input type="text" id="firstName" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all" placeholder="John" />
+                                    <input
+                                        type="text"
+                                        id="firstName"
+                                        value={form.firstName}
+                                        onChange={event => updateField("firstName", event.target.value)}
+                                        required
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all"
+                                        placeholder="John"
+                                    />
                                 </div>
                                 <div>
                                     <label htmlFor="lastName" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Last Name</label>
-                                    <input type="text" id="lastName" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all" placeholder="Doe" />
+                                    <input
+                                        type="text"
+                                        id="lastName"
+                                        value={form.lastName}
+                                        onChange={event => updateField("lastName", event.target.value)}
+                                        required
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all"
+                                        placeholder="Doe"
+                                    />
                                 </div>
                             </div>
 
                             <div>
                                 <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-                                <input type="email" id="email" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all" placeholder="john@example.com" />
-                            </div>
-
-                            <div>
-                                <label htmlFor="subject" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Subject</label>
-                                <select id="subject" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all text-slate-600">
-                                    <option value="">Select an inquiry type</option>
-                                    <option value="wedding">Wedding Photography</option>
-                                    <option value="portrait">Portrait Session</option>
-                                    <option value="event">Event Coverage</option>
-                                    <option value="other">Other</option>
-                                </select>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    value={form.email}
+                                    onChange={event => updateField("email", event.target.value)}
+                                    required
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all"
+                                    placeholder="john@example.com"
+                                />
                             </div>
 
                             <div>
                                 <label htmlFor="message" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Message</label>
-                                <textarea id="message" rows={5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all" placeholder="Tell us more about your event..."></textarea>
+                                <textarea
+                                    id="message"
+                                    rows={5}
+                                    value={form.message}
+                                    onChange={event => updateField("message", event.target.value)}
+                                    required
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all"
+                                    placeholder="Tell us more about your event..."
+                                />
                             </div>
 
-                            <button type="submit" className="w-full py-4 bg-slate-900 text-white font-bold uppercase tracking-widest hover:bg-sky-600 transition-colors duration-300 rounded-lg shadow-lg">
-                                Send Message
+                            {submitError && (
+                                <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                                    {submitError}
+                                </p>
+                            )}
+                            {submitSuccess && (
+                                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                                    {submitSuccess}
+                                </p>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full py-4 bg-slate-900 text-white font-bold uppercase tracking-widest hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-500 transition-colors duration-300 rounded-lg shadow-lg"
+                            >
+                                {submitting ? "Sending..." : "Send Message"}
                             </button>
                         </form>
                     </div>
