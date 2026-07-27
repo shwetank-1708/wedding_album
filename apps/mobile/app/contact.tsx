@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -6,6 +6,57 @@ import { Stack, useRouter } from 'expo-router';
 
 export default function ContactUsScreen() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
+
+  const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
+  const clearSubmitState = () => {
+    setSubmitError('');
+    setSubmitSuccess('');
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess('');
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/contact-messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          message,
+          source: 'mobile',
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Unable to send message right now.');
+      }
+
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setMessage('');
+      setSubmitSuccess('Message sent. We will get back to you within 24 hours.');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to send message right now.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <View style={styles.mainContainer}>
       <Stack.Screen options={{ 
@@ -91,17 +142,46 @@ export default function ContactUsScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>FIRST NAME</Text>
-            <TextInput style={styles.input} placeholder="John" placeholderTextColor="#94a3b8" />
+            <TextInput
+              style={styles.input}
+              placeholder="John"
+              placeholderTextColor="#94a3b8"
+              value={firstName}
+              onChangeText={(value) => {
+                setFirstName(value);
+                clearSubmitState();
+              }}
+            />
           </View>
           
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>LAST NAME</Text>
-            <TextInput style={styles.input} placeholder="Doe" placeholderTextColor="#94a3b8" />
+            <TextInput
+              style={styles.input}
+              placeholder="Doe"
+              placeholderTextColor="#94a3b8"
+              value={lastName}
+              onChangeText={(value) => {
+                setLastName(value);
+                clearSubmitState();
+              }}
+            />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-            <TextInput style={styles.input} placeholder="john@example.com" placeholderTextColor="#94a3b8" keyboardType="email-address" />
+            <TextInput
+              style={styles.input}
+              placeholder="john@example.com"
+              placeholderTextColor="#94a3b8"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={(value) => {
+                setEmail(value);
+                clearSubmitState();
+              }}
+            />
           </View>
 
           <View style={styles.inputGroup}>
@@ -113,11 +193,19 @@ export default function ContactUsScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              value={message}
+              onChangeText={(value) => {
+                setMessage(value);
+                clearSubmitState();
+              }}
             />
           </View>
 
-          <TouchableOpacity style={styles.submitButton}>
-            <Text style={styles.submitButtonText}>SEND MESSAGE</Text>
+          {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
+          {submitSuccess ? <Text style={styles.successText}>{submitSuccess}</Text> : null}
+
+          <TouchableOpacity style={[styles.submitButton, submitting && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={submitting}>
+            <Text style={styles.submitButtonText}>{submitting ? 'SENDING...' : 'SEND MESSAGE'}</Text>
           </TouchableOpacity>
         </View>
         
@@ -266,10 +354,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  submitButtonDisabled: {
+    backgroundColor: '#64748b',
+  },
   submitButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  errorText: {
+    color: '#be123c',
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  successText: {
+    color: '#047857',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
