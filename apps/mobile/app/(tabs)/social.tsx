@@ -1066,7 +1066,7 @@ export default function SocialScreen() {
         <LinearGradient colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]} style={styles.header}>
           <View style={styles.topRow}>
             <View style={styles.headingLogoRow}>
-              <EveBashLogoBadge />
+              <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
               <Text style={styles.headerTitle}>Social Hub</Text>
             </View>
             <TouchableOpacity 

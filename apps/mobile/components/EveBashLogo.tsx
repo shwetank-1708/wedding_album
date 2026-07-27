@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 type EveBashLogoProps = {
@@ -22,6 +22,8 @@ type EveBashLogoBadgeProps = {
   logoSize?: number;
   backgroundColor?: string;
   color?: string;
+  onPress?: () => void;
+  accessibilityLabel?: string;
 };
 
 export function EveBashLogoBadge({
@@ -29,8 +31,10 @@ export function EveBashLogoBadge({
   logoSize = 24,
   backgroundColor = '#ffffff',
   color = '#0f172a',
+  onPress,
+  accessibilityLabel = 'Go to home',
 }: EveBashLogoBadgeProps) {
-  return (
+  const badge = (
     <View
       style={[
         styles.badge,
@@ -44,6 +48,19 @@ export function EveBashLogoBadge({
     >
       <EveBashLogo size={logoSize} color={color} />
     </View>
+  );
+
+  if (!onPress) return badge;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={8}
+      onPress={onPress}
+    >
+      {badge}
+    </Pressable>
   );
 }
 

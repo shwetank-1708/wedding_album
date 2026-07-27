@@ -957,7 +957,7 @@ export default function ManageBusinessScreen() {
 
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <View style={styles.headingLogoRow}>
-            <EveBashLogoBadge />
+            <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
             <Text style={styles.headerTitle}>Manage Business</Text>
           </View>
         </View>
