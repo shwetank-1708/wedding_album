@@ -9,28 +9,28 @@ export default function Footer() {
 
     if (pathname === '/login') return null;
     return (
-        <footer className="bg-[#050505] text-slate-400 pt-16 pb-8 border-t border-white/10">
+        <footer className="bg-[var(--site-bg)] text-[var(--site-muted)] pt-16 pb-8 border-t border-[var(--site-border)]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
                     {/* Brand Section */}
                     <div className="space-y-6">
                         <Link href="/" className="inline-block">
-                            <h3 className="font-serif text-2xl font-bold tracking-tight text-white hover:text-sky-400 transition-colors">
+                            <h3 className="font-serif text-2xl font-bold tracking-tight text-[var(--site-text)] hover:text-sky-400 transition-colors">
                                 EveBash
                             </h3>
                         </Link>
-                        <p className="text-slate-400 leading-relaxed font-light text-base">
+                        <p className="text-[var(--site-muted)] leading-relaxed font-light text-base">
                             Capturing the most precious moments of your life with elegance and style.
                             We believe every picture tells a story, and we are here to tell yours.
                         </p>
                         <div className="flex space-x-6 pt-4">
-                            <a href="#" className="text-slate-500 hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
+                            <a href="#" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
                                 <Instagram className="w-5 h-5" />
                             </a>
-                            <a href="#" className="text-slate-500 hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
+                            <a href="#" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
                                 <Facebook className="w-5 h-5" />
                             </a>
-                            <a href="#" className="text-slate-500 hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
+                            <a href="#" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors transform hover:-translate-y-1 duration-300">
                                 <Twitter className="w-5 h-5" />
                             </a>
                         </div>
@@ -38,29 +38,29 @@ export default function Footer() {
 
                     {/* Quick Links */}
                     <div className="space-y-6 lg:pl-8">
-                        <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Explore</h4>
+                        <h4 className="font-serif text-lg text-[var(--site-text)] font-semibold tracking-wide">Explore</h4>
                         <ul className="space-y-3 text-base">
                             <li>
-                                <Link href="/" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     About Us
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/sample-galleries" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/sample-galleries" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Sample Galleries
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/pricing" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/pricing" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Pricing
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/contact-us" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/contact-us" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Contact Us
                                 </Link>
                             </li>
@@ -69,29 +69,29 @@ export default function Footer() {
 
                     {/* Legal Links */}
                     <div className="space-y-6">
-                        <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Legal</h4>
+                        <h4 className="font-serif text-lg text-[var(--site-text)] font-semibold tracking-wide">Legal</h4>
                         <ul className="space-y-3 text-base">
                             <li>
-                                <Link href="/privacy-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/privacy-policy" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Privacy Policy
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/terms-and-conditions" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/terms-and-conditions" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Terms & Conditions
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/cancellation-refund-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/cancellation-refund-policy" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Cancellation & Refund
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/shipping-delivery-policy" className="text-slate-400 hover:text-sky-400 transition-colors flex items-center group">
-                                    <span className="w-1 h-1 rounded-full bg-slate-700 mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                <Link href="/shipping-delivery-policy" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Shipping & Delivery
                                 </Link>
                             </li>
@@ -100,7 +100,7 @@ export default function Footer() {
 
                     {/* Contact Info */}
                     <div className="space-y-6">
-                        <h4 className="font-serif text-lg text-white font-semibold tracking-wide">Contact Us</h4>
+                        <h4 className="font-serif text-lg text-[var(--site-text)] font-semibold tracking-wide">Contact Us</h4>
                         <div className="space-y-4 text-base">
                             <div className="flex items-start">
                                 <MapPin className="w-4 h-4 text-sky-400 mt-1 shrink-0" />
@@ -124,11 +124,11 @@ export default function Footer() {
                 </div>
 
                 {/* Copyright */}
-                <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center bg-[#050505]">
-                    <p className="text-slate-500 text-sm">
+                <div className="mt-16 pt-8 border-t border-[var(--site-border)] flex flex-col md:flex-row justify-between items-center bg-[var(--site-bg)]">
+                    <p className="text-sm text-[var(--site-muted)]">
                         &copy; {new Date().getFullYear()} EveBash. All rights reserved.
                     </p>
-                    <p className="text-slate-500 text-sm mt-2 md:mt-0">
+                    <p className="mt-2 text-sm text-[var(--site-muted)] md:mt-0">
                         Designed with <span className="text-rose-400">♥</span>
                     </p>
                 </div>

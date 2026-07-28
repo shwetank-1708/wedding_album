@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Fonts, MidnightColors } from '@/constants/theme';
 
 type PolicySection = {
@@ -19,6 +20,8 @@ type LegalPolicyScreenProps = {
 
 export function LegalPolicyScreen({ title, description, sections }: LegalPolicyScreenProps) {
   const router = useRouter();
+  const { colors, isDark } = useAppTheme();
+  const styles = getStyles(colors, isDark);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -27,14 +30,14 @@ export function LegalPolicyScreen({ title, description, sections }: LegalPolicyS
           headerShown: true,
           headerTransparent: true,
           headerTitle: '',
-          headerTintColor: MidnightColors.white,
+          headerTintColor: colors.white,
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
               style={styles.backButton}
               hitSlop={12}
             >
-              <IconSymbol name="chevron.left" size={26} color={MidnightColors.white} />
+              <IconSymbol name="chevron.left" size={26} color={colors.white} />
             </TouchableOpacity>
           ),
           headerShadowVisible: false,
@@ -77,14 +80,14 @@ export function LegalPolicyScreen({ title, description, sections }: LegalPolicyS
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: MidnightColors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: MidnightColors.background,
+    backgroundColor: colors.background,
   },
   content: {
     paddingHorizontal: 20,
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 6,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
   },
   header: {
     marginBottom: 22,
@@ -112,20 +115,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    color: MidnightColors.white,
+    color: colors.white,
     fontFamily: Fonts.playfair.bold,
     fontSize: 38,
     lineHeight: 45,
     letterSpacing: 0,
   },
   updated: {
-    color: MidnightColors.slate400,
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 13,
     marginTop: 10,
   },
   description: {
-    color: '#cbd5e1',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 25,
@@ -134,8 +137,8 @@ const styles = StyleSheet.create({
   article: {
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: MidnightColors.deepSlate,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.deepSlate,
     paddingHorizontal: 18,
     paddingTop: 6,
     paddingBottom: 18,
@@ -144,17 +147,17 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: colors.cardBorder,
   },
   sectionTitle: {
-    color: MidnightColors.white,
+    color: colors.white,
     fontFamily: Fonts.playfair.bold,
     fontSize: 24,
     lineHeight: 30,
     marginBottom: 10,
   },
   paragraph: {
-    color: '#b6c4d6',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 24,
@@ -163,11 +166,11 @@ const styles = StyleSheet.create({
   supportBox: {
     marginTop: 20,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
     padding: 16,
   },
   supportText: {
-    color: '#b6c4d6',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 22,

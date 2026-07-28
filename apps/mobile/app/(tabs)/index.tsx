@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Dimensions,
+  Linking,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +15,7 @@ import { useRouter } from 'expo-router';
 
 import { EveBashLogoBadge } from '@/components/EveBashLogo';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAppTheme } from '@/context/ThemeContext';
 import { Fonts, MidnightColors } from '@/constants/theme';
 
 const { height } = Dimensions.get('window');
@@ -22,10 +24,12 @@ const HERO_IMAGE = 'https://images.unsplash.com/photo-1519741497674-611481863552
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors, isDark } = useAppTheme();
+  const styles = getStyles(colors, isDark);
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
@@ -46,7 +50,7 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.heroChip}>
-              <IconSymbol name="sparkles.fill" size={14} color={MidnightColors.gold} />
+              <IconSymbol name="sparkles.fill" size={14} color={colors.gold} />
               <Text style={styles.heroChipText}>Premium Wedding Photography</Text>
             </View>
 
@@ -194,10 +198,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: MidnightColors.background,
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -208,7 +212,7 @@ const styles = StyleSheet.create({
   hero: {
     minHeight: Math.max(620, height * 0.86),
     justifyContent: 'flex-end',
-    backgroundColor: MidnightColors.background,
+    backgroundColor: colors.background,
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -262,7 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   heroTitleAccent: {
-    color: MidnightColors.gold,
+    color: colors.gold,
     fontFamily: Fonts.playfair.bold,
   },
   heroSubtitle: {
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 54,
     paddingBottom: 36,
-    backgroundColor: '#fff8dc',
+    backgroundColor: colors.background,
   },
   aboutImage: {
     width: '100%',
@@ -322,7 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginBottom: 34,
     borderWidth: 6,
-    borderColor: 'rgba(255,255,255,0.76)',
+    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.76)',
   },
   kickerRow: {
     flexDirection: 'row',
@@ -333,17 +337,17 @@ const styles = StyleSheet.create({
   kickerLine: {
     width: 42,
     height: 1,
-    backgroundColor: MidnightColors.gold,
+    backgroundColor: colors.gold,
   },
   kickerText: {
-    color: MidnightColors.gold,
+    color: colors.gold,
     fontFamily: Fonts.outfit.extraBold,
     fontSize: 12,
     letterSpacing: 1.7,
     textTransform: 'uppercase',
   },
   aboutTitle: {
-    color: '#111827',
+    color: colors.white,
     fontFamily: Fonts.playfair.bold,
     fontSize: 38,
     lineHeight: 45,
@@ -351,11 +355,11 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   aboutTitleAccent: {
-    color: MidnightColors.gold,
+    color: colors.gold,
     fontFamily: Fonts.playfair.bold,
   },
   aboutText: {
-    color: '#475569',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 25,
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   aboutButtonText: {
-    color: '#111827',
+    color: colors.white,
     fontFamily: Fonts.outfit.extraBold,
     fontSize: 13,
     letterSpacing: 1.2,
@@ -381,7 +385,7 @@ const styles = StyleSheet.create({
     paddingBottom: 42,
     borderTopWidth: 1,
     borderTopColor: 'rgba(212,175,55,0.14)',
-    backgroundColor: MidnightColors.background,
+    backgroundColor: colors.background,
   },
   footerSection: {
     marginBottom: 34,
@@ -393,14 +397,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   footerBrandName: {
-    color: MidnightColors.white,
+    color: colors.white,
     fontFamily: Fonts.playfair.bold,
     fontSize: 24,
     lineHeight: 34,
     includeFontPadding: false,
   },
   footerDescription: {
-    color: MidnightColors.slate400,
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 25,
@@ -414,12 +418,12 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   socialIcon: {
-    color: '#8aa4c1',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.semiBold,
     fontSize: 12,
   },
   footerHeading: {
-    color: MidnightColors.white,
+    color: colors.white,
     fontFamily: Fonts.playfair.bold,
     fontSize: 19,
     marginBottom: 18,
@@ -430,13 +434,13 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   footerBullet: {
-    color: '#64748b',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.bold,
     fontSize: 18,
     marginRight: 9,
   },
   footerLinkText: {
-    color: '#9fb1c7',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 15,
   },
@@ -448,25 +452,25 @@ const styles = StyleSheet.create({
   },
   contactText: {
     flex: 1,
-    color: '#9fb1c7',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 23,
   },
   footerDivider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)',
     marginTop: 6,
     marginBottom: 28,
   },
   footerCopyright: {
-    color: 'rgba(148,163,184,0.72)',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 12,
     marginBottom: 12,
   },
   footerCredit: {
-    color: 'rgba(148,163,184,0.72)',
+    color: colors.slate400,
     fontFamily: Fonts.outfit.regular,
     fontSize: 12,
   },

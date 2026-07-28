@@ -42,7 +42,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
     }
 
     return (
-        <div className="min-h-screen bg-royal-cream font-serif text-slate-800" ref={containerRef}>
+        <div className="min-h-screen bg-[var(--site-bg)] font-serif text-[var(--site-text)]" ref={containerRef}>
             {/* Hero Cover Image with Parallax */}
             <div className="relative h-[85vh] w-full overflow-hidden">
                 <motion.div style={{ y, opacity }} className="absolute inset-0 h-[120%] -top-[10%]">
@@ -68,7 +68,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto py-24 px-4 sm:px-6 lg:px-8 bg-royal-cream relative z-10 -mt-20 rounded-t-[3rem] shadow-2xl shadow-black/20">
+            <div className="relative z-10 mx-auto -mt-20 max-w-7xl rounded-t-[3rem] bg-[var(--site-bg)] px-4 py-24 shadow-2xl shadow-black/20 sm:px-6 lg:px-8">
                 {/* Breadcrumb / Back Link */}
                 <div className="mb-16 flex items-center justify-between">
                     <Link href="/sample-galleries" className="group inline-flex items-center space-x-2 text-royal-gold hover:text-royal-gold/80 transition-all text-sm font-bold uppercase tracking-widest">
@@ -78,7 +78,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
                     
                     <div className="h-px flex-1 bg-royal-gold/20 mx-8 hidden md:block"></div>
                     
-                    <span className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">Curated Collection</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--site-muted)]">Curated Collection</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -86,7 +86,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
                         <ScrollReveal key={event.slug} delay={index * 0.1}>
                             <Link 
                                 href={`/events/${event.slug}`} 
-                                className="group relative block w-full aspect-[3/4] overflow-hidden rounded-[2rem] shadow-md hover:shadow-2xl transition-all duration-700 bg-white"
+                                className="group relative block aspect-[3/4] w-full overflow-hidden rounded-[2rem] bg-[var(--site-card)] shadow-md transition-all duration-700 hover:shadow-2xl"
                             >
                                 {/* Image */}
                                 <Image
@@ -114,7 +114,7 @@ export default function ClientGallery({ params }: { params: Promise<{ client: st
                 </div>
             </div>
             
-            <footer className="py-20 text-center text-slate-600 font-sans text-sm">
+            <footer className="py-20 text-center font-sans text-sm text-[var(--site-muted)]">
                 <p>© 2026 WedAlbum. Elegant Memories.</p>
             </footer>
         </div>

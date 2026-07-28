@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-type Theme = "royal" | "light";
+type Theme = "dark" | "light";
 
 interface ThemeContextType {
     theme: Theme;
@@ -13,16 +13,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>("royal");
+    const [theme, setThemeState] = useState<Theme>("dark");
 
     useEffect(() => {
         // Load theme from localStorage on mount
-        const storedTheme = localStorage.getItem("app_theme") as Theme;
+        const storedTheme = localStorage.getItem("app_theme") as Theme | "royal" | null;
         if (storedTheme === "light") {
             setThemeState("light");
             document.documentElement.classList.add("theme-light");
+            document.documentElement.classList.remove("theme-dark");
         } else {
-            setThemeState("royal");
+            setThemeState("dark");
+            document.documentElement.classList.add("theme-dark");
             document.documentElement.classList.remove("theme-light");
         }
     }, []);
@@ -32,13 +34,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("app_theme", newTheme);
         if (newTheme === "light") {
             document.documentElement.classList.add("theme-light");
+            document.documentElement.classList.remove("theme-dark");
         } else {
+            document.documentElement.classList.add("theme-dark");
             document.documentElement.classList.remove("theme-light");
         }
     };
 
     const toggleTheme = () => {
-        setTheme(theme === "royal" ? "light" : "royal");
+        setTheme(theme === "dark" ? "light" : "dark");
     };
 
     return (
