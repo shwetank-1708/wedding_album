@@ -336,3 +336,74 @@ header {
 .theme-light .hero-btn-book:hover {
   background-color: rgba(14, 165, 233, 0.05) !important;
 }
+
+.page-flip-stage {
+  transform-style: preserve-3d;
+  contain: layout paint;
+}
+
+.page-flip-page {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+}
+
+.page-flip-page-turning-next .page-flip-fold {
+  right: 0;
+  opacity: 1;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  animation: page-fold-sweep 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-flip-page-turning-prev .page-flip-fold {
+  left: 0;
+  opacity: 1;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  animation: page-fold-sweep 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-flip-page-turning-next .page-flip-page-shadow,
+.page-flip-page-turning-prev .page-flip-page-shadow {
+  opacity: 1;
+  background: radial-gradient(circle at 70% 50%, rgba(0, 0, 0, 0.4), transparent 54%);
+  animation: page-shadow-pulse 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-flip-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,0.14), transparent 18%, transparent 82%, rgba(0,0,0,0.16)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 5px);
+}
+
+.page-flip-glow {
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.5), 0 0 42px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+@keyframes page-fold-sweep {
+  0% { opacity: 0; transform: scaleX(0.45); }
+  45% { opacity: 0.78; transform: scaleX(1.2); }
+  100% { opacity: 0; transform: scaleX(0.55); }
+}
+
+@keyframes page-shadow-pulse {
+  0% { opacity: 0; }
+  45% { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-flip-stage,
+  .page-flip-page,
+  .page-flip-page *,
+  .page-flip-page::before {
+    animation: none !important;
+    transition-duration: 120ms !important;
+    transform: none !important;
+  }
+}

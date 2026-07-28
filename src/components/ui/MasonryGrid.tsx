@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 import { onPhotoInteractions, toggleLike } from "@/lib/database";
 import { useAuth } from "@/context/AuthContext";
 import { Heart, MessageCircle, Download, Play } from "lucide-react";
-import { Lightbox, type LightboxTheme } from "./Lightbox";
-import { getGridThumbnail } from "@/lib/imageUrl";
+import type { LightboxTheme } from "./Lightbox";
+import { getGridThumbnail, getImageUrl } from "@/lib/imageUrl";
+import { PageFlipViewer, type GalleryMediaItem, type PageFlipTheme, type ViewerLayout } from "@/components/page-flip/PageFlipViewer";
+import { getPageFlipThemeForTemplateId } from "@/components/page-flip/pageFlipThemes";
 
 interface Photo {
     id: string;
@@ -32,6 +34,10 @@ interface MasonryGridProps {
     itemClassName?: string;
     lightboxClassName?: string;
     lightboxTheme?: LightboxTheme;
+    pageFlipTheme?: PageFlipTheme;
+    viewerLayout?: ViewerLayout;
+    templateId?: string;
+    showPageFlipThumbnails?: boolean;
     onLikeChange?: () => void;
 }
 
@@ -45,6 +51,10 @@ interface PhotoCardProps {
     onLikeChange?: () => void;
 }
 
+type PhotoLike = {
+    userId: string;
+};
+
 function PhotoCard({
     photo,
     index,
@@ -55,7 +65,7 @@ function PhotoCard({
     onLikeChange
 }: PhotoCardProps) {
     const { user } = useAuth();
-    const [likes, setLikes] = useState<any[]>([]);
+    const [likes, setLikes] = useState<PhotoLike[]>([]);
     const [commentsCount, setCommentsCount] = useState(0);
     const [isLiking, setIsLiking] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -242,11 +252,34 @@ export function MasonryGrid({
     gridClassName,
     itemClassName,
     lightboxClassName,
-    lightboxTheme,
+    pageFlipTheme,
+    viewerLayout,
+    templateId,
+    showPageFlipThumbnails = true,
     onLikeChange
 }: MasonryGridProps) {
     // Track which photo is currently being viewed in the Lightbox
     const [viewingPhoto, setViewingPhoto] = useState<Photo | null>(null);
+    const viewingIndex = photos.findIndex((photo) => photo.id === viewingPhoto?.id);
+    const resolvedViewerLayout = viewerLayout || "cover-flow";
+    const viewerItems: GalleryMediaItem[] = photos.map((photo) => {
+        const isVideo = photo.mediaType === "video" || photo.resourceType === "video";
+        const previewUrl = isVideo
+            ? photo.src
+            : photo.previewUrl || (photo.src ? getImageUrl(photo.src, { width: 1400, quality: 78, format: "webp" }) : "");
+        return {
+            id: photo.id,
+            type: isVideo ? "video" : "image",
+            previewUrl,
+            originalUrl: photo.src,
+            thumbnailUrl: photo.thumbnailUrl || (isVideo ? undefined : getGridThumbnail(photo.src)),
+            alt: photo.alt,
+            filename: photo.filename,
+            width: photo.width,
+            height: photo.height,
+        };
+    });
+    const resolvedPageFlipTheme = pageFlipTheme || getPageFlipThemeForTemplateId(templateId);
 
     return (
         <div className={cn("container mx-auto px-4 py-8", className)}>
@@ -265,30 +298,21 @@ export function MasonryGrid({
                 ))}
             </div>
 
-            {/* Lightbox with Navigation */}
-            <Lightbox
-                isOpen={!!viewingPhoto}
-                photo={viewingPhoto}
-                onClose={() => setViewingPhoto(null)}
-                disableDownload={disableDownload}
-                className={lightboxClassName}
-                theme={lightboxTheme}
-                onLikeChange={onLikeChange}
-                onNext={() => {
-                    const currentIndex = photos.findIndex(p => p.id === viewingPhoto?.id);
-                    if (currentIndex !== -1) {
-                        const nextIndex = (currentIndex + 1) % photos.length;
-                        setViewingPhoto(photos[nextIndex]);
-                    }
-                }}
-                onPrev={() => {
-                    const currentIndex = photos.findIndex(p => p.id === viewingPhoto?.id);
-                    if (currentIndex !== -1) {
-                        const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
-                        setViewingPhoto(photos[prevIndex]);
-                    }
-                }}
-            />
+            {viewingPhoto && viewingIndex >= 0 && (
+                <div className={lightboxClassName}>
+                    <PageFlipViewer
+                        items={viewerItems}
+                        initialIndex={viewingIndex}
+                        theme={resolvedPageFlipTheme}
+                        loop
+                        showThumbnails={showPageFlipThumbnails}
+                        showDownload={!disableDownload}
+                        viewerLayout={resolvedViewerLayout}
+                        onClose={() => setViewingPhoto(null)}
+                        onIndexChange={(index) => setViewingPhoto(photos[index] || null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

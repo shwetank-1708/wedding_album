@@ -107,6 +107,7 @@ export default function PublicPortfolioEventPage() {
       photos={photos}
       eventSlug={business.id}
       lightboxTheme={getWebLightboxTheme(templateId)}
+      templateId={templateId}
     />
   ) : (
     <div className="mx-auto flex min-h-64 max-w-4xl items-center justify-center rounded-3xl border border-dashed border-white/15 bg-black/10 px-6 text-center">

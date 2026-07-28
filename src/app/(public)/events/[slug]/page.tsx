@@ -644,6 +644,7 @@ function EventPageContent() {
                             eventSlug={slug}
                             disableDownload={isShared && !user}
                             lightboxTheme={getWebLightboxTheme((activeGallery || event).templateId || event.templateId)}
+                            templateId={(activeGallery || event).templateId || event.templateId}
                         />
                     </div>
                 ) : (
