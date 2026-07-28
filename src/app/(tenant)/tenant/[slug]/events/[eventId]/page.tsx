@@ -59,6 +59,7 @@ export default async function SubEventPage({ params }: { params: Promise<{ slug:
                     photos={photos}
                     eventSlug={slug}
                     lightboxTheme={getWebLightboxTheme(templateId)}
+                    templateId={templateId}
                 />
             ) : (
                 <div className="text-center py-20 bg-black/5 rounded-2xl mx-4 border border-dashed border-black/20">
