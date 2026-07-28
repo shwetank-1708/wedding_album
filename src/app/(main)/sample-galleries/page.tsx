@@ -18,7 +18,7 @@ const albums = [
 
 export default function SampleGalleries() {
     return (
-        <div className="min-h-screen bg-royal-cream font-serif text-slate-800 selection:bg-royal-gold/30">
+        <div className="min-h-screen bg-[var(--site-bg)] font-serif text-[var(--site-text)] selection:bg-royal-gold/30">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
                 <header className="mb-20 text-center space-y-6">
                     <ScrollReveal direction="up">
@@ -29,13 +29,13 @@ export default function SampleGalleries() {
                     </ScrollReveal>
                     
                     <ScrollReveal direction="up" delay={0.1}>
-                        <h1 className="text-5xl md:text-7xl font-bold text-slate-900 italic tracking-tight">
+                        <h1 className="text-5xl md:text-7xl font-bold text-[var(--site-text)] italic tracking-tight">
                             Sample <span className="text-royal-gold">Galleries</span>
                         </h1>
                     </ScrollReveal>
                     
                     <ScrollReveal direction="up" delay={0.2}>
-                        <p className="text-slate-700 text-lg md:text-xl max-w-2xl mx-auto font-sans leading-relaxed">
+                        <p className="text-[var(--site-subtle)] text-lg md:text-xl max-w-2xl mx-auto font-sans leading-relaxed">
                             Experience the artistry of storytelling through our curated collection of beautiful wedding memories.
                         </p>
                     </ScrollReveal>
@@ -46,7 +46,7 @@ export default function SampleGalleries() {
                         <ScrollReveal key={album.slug} delay={index * 0.1 + 0.3}>
                             <Link 
                                 href={`/sample-galleries/${album.slug}`} 
-                                className="group block relative aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-stone-100 bg-white"
+                                className="group block relative aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-[var(--site-border)] bg-[var(--site-card)]"
                             >
                                 <div className="absolute inset-0">
                                     <Image
@@ -78,7 +78,7 @@ export default function SampleGalleries() {
                 </div>
             </div>
 
-            <footer className="py-20 text-center text-slate-600 font-sans text-sm">
+            <footer className="py-20 text-center text-[var(--site-muted)] font-sans text-sm">
                 <p>© 2026 WedAlbum. Crafted with elegance.</p>
             </footer>
         </div>

@@ -513,19 +513,19 @@ export default function Pricing() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 py-24 px-4">
+        <div className="min-h-screen bg-[var(--site-bg)] px-4 py-24 text-[var(--site-text)]">
             <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
                 <div className="text-center mb-16 space-y-4">
-                    <h1 className="text-4xl md:text-5xl font-serif text-slate-800">Simple, Transparent Pricing</h1>
-                    <p className="text-slate-700 text-lg max-w-2xl mx-auto font-light">
+                    <h1 className="font-serif text-4xl text-[var(--site-text)] md:text-5xl">Simple, Transparent Pricing</h1>
+                    <p className="mx-auto max-w-2xl text-lg font-light text-[var(--site-subtle)]">
                         From free to enterprise — find the plan that fits your story.
                     </p>
                 </div>
 
                 <div className="mb-10 flex justify-center">
-                    <div className="inline-grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-4">
+                    <div className="inline-grid grid-cols-2 gap-2 rounded-2xl border border-[var(--site-border)] bg-[var(--site-card)] p-2 shadow-sm sm:grid-cols-4">
                         {billingCycles.map((cycle) => {
                             const isActive = billingCycle === cycle.key;
                             return (
@@ -535,8 +535,8 @@ export default function Pricing() {
                                     onClick={() => setBillingCycle(cycle.key)}
                                     className={`rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all ${
                                         isActive
-                                            ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
-                                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                            ? "bg-sky-600 text-white shadow-lg shadow-sky-500/20"
+                                            : "text-[var(--site-muted)] hover:bg-[var(--site-card-muted)] hover:text-[var(--site-text)]"
                                     }`}
                                 >
                                     {cycle.label}
@@ -561,16 +561,16 @@ export default function Pricing() {
                 )}
 
                 {pricingStatus === "loading" && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-                        <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Loading Pricing</p>
-                        <p className="mt-3 text-slate-700">Fetching the latest plans.</p>
+                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-card)] p-10 text-center shadow-sm">
+                        <p className="text-sm font-bold uppercase tracking-widest text-[var(--site-muted)]">Loading Pricing</p>
+                        <p className="mt-3 text-[var(--site-subtle)]">Fetching the latest plans.</p>
                     </div>
                 )}
 
                 {pricingStatus === "unavailable" && (
                     <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200 bg-amber-50 p-10 text-center shadow-sm">
                         <p className="text-sm font-bold uppercase tracking-widest text-amber-700">Pricing Unavailable</p>
-                        <h2 className="mt-3 text-2xl font-serif text-slate-800">Pricing is temporarily unavailable.</h2>
+                        <h2 className="mt-3 font-serif text-2xl text-slate-900">Pricing is temporarily unavailable.</h2>
                         <p className="mt-3 text-sm leading-6 text-slate-700">
                             We could not load the latest pricing plans right now. Please try again shortly or contact support.
                         </p>
@@ -595,7 +595,7 @@ export default function Pricing() {
                         return (
                         <div
                             key={plan.id}
-                            className={`relative bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ${visual.accentClass}`}
+                            className={`relative flex flex-col overflow-hidden rounded-2xl bg-[var(--site-card)] shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${visual.accentClass}`}
                         >
                             {/* Badge */}
                             {visual.badge && (
@@ -605,11 +605,11 @@ export default function Pricing() {
                             )}
 
                             <div className="p-6 flex-1 flex flex-col">
-                                <h3 className="text-xl font-serif font-bold text-slate-800 mb-2">{plan.name}</h3>
+                                <h3 className="mb-2 font-serif text-xl font-bold text-[var(--site-text)]">{plan.name}</h3>
 
                                 {actualPrice > price && (
                                     <div className="mb-1 flex items-center gap-2">
-                                        <span className="text-sm font-bold text-slate-400 line-through">{formatPrice(actualPrice)}</span>
+                                        <span className="text-sm font-bold text-[var(--site-muted)] line-through">{formatPrice(actualPrice)}</span>
                                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-600">
                                             Save {formatPrice(savings)}
                                         </span>
@@ -617,14 +617,14 @@ export default function Pricing() {
                                 )}
 
                                 <div className="flex items-baseline mb-0.5">
-                                    <span className="text-3xl font-bold text-slate-900">{formatPrice(price)}</span>
+                                    <span className="text-3xl font-bold text-[var(--site-text)]">{formatPrice(price)}</span>
                                 </div>
-                                <span className="text-slate-600 text-xs font-light mb-2">
+                                <span className="mb-2 text-xs font-light text-[var(--site-muted)]">
                                     {price === 0 ? "forever" : selectedCycle.period}
                                 </span>
-                                <p className="text-slate-700 font-light text-xs mb-4 min-h-[32px]">{visual.description}</p>
+                                <p className="mb-4 min-h-[32px] text-xs font-light text-[var(--site-subtle)]">{visual.description}</p>
 
-                                <div className="w-full h-px bg-slate-100 mb-4" />
+                                <div className="mb-4 h-px w-full bg-[var(--site-border)]" />
 
                                 <ul className="space-y-2.5 mb-6 flex-1">
                                     {pricingPlanToFeatures(plan).map((feature, idx) => (
@@ -632,7 +632,7 @@ export default function Pricing() {
                                             <div className={`p-1 rounded-full mr-2 shrink-0 mt-px ${visual.checkClass}`}>
                                                 <Check className="w-2.5 h-2.5" />
                                             </div>
-                                            <span className="text-xs leading-snug text-slate-600 transition-colors group-hover:text-slate-900">{feature}</span>
+                                            <span className="text-xs leading-snug text-[var(--site-muted)] transition-colors group-hover:text-[var(--site-text)]">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -663,9 +663,9 @@ export default function Pricing() {
                 {/* Fair Usage Policy Note */}
                 {pricingStatus === "ready" && (
                 <div className="mt-10 flex items-start justify-center gap-2 text-center">
-                    <Info className="w-4 h-4 text-slate-600 shrink-0 mt-px" />
-                    <p className="text-slate-600 text-xs max-w-xl leading-relaxed">
-                        <span className="font-semibold text-slate-700">Fair Usage Policy:</span> Bandwidth usage beyond fair limits may incur additional charges.
+                    <Info className="mt-px h-4 w-4 shrink-0 text-[var(--site-muted)]" />
+                    <p className="max-w-xl text-xs leading-relaxed text-[var(--site-muted)]">
+                        <span className="font-semibold text-[var(--site-subtle)]">Fair Usage Policy:</span> Bandwidth usage beyond fair limits may incur additional charges.
                         Extra Storage: ₹5/GB &bull; Extra Bandwidth: ₹7–₹10/GB.
                     </p>
                 </div>
@@ -673,15 +673,15 @@ export default function Pricing() {
 
                 {confirmPlan && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-                        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                        <div className="w-full max-w-lg rounded-2xl border border-[var(--site-border)] bg-[var(--site-card)] p-6 shadow-2xl">
                             <div className="space-y-2">
                                 <p className="text-xs font-black uppercase tracking-widest text-sky-600">
                                     {confirmPlanIsDowngrade ? "Schedule Plan Downgrade" : "Confirm Plan Change"}
                                 </p>
-                                <h2 className="text-2xl font-serif font-bold text-slate-900">
+                                <h2 className="font-serif text-2xl font-bold text-[var(--site-text)]">
                                     {confirmPlanIsDowngrade ? "Switch" : "Upgrade"} to {confirmPlan.name} ({confirmPlan.storageLabel})
                                 </h2>
-                                <p className="text-sm leading-6 text-slate-600">
+                                <p className="text-sm leading-6 text-[var(--site-subtle)]">
                                     {confirmPlanIsDowngrade
                                         ? `Your current plan stays active until ${formatDate(currentSubscription?.planEndDate)}. The lower plan starts in your next billing cycle.`
                                         : `Your new ${durationLabels[billingCycle]} plan will start immediately after successful payment.`}
@@ -689,10 +689,10 @@ export default function Pricing() {
                             </div>
 
                             <div className="mt-6 grid gap-3 text-sm">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Current Plan</p>
-                                    <p className="mt-1 font-semibold text-slate-900">{getPlanDisplayName(currentSubscription?.role)}</p>
-                                    <p className="mt-1 text-slate-600">
+                                <div className="rounded-xl border border-[var(--site-border)] bg-[var(--site-card-muted)] p-4">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-[var(--site-muted)]">Current Plan</p>
+                                    <p className="mt-1 font-semibold text-[var(--site-text)]">{getPlanDisplayName(currentSubscription?.role)}</p>
+                                    <p className="mt-1 text-[var(--site-subtle)]">
                                         Active until {formatDate(currentSubscription?.planEndDate)}
                                     </p>
                                 </div>
@@ -724,7 +724,7 @@ export default function Pricing() {
                                 <button
                                     type="button"
                                     onClick={() => setConfirmPlan(null)}
-                                    className="rounded-xl border border-slate-200 px-5 py-3 text-xs font-bold uppercase tracking-widest text-slate-700 transition-colors hover:bg-slate-50"
+                                    className="rounded-xl border border-[var(--site-border)] px-5 py-3 text-xs font-bold uppercase tracking-widest text-[var(--site-subtle)] transition-colors hover:bg-[var(--site-card-muted)]"
                                 >
                                     Cancel
                                 </button>
@@ -745,9 +745,9 @@ export default function Pricing() {
                 )}
 
                 {/* Custom Plan CTA */}
-                <div className="mt-14 text-center bg-white p-10 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="text-2xl font-serif text-slate-800 mb-3">Need a custom plan?</h3>
-                    <p className="text-slate-700 mb-8 max-w-2xl mx-auto">
+                <div className="mt-14 rounded-2xl border border-[var(--site-border)] bg-[var(--site-card)] p-10 text-center shadow-sm">
+                    <h3 className="mb-3 font-serif text-2xl text-[var(--site-text)]">Need a custom plan?</h3>
+                    <p className="mx-auto mb-8 max-w-2xl text-[var(--site-subtle)]">
                         Running a large studio or enterprise operation? Let&apos;s build a plan tailored to your exact needs.
                     </p>
                     <Link href="/contact-us" className="inline-block">

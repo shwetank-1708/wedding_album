@@ -19,7 +19,7 @@ export default function Home() {
     const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-royal-cream font-serif text-slate-800 selection:bg-royal-gold/30" ref={containerRef}>
+        <div className="flex flex-col min-h-screen bg-[var(--site-bg)] font-serif text-[var(--site-text)] selection:bg-royal-gold/30" ref={containerRef}>
             {/* Hero Section with Parallax */}
             <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
                 <motion.div style={{ y, opacity }} className="absolute inset-0 z-0 h-[120%] -top-[10%]">
@@ -61,7 +61,7 @@ export default function Home() {
                     <div className="mt-12 flex flex-col md:flex-row gap-6 justify-center items-center">
                         <ScrollReveal direction="left" delay={0.8}>
                             <Link href="/sample-galleries" className="group">
-                                <span className="inline-flex items-center space-x-3 px-10 py-5 bg-white text-slate-900 hover:bg-royal-cream transition-all duration-500 uppercase tracking-widest text-sm font-bold rounded-full shadow-2xl hover:scale-105 transform hero-btn-portfolio">
+                                <span className="inline-flex items-center space-x-3 px-10 py-5 bg-white text-slate-900 hover:bg-slate-100 transition-all duration-500 uppercase tracking-widest text-sm font-bold rounded-full shadow-2xl hover:scale-105 transform hero-btn-portfolio">
                                     <span>View Portfolio</span>
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </span>
@@ -91,10 +91,10 @@ export default function Home() {
             </section>
 
             {/* About Section */}
-            <section className="py-32 px-4 md:px-12 max-w-7xl mx-auto w-full bg-royal-cream relative z-10">
+            <section className="py-32 px-4 md:px-12 max-w-7xl mx-auto w-full bg-[var(--site-bg)] relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
                     <ScrollReveal direction="left" delay={0.2}>
-                        <div className="relative aspect-[3/4] w-full max-w-md mx-auto shadow-2xl rounded-[3rem] overflow-hidden group border-8 border-white/50">
+                        <div className="relative aspect-[3/4] w-full max-w-md mx-auto shadow-2xl rounded-[3rem] overflow-hidden group border-8 border-[var(--site-border)]">
                             <Image
                                 src="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1400&auto=format&fit=crop"
                                 alt="Photographer"
@@ -112,14 +112,14 @@ export default function Home() {
                                     <div className="w-12 h-px bg-royal-gold"></div>
                                     <h3 className="text-sm font-bold text-royal-gold uppercase tracking-[0.3em]">About The Artist</h3>
                                 </div>
-                                <h2 className="text-5xl md:text-6xl font-bold text-slate-900 italic tracking-tight leading-tight">
+                                <h2 className="text-5xl md:text-6xl font-bold text-[var(--site-text)] italic tracking-tight leading-tight">
                                     Preserving Your <span className="text-royal-gold">Legacy</span>
                                 </h2>
                             </div>
                         </ScrollReveal>
 
                         <ScrollReveal delay={0.5}>
-                            <div className="space-y-6 text-slate-700 leading-relaxed font-sans font-light text-lg">
+                            <div className="space-y-6 text-[var(--site-subtle)] leading-relaxed font-sans font-light text-lg">
                                 <p>
                                     With over a decade of experience in capturing the grandest celebrations, we believe that photography is more than just clicking a button—it's about capturing the soul of a moment.
                                 </p>
@@ -131,10 +131,10 @@ export default function Home() {
 
                         <ScrollReveal delay={0.7}>
                             <Link href="/contact-us" className="inline-flex items-center space-x-4 group">
-                                <span className="text-slate-900 font-bold uppercase tracking-widest text-sm border-b-2 border-royal-gold/30 pb-2 group-hover:border-royal-gold transition-all duration-300">
+                                <span className="text-[var(--site-text)] font-bold uppercase tracking-widest text-sm border-b-2 border-royal-gold/30 pb-2 group-hover:border-royal-gold transition-all duration-300">
                                     Discover Our Journey
                                 </span>
-                                <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center group-hover:bg-royal-gold transition-all duration-300 shadow-lg">
+                                <div className="w-10 h-10 rounded-full bg-[var(--site-surface-2)] text-[var(--site-text)] flex items-center justify-center group-hover:bg-royal-gold group-hover:text-slate-950 transition-all duration-300 shadow-lg">
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </Link>
@@ -143,7 +143,7 @@ export default function Home() {
                 </div>
             </section>
 
-            <footer className="py-20 text-center text-slate-600 font-sans text-sm border-t border-royal-gold/10">
+            <footer className="py-20 text-center text-[var(--site-muted)] font-sans text-sm border-t border-royal-gold/10">
                 <p>© 2026 WedAlbum. The Gold Standard in Memories.</p>
             </footer>
         </div>

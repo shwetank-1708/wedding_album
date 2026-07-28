@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAppTheme } from '@/context/ThemeContext';
+import { MidnightColors } from '@/constants/theme';
 import { Stack, useRouter } from 'expo-router';
 
 export default function ContactUsScreen() {
   const router = useRouter();
+  const { colors, isDark } = useAppTheme();
+  const styles = getStyles(colors, isDark);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -63,7 +66,7 @@ export default function ContactUsScreen() {
         headerShown: true, 
         headerTransparent: true,
         headerTitle: 'Contact Us',
-        headerTintColor: '#101010',
+        headerTintColor: colors.white,
         headerLeft: () => (
           <TouchableOpacity 
             onPress={() => {
@@ -76,7 +79,7 @@ export default function ContactUsScreen() {
             style={styles.nativeBackButton}
             hitSlop={{ top: 50, bottom: 50, left: 50, right: 50 }}
           >
-            <IconSymbol name="chevron.left" size={28} color="#101010" />
+            <IconSymbol name="chevron.left" size={28} color={colors.white} />
           </TouchableOpacity>
         ),
         headerShadowVisible: false,
@@ -145,7 +148,7 @@ export default function ContactUsScreen() {
             <TextInput
               style={styles.input}
               placeholder="John"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.slate400}
               value={firstName}
               onChangeText={(value) => {
                 setFirstName(value);
@@ -159,7 +162,7 @@ export default function ContactUsScreen() {
             <TextInput
               style={styles.input}
               placeholder="Doe"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.slate400}
               value={lastName}
               onChangeText={(value) => {
                 setLastName(value);
@@ -173,7 +176,7 @@ export default function ContactUsScreen() {
             <TextInput
               style={styles.input}
               placeholder="john@example.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.slate400}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -189,7 +192,7 @@ export default function ContactUsScreen() {
             <TextInput 
               style={[styles.input, styles.textArea]} 
               placeholder="Tell us more about your event..." 
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.slate400}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -215,10 +218,10 @@ export default function ContactUsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   nativeBackButton: {
     width: 44,
@@ -239,23 +242,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#101010',
+    color: colors.white,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: colors.slate400,
     textAlign: 'center',
     lineHeight: 24,
   },
   infoCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.deepSlate,
     marginHorizontal: 16,
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -265,11 +268,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#101010',
+    color: colors.white,
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: colors.cardBorder,
   },
   infoItem: {
     flexDirection: 'row',
@@ -280,7 +283,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: isDark ? 'rgba(56,189,248,0.12)' : '#f0f9ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -291,22 +294,22 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#101010',
+    color: colors.white,
     marginBottom: 4,
   },
   infoText: {
     fontSize: 14,
-    color: '#64748b',
+    color: colors.slate400,
     lineHeight: 22,
   },
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.deepSlate,
     marginHorizontal: 16,
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -316,12 +319,12 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#101010',
+    color: colors.white,
     marginBottom: 8,
   },
   formSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: colors.slate400,
     marginBottom: 24,
   },
   inputGroup: {
@@ -330,19 +333,19 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#64748b',
+    color: colors.slate400,
     marginBottom: 8,
     letterSpacing: 1,
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: isDark ? colors.slate900 : colors.background,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#101010',
+    color: colors.white,
   },
   textArea: {
     minHeight: 120,
