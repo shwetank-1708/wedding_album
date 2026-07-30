@@ -460,16 +460,6 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
         }}
       />
 
-      <header className="fixed inset-x-0 top-0 z-50 px-4 py-4 pointer-events-none">
-        <div
-          className="mx-auto flex w-fit items-center gap-3 rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] backdrop-blur-xl"
-          style={{ backgroundColor: preset.surface, borderColor: preset.border, color: preset.text }}
-        >
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: preset.accent }} />
-          {preset.label}
-        </div>
-      </header>
-
       <main className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-10 px-5 pb-16 pt-28 md:px-10 lg:px-12">
         <div className={`grid grid-cols-1 gap-10 ${getVariantClasses(preset.variant)}`}>
           <ScrollReveal className={preset.variant === "poster" ? "lg:order-2" : ""}>

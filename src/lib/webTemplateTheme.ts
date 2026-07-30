@@ -38,3 +38,29 @@ export const WEB_LIGHTBOX_THEMES: Record<string, LightboxTheme> = {
 export function getWebLightboxTheme(templateId?: string): LightboxTheme {
     return WEB_LIGHTBOX_THEMES[templateId || "hero"] || WEB_LIGHTBOX_THEMES.hero;
 }
+
+function getReadableTextColor(background: string) {
+    const hex = background.replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
+
+    const red = parseInt(hex.slice(0, 2), 16) / 255;
+    const green = parseInt(hex.slice(2, 4), 16) / 255;
+    const blue = parseInt(hex.slice(4, 6), 16) / 255;
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+    return luminance > 0.72 ? "#0f172a" : "#ffffff";
+}
+
+export function getWebTemplateChrome(templateId?: string) {
+    const theme = getWebLightboxTheme(templateId);
+    const background = theme.background || "#000000";
+    const text = getReadableTextColor(background);
+
+    return {
+        background,
+        text,
+        accent: theme.accent || text,
+        border: theme.border || "rgba(255,255,255,0.16)",
+        muted: theme.muted || text,
+    };
+}

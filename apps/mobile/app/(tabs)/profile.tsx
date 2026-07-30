@@ -137,7 +137,7 @@ const getPersonasArray = (personaVal: any): string[] => {
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const { theme, setTheme, colors, isDark } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -1628,33 +1628,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#050505',
     fontSize: 16,
     fontFamily: 'Outfit_700Bold',
-  },
-  themeToggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 12,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  themePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    minWidth: 52,
-    alignItems: 'center',
-  },
-  themePillActive: {
-    backgroundColor: colors.gold,
-  },
-  themePillText: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.slate400,
-  },
-  themePillTextActive: {
-    color: '#050505',
-    fontFamily: 'Inter_700Bold',
   },
   statsCardCompact: {
     flexDirection: 'row',

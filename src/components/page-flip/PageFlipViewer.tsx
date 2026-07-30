@@ -110,7 +110,7 @@ export function PageFlipViewer({
   const config = useMemo<PageFlipThemeConfig>(() => ({
     ...themeConfig,
     layout: resolvedLayout,
-    transition: transitionMode || themeConfig.transition || "page-flip",
+    transition: transitionMode || (resolvedLayout === "cover-flow" ? "slide" : themeConfig.transition || "page-flip"),
     showPersistentThumbnails: resolvedLayout === "bottom-filmstrip" && showThumbnails,
     thumbnailDrawerPosition: resolvedLayout === themeConfig.layout
       ? themeConfig.thumbnailDrawerPosition
@@ -120,19 +120,29 @@ export function PageFlipViewer({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const lastWheelRef = useRef(0);
+  const socialRevealTimerRef = useRef<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [showImmersiveSocial, setShowImmersiveSocial] = useState(false);
   const [slideshow, setSlideshow] = useState(false);
   const [thumbnailDrawerOpen, setThumbnailDrawerOpen] = useState(false);
   const supports3dTransforms = typeof CSS === "undefined" ? true : CSS.supports?.("transform-style", "preserve-3d") !== false;
   const prefersFade = reducedMotion || !supports3dTransforms;
   const effectiveMode: GalleryTransitionMode = prefersFade && config.transition === "page-flip" ? "fade" : config.transition;
+  const isCoverFlow = resolvedLayout === "cover-flow";
+  const isImmersiveCoverFlow = isCoverFlow;
   const navigation = usePageFlipNavigation({ initialIndex, itemCount: items.length, loop, onIndexChange });
   const currentItem = items[navigation.currentIndex];
-  const visibleIndexes = useMemo(() => getVisiblePageFlipIndexes(navigation.currentIndex, items.length, resolvedLayout === "cover-flow" ? 2 : 1), [items.length, navigation.currentIndex, resolvedLayout]);
+  const visibleIndexes = useMemo(() => getVisiblePageFlipIndexes(navigation.currentIndex, items.length, isCoverFlow && !isImmersiveCoverFlow ? 2 : 1), [items.length, navigation.currentIndex, isCoverFlow, isImmersiveCoverFlow]);
   const transition = getTransitionVariants(effectiveMode, navigation.direction, Boolean(reducedMotion));
   const LayoutComponent = VIEWER_LAYOUT_COMPONENTS[resolvedLayout] || VIEWER_LAYOUT_COMPONENTS["bottom-filmstrip"];
-  const shouldShowGridButton = showGridButton ?? (resolvedLayout !== "bottom-filmstrip" && resolvedLayout !== "cover-flow");
+  const shouldShowGridButton = showGridButton ?? (resolvedLayout !== "bottom-filmstrip" && !isCoverFlow);
+  const revealImmersiveSocial = useCallback(() => {
+    if (!isImmersiveCoverFlow) return;
+    setShowImmersiveSocial(true);
+    if (socialRevealTimerRef.current) window.clearTimeout(socialRevealTimerRef.current);
+    socialRevealTimerRef.current = window.setTimeout(() => setShowImmersiveSocial(false), 3600);
+  }, [isImmersiveCoverFlow]);
   const pauseVideos = useCallback(() => {
     containerRef.current?.querySelectorAll("video").forEach((video) => video.pause());
   }, []);
@@ -197,11 +207,13 @@ export function PageFlipViewer({
 
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
+    document.body.setAttribute("data-lightbox-open", "true");
 
     return () => {
       window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
+      document.body.removeAttribute("data-lightbox-open");
       lastFocusedRef.current?.focus();
     };
     }, [goNext, goPrev, goTo, items.length, onClose, thumbnailDrawerOpen]);
@@ -222,12 +234,17 @@ export function PageFlipViewer({
   }, [config.durationMs, navigation, prefersFade]);
 
   useEffect(() => {
-    if (resolvedLayout !== "cover-flow") return;
+    if (!isCoverFlow) return;
     const node = containerRef.current;
     if (!node) return;
 
     const handleWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) < 28 && Math.abs(event.deltaX) < 28) return;
+      if (isImmersiveCoverFlow) {
+        event.preventDefault();
+        revealImmersiveSocial();
+        return;
+      }
       const now = Date.now();
       if (now - lastWheelRef.current < 520) return;
       lastWheelRef.current = now;
@@ -243,13 +260,38 @@ export function PageFlipViewer({
 
     node.addEventListener("wheel", handleWheel, { passive: false });
     return () => node.removeEventListener("wheel", handleWheel);
-  }, [goNext, goPrev, resolvedLayout]);
+  }, [goNext, goPrev, isCoverFlow, isImmersiveCoverFlow, revealImmersiveSocial]);
+
+  useEffect(() => {
+    if (!isImmersiveCoverFlow) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (window.innerHeight - event.clientY < 170) revealImmersiveSocial();
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [isImmersiveCoverFlow, revealImmersiveSocial]);
+
+  useEffect(() => () => {
+    if (socialRevealTimerRef.current) window.clearTimeout(socialRevealTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = Boolean(document.fullscreenElement);
+      setFullscreen(active);
+      if (!active) setShowImmersiveSocial(false);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
       await containerRef.current.requestFullscreen?.();
       setFullscreen(true);
+      if (isCoverFlow) setShowImmersiveSocial(false);
     } else {
       await document.exitFullscreen?.();
       setFullscreen(false);
@@ -257,6 +299,15 @@ export function PageFlipViewer({
   };
 
   if (!currentItem) return null;
+
+  const renderConfig = isImmersiveCoverFlow
+    ? {
+      ...config,
+      pageClass: "bg-transparent border-transparent text-white",
+      shadowClass: "shadow-none",
+      cornerRadius: "0px",
+    }
+    : config;
 
   const currentPage = (
     <AnimatePresence initial={false} custom={navigation.direction} mode="wait">
@@ -278,7 +329,7 @@ export function PageFlipViewer({
       >
         <PageFlipPage
           item={currentItem}
-          config={config}
+          config={renderConfig}
           isActive
           isTurning={navigation.isTurning && effectiveMode === "page-flip"}
           direction={navigation.direction}
@@ -289,7 +340,7 @@ export function PageFlipViewer({
   );
 
   const renderPreviewPage = (item: GalleryMediaItem, keyPrefix: string) => (
-    <PageFlipPage key={`${keyPrefix}-${item.id}`} item={item} config={config} zoomed={false} />
+    <PageFlipPage key={`${keyPrefix}-${item.id}`} item={item} config={renderConfig} zoomed={false} />
   );
 
   return (
@@ -298,12 +349,12 @@ export function PageFlipViewer({
       role="dialog"
       aria-modal="true"
       aria-label="Page flip media viewer"
-      className={cn("fixed inset-0 z-[100] overflow-hidden text-white", config.backgroundClass)}
+      className={cn("fixed inset-0 z-[9999] overflow-hidden text-white", config.backgroundClass, isImmersiveCoverFlow && "bg-black")}
       {...swipeHandlers}
     >
       <div className="absolute inset-0 cursor-pointer bg-black/10" onClick={onClose} />
 
-      {showProgress && resolvedLayout !== "story" && <PageFlipProgress index={navigation.currentIndex} total={items.length} config={config} />}
+      {showProgress && resolvedLayout !== "story" && !isImmersiveCoverFlow && <PageFlipProgress index={navigation.currentIndex} total={items.length} config={config} />}
 
       <PageFlipControls
         config={config}
@@ -313,8 +364,8 @@ export function PageFlipViewer({
         fullscreen={fullscreen}
         slideshow={slideshow}
         showArrows={showArrows}
-        showDownload={showDownload && resolvedLayout !== "cover-flow"}
-        showFullscreen={showFullscreen && resolvedLayout !== "cover-flow"}
+        showDownload={showDownload && !isCoverFlow}
+        showFullscreen={showFullscreen && !isCoverFlow}
         showGridButton={shouldShowGridButton && items.length > 1}
         onPrev={goPrev}
         onNext={goNext}
@@ -329,7 +380,7 @@ export function PageFlipViewer({
       <LayoutComponent
         items={items}
         currentIndex={navigation.currentIndex}
-        config={config}
+        config={renderConfig}
         currentPage={currentPage}
         renderPreviewPage={renderPreviewPage}
         canPrev={navigation.canPrev}
@@ -342,9 +393,10 @@ export function PageFlipViewer({
         onNext={goNext}
         onGoTo={goTo}
         reducedMotion={Boolean(reducedMotion)}
+        immersive={isImmersiveCoverFlow}
       />
 
-      {resolvedLayout === "cover-flow" && (
+      {isCoverFlow && (
         <PageFlipSocialBar
           item={currentItem}
           config={config}
@@ -355,6 +407,8 @@ export function PageFlipViewer({
           showDownload={showDownload}
           showFullscreen={showFullscreen}
           showFindYou={showFindYou}
+          visible={!isImmersiveCoverFlow || showImmersiveSocial}
+          immersive={isImmersiveCoverFlow}
           onDownload={() => downloadItem(currentItem)}
           onFullscreen={toggleFullscreen}
           onFindYou={onFindYou}

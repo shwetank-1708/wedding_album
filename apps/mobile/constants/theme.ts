@@ -1,21 +1,19 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Below are the colors that are used in the app.
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#ECEDEE',
+    background: '#151718',
+    tint: tintColorDark,
+    icon: '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: tintColorDark,
   },
   dark: {
     text: '#ECEDEE',
@@ -39,20 +37,6 @@ export const MidnightColors = {
   ghostWhite: '#f8fafc',
   border: 'rgba(212, 175, 55, 0.25)',
   cardBorder: 'rgba(255, 255, 255, 0.05)',
-};
-
-export const LightColors = {
-  background: '#f8fafc',
-  deepSlate: '#ffffff',
-  slate900: '#f1f5f9',
-  slate800: '#e2e8f0',
-  slate700: '#cbd5e1',
-  slate400: '#64748b',
-  gold: '#d4af37',
-  white: '#101010',
-  ghostWhite: '#1e293b',
-  border: 'rgba(212, 175, 55, 0.25)',
-  cardBorder: 'rgba(0, 0, 0, 0.05)',
 };
 
 export const RoyalColors = {

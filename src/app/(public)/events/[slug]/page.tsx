@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 import { getWebTemplateComponent } from "@/components/templateRegistry";
-import { getWebLightboxTheme } from "@/lib/webTemplateTheme";
+import { getWebLightboxTheme, getWebTemplateChrome } from "@/lib/webTemplateTheme";
 import { FindYouSection } from "@/components/FindYouSection";
 import { supabase } from "@/lib/supabase";
 
@@ -79,6 +79,31 @@ function EventPageContent() {
         setHasHandledInitialHash(true);
     }, [loading, event?.id, hasHandledInitialHash]);
 
+    const activeTemplateId = (activeGallery || event)?.templateId || event?.templateId;
+
+    useEffect(() => {
+        if (!activeTemplateId || typeof document === "undefined") return;
+
+        const chrome = getWebTemplateChrome(activeTemplateId);
+        const root = document.documentElement;
+
+        root.dataset.eventTemplateChrome = "true";
+        root.style.setProperty("--event-template-primary", chrome.background);
+        root.style.setProperty("--event-template-text", chrome.text);
+        root.style.setProperty("--event-template-muted", chrome.muted);
+        root.style.setProperty("--event-template-accent", chrome.accent);
+        root.style.setProperty("--event-template-border", chrome.border);
+
+        return () => {
+            delete root.dataset.eventTemplateChrome;
+            root.style.removeProperty("--event-template-primary");
+            root.style.removeProperty("--event-template-text");
+            root.style.removeProperty("--event-template-muted");
+            root.style.removeProperty("--event-template-accent");
+            root.style.removeProperty("--event-template-border");
+        };
+    }, [activeTemplateId]);
+
     // Initial session check
     useEffect(() => {
         if (typeof window !== 'undefined' && !hasCheckedSession) {
@@ -97,10 +122,11 @@ function EventPageContent() {
     useEffect(() => {
         if (!event?.id) return;
 
-        const eventIds = [event.id, ...subEvents.map(s => s.id)];
-        const channels = eventIds.map(id => {
+        const eventIds = Array.from(new Set([event.id, ...subEvents.map(s => s.id)].filter(Boolean)));
+        const subscriptionSeed = Date.now();
+        const channels = eventIds.map((id, index) => {
             return supabase
-                .channel(`rt-photos-event-${id}`)
+                .channel(`rt-photos-event-${id}-${subscriptionSeed}-${index}`)
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'photos', filter: `event_id=eq.${id}` },
@@ -694,6 +720,7 @@ function EventPageContent() {
     );
 
     const TemplateComponent = getWebTemplateComponent(displayEvent.templateId);
+    const templateChrome = getWebTemplateChrome(displayEvent.templateId);
 
     // Determine Navbar Props
     const navMainTitle = parentEvent ? parentEvent.title : event.title;
@@ -704,7 +731,17 @@ function EventPageContent() {
     if (event.parentId) findYouEventIds.push(event.parentId);
 
     return (
-        <main className="min-h-screen relative" ref={containerRef}>
+        <main
+            className="event-template-shell min-h-screen relative"
+            ref={containerRef}
+            style={{
+                "--event-template-primary": templateChrome.background,
+                "--event-template-text": templateChrome.text,
+                "--event-template-muted": templateChrome.muted,
+                "--event-template-accent": templateChrome.accent,
+                "--event-template-border": templateChrome.border,
+            } as React.CSSProperties}
+        >
             <EventNavbar
                 mainEventTitle={navMainTitle}
                 mainEventId={navMainId}
@@ -717,10 +754,14 @@ function EventPageContent() {
                     setActivePage("gallery");
                     selectGallery(gallery || parentEvent || null);
                 }}
-                onFindYou={() => setActivePage("find-you")}
+                onFindYou={() => router.push(`/events/${navMainId}/find-you${isShared ? "?shared=true" : ""}`)}
                 showFavouriteGallery
                 favouriteGalleryActive={activeVirtualGallery === "favourite"}
                 onSelectFavouriteGallery={selectFavouriteGallery}
+                chromeBackgroundColor={templateChrome.background}
+                chromeTextColor={templateChrome.text}
+                chromeAccentColor={templateChrome.accent}
+                chromeBorderColor={templateChrome.border}
             />
             <TemplateComponent
                 event={displayEvent}

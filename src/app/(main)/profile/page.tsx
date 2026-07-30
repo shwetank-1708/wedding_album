@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import { uploadProfileImageToBackblaze } from "@/app/actions/userActions";
 import {
     getApprovedSharedEventsForUser,
@@ -148,7 +147,6 @@ function VerificationBadge({ verified, missing, missingText }: { verified: boole
 
 export default function ProfilePage() {
     const { user, loading: authLoading, logout } = useAuth();
-    const { theme, setTheme } = useTheme();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -602,28 +600,6 @@ export default function ProfilePage() {
                                     >
                                         <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white transition", isPrivate ? "left-6" : "left-1")} />
                                     </button>
-                                </div>
-                            </section>
-
-                            <section className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
-                                <h2 className="font-black text-white">App Preferences</h2>
-                                <div className="mt-4 grid grid-cols-2 gap-3">
-                                    {[
-                                        { id: "royal", label: "Royal Cream" },
-                                        { id: "light", label: "Modern Light" },
-                                    ].map((item) => (
-                                        <button
-                                            key={item.id}
-                                            type="button"
-                                            onClick={() => setTheme(item.id as any)}
-                                            className={cn(
-                                                "rounded-2xl border p-4 text-left text-xs font-black transition",
-                                                theme === item.id ? "border-yellow-400 bg-yellow-400 text-slate-950" : "border-slate-800 bg-slate-900 text-slate-300"
-                                            )}
-                                        >
-                                            {item.label}
-                                        </button>
-                                    ))}
                                 </div>
                             </section>
 
