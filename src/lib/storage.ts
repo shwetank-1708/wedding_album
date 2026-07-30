@@ -50,6 +50,173 @@ function uploadWithXhr(
     });
 }
 
+async function uploadLargeFileInChunks(
+    file: File,
+    eventId: string,
+    onProgress?: (percent: number) => void
+) {
+    console.log(`[Storage] Starting chunk-wise direct B2 upload for large file: ${file.name} (${file.size} bytes)`);
+
+    const resourceType = file.type.startsWith("video/") ? "video" : "image";
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+
+    // 1. Initiate chunked upload
+    const initiateRes = await fetch("/api/media/upload/chunk/initiate", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+            eventId,
+            fileName: file.name,
+            contentType: file.type || "application/octet-stream",
+            resourceType,
+        }),
+    });
+
+    const initiateData = await initiateRes.json().catch(() => ({}));
+    if (!initiateRes.ok) {
+        throw new Error(initiateData.error || `Failed to initiate chunked upload (status: ${initiateRes.status})`);
+    }
+
+    const { fileId, storageKey } = initiateData;
+    const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const partSha1Array: string[] = [];
+
+    // 2. Upload chunks sequentially
+    for (let partIndex = 0; partIndex < totalChunks; partIndex++) {
+        const start = partIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunkBlob = file.slice(start, end);
+        const partNumber = partIndex + 1;
+
+        console.log(`[Storage] Uploading chunk ${partNumber}/${totalChunks} (size: ${chunkBlob.size} bytes)...`);
+
+        let uploadSuccess = false;
+        let sha1 = "";
+        let attempt = 0;
+
+        while (!uploadSuccess && attempt < 3) {
+            attempt++;
+            try {
+                // Get fresh part upload URL
+                const getPartUrlRes = await fetch("/api/media/upload/chunk/part-url", {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ fileId }),
+                });
+
+                const partUrlData = await getPartUrlRes.json().catch(() => ({}));
+                if (!getPartUrlRes.ok) {
+                    throw new Error(partUrlData.error || `Failed to get chunk upload URL (status: ${getPartUrlRes.status})`);
+                }
+
+                const { uploadUrl, authorizationToken } = partUrlData;
+
+                // Send part directly to B2
+                const response = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: {
+                        Authorization: authorizationToken,
+                        "Content-Type": "application/octet-stream",
+                        "X-Bz-Part-Number": String(partNumber),
+                        "X-Bz-Content-Sha1": "do_not_verify", // Let B2 return the SHA-1 in headers
+                        "Content-Length": String(chunkBlob.size),
+                    },
+                    body: chunkBlob,
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text().catch(() => "");
+                    throw new Error(`Part upload failed with status ${response.status}: ${errText}`);
+                }
+
+                // Retrieve the SHA-1 of the uploaded part returned by B2
+                sha1 = response.headers.get("X-Bz-Content-Sha1") || "";
+                if (!sha1 || sha1 === "do_not_verify") {
+                    throw new Error("B2 did not return part SHA-1 checksum");
+                }
+
+                uploadSuccess = true;
+                partSha1Array.push(sha1);
+
+                // Update progress
+                if (onProgress) {
+                    const uploadedBytes = start + chunkBlob.size;
+                    const percent = Math.min(99, (uploadedBytes / file.size) * 100);
+                    onProgress(percent);
+                }
+            } catch (err) {
+                console.warn(`[Storage] Failed to upload part ${partNumber} (attempt ${attempt}/3):`, err);
+                if (attempt >= 3) {
+                    // Try to clean up/abort on B2 to prevent orphaned files
+                    await fetch("/api/media/upload/chunk/abort", {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify({ fileId }),
+                    }).catch(() => {});
+                    throw new Error(`Failed to upload part ${partNumber} after 3 attempts: ${err instanceof Error ? err.message : String(err)}`);
+                }
+                // Sleep for 2 seconds before retry
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+    }
+
+    // 3. Complete the upload
+    console.log(`[Storage] All chunks uploaded. Finishing large file and saving metadata...`);
+    
+    // Refresh token to prevent token expiration
+    const { data: freshSessionData } = await supabase.auth.getSession();
+    const freshToken = freshSessionData.session?.access_token;
+    const saveHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+    if (freshToken) {
+        saveHeaders["Authorization"] = `Bearer ${freshToken}`;
+    } else if (headers["Authorization"]) {
+        saveHeaders["Authorization"] = headers["Authorization"];
+    }
+
+    const completeRes = await fetch("/api/media/upload/chunk/complete", {
+        method: "POST",
+        headers: saveHeaders,
+        body: JSON.stringify({
+            fileId,
+            storageKey,
+            eventId,
+            fileName: file.name,
+            fileSize: file.size,
+            resourceType,
+            partSha1Array,
+        }),
+    });
+
+    const completeData = await completeRes.json().catch(() => ({}));
+    if (!completeRes.ok) {
+        throw new Error(completeData.error || `Failed to complete chunked upload (status: ${completeRes.status})`);
+    }
+
+    if (onProgress) {
+        onProgress(100);
+    }
+
+    return {
+        url: completeData.url,
+        publicId: storageKey,
+        width: undefined,
+        height: undefined,
+        bytes: file.size,
+        format: file.name.split(".").pop() || "mp4",
+    };
+}
+
 export async function uploadEventImage(
     file: File, 
     eventId: string, 
@@ -58,6 +225,10 @@ export async function uploadEventImage(
     skipSaveMetadata = false,
     onProgress?: (percent: number) => void
 ) {
+    if (file.size > 100 * 1024 * 1024) { // > 100 MB
+        return uploadLargeFileInChunks(file, eventId, onProgress);
+    }
+
     try {
         console.log(`[Storage] Starting direct B2 upload for: ${file.name} to event: ${eventId} (lane: ${laneIndex})`);
 
@@ -172,7 +343,7 @@ export async function uploadEventImage(
             try {
                 const parsed = JSON.parse(responseText);
                 errorMsg = parsed.message || errorMsg;
-            } catch (e) {}
+            } catch { }
             throw new Error(`${errorMsg} (status: ${responseStatus})`);
         }
 

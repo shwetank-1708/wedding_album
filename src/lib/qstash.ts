@@ -160,22 +160,35 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
   }
 }
 
-export async function publishVideoTranscodeTask(payload: { id: string; storage_key: string; event_id: string; url?: string }): Promise<boolean> {
+export async function publishVideoTranscodeTask(payload: { id: string; storage_key: string; event_id: string; url?: string }, fileSize?: number): Promise<boolean> {
   const qstashToken = process.env.QSTASH_TOKEN;
   if (!qstashToken) {
     console.warn("[QStash] QSTASH_TOKEN is not configured. Video transcoding task will not run.");
     return false;
   }
 
-  const targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-transcode.modal.run";
+  let targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run";
+  let timeout = "300s";
 
-  console.log(`[QStash] Publishing video transcode task for ${payload.storage_key} to Modal`);
+  if (fileSize) {
+    if (fileSize > 1024 * 1024 * 1024) {
+      // Large tier (> 1 GB): 20 min timeout
+      targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-1aa355.modal.run";
+      timeout = "1200s";
+    } else if (fileSize > 100 * 1024 * 1024) {
+      // Medium tier (> 100 MB): 10 min timeout
+      targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run";
+      timeout = "600s";
+    }
+  }
+
+  console.log(`[QStash] Publishing video transcode task for ${payload.storage_key} to Modal target: ${targetUrl} (fileSize: ${fileSize || 'unknown'})`);
 
   try {
     const headers: Record<string, string> = {
       "Authorization": `Bearer ${qstashToken}`,
       "Content-Type": "application/json",
-      "Upstash-Timeout": "300s"
+      "Upstash-Timeout": timeout
     };
 
     const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
@@ -195,10 +208,11 @@ export async function publishVideoTranscodeTask(payload: { id: string; storage_k
     }
 
     const result = await response.json();
-    console.log(`[QStash] Successfully published video transcode task to Modal. Message ID: ${result.messageId}`);
+    console.log(`[QStash] Successfully published video transcode task. Message ID: ${result.messageId}`);
     return true;
   } catch (error) {
     console.error("[QStash] Error publishing video transcode task:", error);
     return false;
   }
 }
+

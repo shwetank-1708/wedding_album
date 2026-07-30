@@ -110,3 +110,95 @@ export async function getCachedUploadUrl(
   }
   return uploadUrlPool[slotIndex]!;
 }
+
+export async function startLargeFile(
+  auth: BackblazeAuth,
+  fileName: string,
+  contentType: string
+): Promise<{ fileId: string; fileName: string }> {
+  const bucketId = requireEnv("B2_BUCKET_ID");
+  const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_start_large_file`, {
+    method: "POST",
+    headers: {
+      Authorization: auth.authorizationToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ bucketId, fileName, contentType }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`b2_start_large_file failed with status ${response.status}: ${errText}`);
+  }
+
+  return response.json();
+}
+
+export async function getUploadPartUrl(
+  auth: BackblazeAuth,
+  fileId: string
+): Promise<BackblazeUploadUrl> {
+  const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_get_upload_part_url`, {
+    method: "POST",
+    headers: {
+      Authorization: auth.authorizationToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileId }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`b2_get_upload_part_url failed with status ${response.status}: ${errText}`);
+  }
+
+  return response.json();
+}
+
+export async function finishLargeFile(
+  auth: BackblazeAuth,
+  fileId: string,
+  partSha1Array: string[]
+): Promise<unknown> {
+  const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_finish_large_file`, {
+    method: "POST",
+    headers: {
+      Authorization: auth.authorizationToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileId, partSha1Array }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`b2_finish_large_file failed with status ${response.status}: ${errText}`);
+  }
+
+  return response.json();
+}
+
+export async function cancelLargeFile(
+  auth: BackblazeAuth,
+  fileId: string
+): Promise<unknown> {
+  const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_cancel_large_file`, {
+    method: "POST",
+    headers: {
+      Authorization: auth.authorizationToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fileId }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`b2_cancel_large_file failed with status ${response.status}: ${errText}`);
+  }
+
+  return response.json();
+}
+

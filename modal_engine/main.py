@@ -428,15 +428,7 @@ def find_matching_photos(request: dict):
         return {"error": str(e), "matches": []}
 
 
-@app.function(
-    image=image,
-    cpu=2.0,
-    memory=2048,
-    timeout=600,
-    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
-)
-@modal.fastapi_endpoint(method="POST")
-def process_video_transcode(request: dict):
+def run_transcode(request: dict):
     """
     QStash Webhook Entrypoint for Video Transcoding.
     Downloads raw video from B2, runs FFmpeg to generate adaptive HLS renditions (.m3u8 + .ts),
@@ -592,4 +584,40 @@ def process_video_transcode(request: dict):
             "poster_url": poster_url,
             "duration_seconds": duration
         }
+
+
+@app.function(
+    image=image,
+    cpu=1.0,
+    memory=2048,
+    timeout=300,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
+def process_video_transcode_standard(request: dict):
+    return run_transcode(request)
+
+
+@app.function(
+    image=image,
+    cpu=2.0,
+    memory=4096,
+    timeout=600,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
+def process_video_transcode_medium(request: dict):
+    return run_transcode(request)
+
+
+@app.function(
+    image=image,
+    cpu=4.0,
+    memory=8192,
+    timeout=1200,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
+def process_video_transcode_large(request: dict):
+    return run_transcode(request)
 

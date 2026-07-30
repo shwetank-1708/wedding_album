@@ -357,6 +357,196 @@ async function notifyQueueDrained() {
  * Uploads a single queue item and manages its lifecycle.
  * Runs concurrently with other uploadWorker() calls (up to CONCURRENCY).
  */
+async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken: string, fileSize: number) {
+  console.log(`[UploadQueue] Starting chunked upload for: ${item.fileName} (${fileSize} bytes)`);
+
+  // 1. Initiate chunked upload
+  const initiateResponse = await fetchWithEndpointFallback(
+    getEndpointsForPath('/api/media/upload/chunk/initiate'),
+    (endpoint: string) => {
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          eventId: item.eventId,
+          fileName: item.fileName,
+          resourceType: item.mediaType === 'video' ? 'video' : 'image',
+          contentType: item.fileType || 'application/octet-stream',
+        }),
+      });
+    },
+    'initiate chunked upload'
+  );
+
+  const initiateResult = await initiateResponse.json().catch(() => ({}));
+  if (!initiateResponse.ok) {
+    throw new Error(initiateResult.error || `Failed to initiate chunked upload (status: ${initiateResponse.status})`);
+  }
+
+  const { fileId, storageKey } = initiateResult;
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
+  const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+  const partSha1Array: string[] = [];
+
+  // 2. Upload chunks sequentially
+  for (let partIndex = 0; partIndex < totalChunks; partIndex++) {
+    // Check if item has been cancelled mid-upload
+    const currentItem = queue.find(i => i.id === item.id);
+    if (!currentItem) {
+      // Abort B2 large file
+      await fetchWithEndpointFallback(
+        getEndpointsForPath('/api/media/upload/chunk/abort'),
+        (endpoint: string) => {
+          return fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ fileId }),
+          });
+        },
+        'abort chunked upload'
+      ).catch(() => {});
+      throw new Error('Upload cancelled by user.');
+    }
+
+    const start = partIndex * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, fileSize);
+    const partNumber = partIndex + 1;
+    const chunkBlobSize = end - start;
+
+    console.log(`[UploadQueue] Uploading chunk ${partNumber}/${totalChunks} (${chunkBlobSize} bytes)...`);
+
+    // Read chunk from local file as base64 string
+    const base64Chunk = await FileSystem.readAsStringAsync(item.fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+      length: chunkBlobSize,
+      position: start,
+    });
+
+    // Write chunk temporarily to cache
+    const tempUri = `${FileSystem.cacheDirectory}temp_chunk_${item.id}_${partNumber}`;
+    await FileSystem.writeAsStringAsync(tempUri, base64Chunk, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    let chunkUploadSuccess = false;
+    let sha1 = "";
+    let attempt = 0;
+
+    while (!chunkUploadSuccess && attempt < 3) {
+      attempt++;
+      try {
+        // Get fresh part upload URL
+        const partUrlResponse = await fetchWithEndpointFallback(
+          getEndpointsForPath('/api/media/upload/chunk/part-url'),
+          (endpoint: string) => {
+            return fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ fileId }),
+            });
+          },
+          'get chunk upload URL'
+        );
+
+        const partUrlResult = await partUrlResponse.json().catch(() => ({}));
+        if (!partUrlResponse.ok) {
+          throw new Error(partUrlResult.error || `Failed to get chunk upload URL (status: ${partUrlResponse.status})`);
+        }
+
+        const { uploadUrl, authorizationToken } = partUrlResult;
+
+        // Upload chunk temp file directly to B2 URL
+        const uploadTask = FileSystem.createUploadTask(
+          uploadUrl,
+          tempUri,
+          {
+            uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+            headers: {
+              Authorization: authorizationToken,
+              'Content-Type': 'application/octet-stream',
+              'X-Bz-Part-Number': String(partNumber),
+              'X-Bz-Content-Sha1': 'do_not_verify',
+            },
+            sessionType: FileSystem.FileSystemSessionType.BACKGROUND,
+          }
+        );
+
+        const response = await uploadTask.uploadAsync();
+        if (!response || response.status !== 200) {
+          throw new Error(`Chunk B2 upload failed with status: ${response ? response.status : 'unknown'}`);
+        }
+
+        // Retrieve SHA-1 from the B2 response body
+        const b2Result = JSON.parse(response.body);
+        sha1 = b2Result.contentSha1;
+        if (!sha1 || sha1 === "do_not_verify") {
+          throw new Error("B2 did not return part SHA-1 checksum in response");
+        }
+
+        chunkUploadSuccess = true;
+        partSha1Array.push(sha1);
+
+        // Update progress
+        const percent = Math.min(99, ((start + chunkBlobSize) / fileSize) * 100);
+        item.progress = percent;
+        notifyListeners();
+        void updateProgressNotification();
+      } catch (err) {
+        console.warn(`[UploadQueue] Failed chunk ${partNumber} (attempt ${attempt}/3):`, err);
+        if (attempt >= 3) {
+          throw err;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } finally {
+        // Always clean up the temp file
+        await FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {});
+      }
+    }
+  }
+
+  // 3. Complete chunked upload on Railway
+  console.log(`[UploadQueue] Chunks complete. Completing large file: ${storageKey}`);
+  const completeResponse = await fetchWithEndpointFallback(
+    getEndpointsForPath('/api/media/upload/chunk/complete'),
+    (endpoint: string) => {
+      return fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          fileId,
+          storageKey,
+          eventId: item.eventId,
+          fileName: item.fileName,
+          fileSize,
+          resourceType: item.mediaType === 'video' ? 'video' : 'image',
+          partSha1Array,
+        }),
+      });
+    },
+    'complete chunked upload'
+  );
+
+  const completeResult = await completeResponse.json().catch(() => ({}));
+  if (!completeResponse.ok) {
+    throw new Error(completeResult.error || `Failed to complete chunked upload (status: ${completeResponse.status})`);
+  }
+
+  item.status = 'completed';
+  item.progress = 100;
+}
+
 async function uploadWorker(item: UploadQueueItem) {
   item.status = 'uploading';
   notifyListeners();
@@ -368,6 +558,22 @@ async function uploadWorker(item: UploadQueueItem) {
     const accessToken = sessionData.session?.access_token;
     if (!accessToken) {
       throw new Error('Authorization required.');
+    }
+
+    // Get file size to save with metadata & decide upload method
+    let fileSize = 0;
+    try {
+      const info = await FileSystem.getInfoAsync(item.fileUri);
+      if (info && info.exists) {
+        fileSize = info.size || 0;
+      }
+    } catch (infoErr) {
+      console.warn('[UploadQueue] Could not get file size info:', infoErr);
+    }
+
+    if (fileSize > 100 * 1024 * 1024) { // > 100 MB
+      await uploadWorkerLargeFileInChunks(item, accessToken, fileSize);
+      return;
     }
 
     // 1. Get B2 upload URL and token

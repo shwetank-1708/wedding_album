@@ -2394,16 +2394,56 @@ export function serializeDatabaseData<T>(data: T): T {
     return data;
 }
 
+export function generateEventJoinId(eventId: string): string {
+    const cleanId = eventId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const parts = eventId.split('-');
+    const suffix = parts.length > 1 ? parts[parts.length - 1].toUpperCase() : '';
+    const prefix = cleanId.slice(0, 4);
+
+    if (suffix && suffix.length >= 3 && /^[A-Z0-9]+$/.test(suffix)) {
+        return `${prefix}-${suffix}`;
+    }
+
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${randomSuffix}`;
+}
+
 export async function getEventByJoinId(joinId: string): Promise<Event | null> {
     try {
-        const { data, error } = await supabase
+        const cleanJoinId = joinId.toUpperCase().trim();
+        let { data, error } = await supabase
             .from('events')
             .select('*')
-            .eq('join_id', joinId.toUpperCase().trim())
-            .maybeSingle();
+            .eq('join_id', cleanJoinId);
 
         if (error) throw error;
-        return data ? mapSqlToEvent(data) : null;
+
+        if (!data || data.length === 0) {
+            const { data: allEvents, error: allErr } = await supabase
+                .from('events')
+                .select('*')
+                .not('join_id', 'is', null);
+
+            if (!allErr && allEvents) {
+                const targetNormalized = cleanJoinId.replace(/[^A-Z0-9]/g, '');
+                const matches = allEvents.filter(e => {
+                    if (!e.join_id) return false;
+                    const dbNormalized = e.join_id.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    return dbNormalized === targetNormalized;
+                });
+                if (matches.length > 0) {
+                    data = matches;
+                }
+            }
+        }
+
+        if (!data || data.length === 0) return null;
+
+        if (data.length > 1) {
+            const mainEvent = data.find(e => e.type === 'main');
+            if (mainEvent) return mapSqlToEvent(mainEvent);
+        }
+        return mapSqlToEvent(data[0]);
     } catch (error) {
         console.error("Error fetching event by joinId:", error);
         return null;
