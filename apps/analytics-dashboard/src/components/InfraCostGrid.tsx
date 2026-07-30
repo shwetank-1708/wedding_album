@@ -1892,13 +1892,132 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
             ) : null}
           </div>
 
+          {/* Backblaze B2 Charging Units Cost Table */}
+          <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
+            <h4 className="text-md font-bold text-white mb-1.5 flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-sky-400" />
+              Backblaze B2 Billing Units Cost Breakdown ({timeframeLabel})
+            </h4>
+            <p className="text-slate-400 text-xs mb-6">
+              Detailed tracking of active storage utilization, transfer bandwidth, and API operations for {timeframeLabel.toLowerCase()}.
+            </p>
+
+            <div className="overflow-x-auto border border-slate-800/60 rounded-2xl">
+              <table className="w-full text-left text-xs text-slate-400">
+                <thead className="text-[10px] text-slate-500 uppercase bg-slate-900/30 border-b border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Billing Unit</th>
+                    <th className="py-3 px-4">Plan Limit / Allowance</th>
+                    <th className="py-3 px-4">Actual Usage "Till Now"</th>
+                    <th className="py-3 px-4">Cost ({timeframeLabel})</th>
+                    <th className="py-3 px-4">Cost (Projected Year)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/40 text-slate-350">
+                  {/* Row 1: B2 Storage Space */}
+                  <tr className="hover:bg-slate-800/10 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-white">Object Storage Size (GB)</td>
+                    <td className="py-4 px-4">10 GB Free</td>
+                    <td className="py-4 px-4">
+                      {actualB2StorageDecimalGB.toFixed(3)} GB ({formatDecimalSize(actualB2StorageBytes)})
+                      <span className="block text-[10px] text-slate-500 mt-1">{b2StorageSource}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono font-bold text-sky-400">
+                      ₹{((b2StorageCostMonth * timeframeFactor) * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${(b2StorageCostMonth * timeframeFactor).toFixed(4)} {timeframeSuffix}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-400">
+                      ₹{(b2StorageCostYear * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${b2StorageCostYear.toFixed(4)} / yr</span>
+                    </td>
+                  </tr>
+
+                  {/* Row 2: B2 Download Egress */}
+                  <tr className="hover:bg-slate-800/10 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-white">Egress Download Bandwidth</td>
+                    <td className="py-4 px-4">Unlimited Free <span className="text-[9px] text-emerald-450">(Bandwidth Alliance)</span></td>
+                    <td className="py-4 px-4">Active Routing</td>
+                    <td className="py-4 px-4 font-mono font-bold text-sky-400">
+                      ₹0.00
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">$0.0000</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-400">
+                      ₹0.00
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">$0.0000</span>
+                    </td>
+                  </tr>
+
+                  {/* Row 3: Class A API Transactions */}
+                  <tr className="hover:bg-slate-800/10 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-white">Class A API Transactions (List, etc.)</td>
+                    <td className="py-4 px-4">Unlimited Free</td>
+                    <td className="py-4 px-4">Minimal</td>
+                    <td className="py-4 px-4 font-mono font-bold text-sky-400">
+                      ₹0.00
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">$0.0000</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-400">
+                      ₹0.00
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">$0.0000</span>
+                    </td>
+                  </tr>
+
+                  {/* Row 4: Class B API Transactions */}
+                  <tr className="hover:bg-slate-800/10 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-white">Class B API Transactions (Download metadata)</td>
+                    <td className="py-4 px-4">2,500/day Free (75,000/mo)</td>
+                    <td className="py-4 px-4">{formatNumber(b2ClassBCallsMonth)} calls/mo <span className="text-[10px] text-slate-500">(est.)</span></td>
+                    <td className="py-4 px-4 font-mono font-bold text-sky-400">
+                      ₹{((b2ClassBCostMonth * timeframeFactor) * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${(b2ClassBCostMonth * timeframeFactor).toFixed(4)} {timeframeSuffix}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-400">
+                      ₹{(b2ClassBCostYear * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${b2ClassBCostYear.toFixed(4)} / yr</span>
+                    </td>
+                  </tr>
+
+                  {/* Row 5: Class C API Transactions */}
+                  <tr className="hover:bg-slate-800/10 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-white">Class C API Transactions (Upload creations)</td>
+                    <td className="py-4 px-4">2,500/day Free (75,000/mo)</td>
+                    <td className="py-4 px-4">{formatNumber(b2ClassCCallsMonth)} calls/mo <span className="text-[10px] text-slate-500">(est.)</span></td>
+                    <td className="py-4 px-4 font-mono font-bold text-sky-400">
+                      ₹{((b2ClassCCostMonth * timeframeFactor) * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${(b2ClassCCostMonth * timeframeFactor).toFixed(4)} {timeframeSuffix}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-400">
+                      ₹{(b2ClassCCostYear * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${b2ClassCCostYear.toFixed(4)} / yr</span>
+                    </td>
+                  </tr>
+
+                  {/* Total row */}
+                  <tr className="bg-slate-900/30 font-bold border-t border-slate-800">
+                    <td className="py-4 px-4 text-white">Total Backblaze B2 Expenses</td>
+                    <td className="py-4 px-4">-</td>
+                    <td className="py-4 px-4">-</td>
+                    <td className="py-4 px-4 font-mono text-sky-400">
+                      ₹{((actualB2Cost * timeframeFactor) * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${(actualB2Cost * timeframeFactor).toFixed(4)} {timeframeSuffix}</span>
+                    </td>
+                    <td className="py-4 px-4 font-mono text-slate-350">
+                      ₹{((actualB2Cost * 12) * usdToInrRate).toFixed(2)}
+                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">${(actualB2Cost * 12).toFixed(4)} / yr</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Interactive B2 storage slider & comparison */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl md:col-span-2 space-y-6">
               <div>
                 <h4 className="text-md font-bold text-white flex items-center">
                   <Sliders className="w-5 h-5 mr-2 text-sky-400" />
-                  B2 Storage Growth Simulator
+                  B2 Storage Growth Simulator ({timeframeLabel})
                 </h4>
                 <p className="text-slate-400 text-xs mt-1">
                   Simulate storage growth scaling from current levels up to 10 Terabytes.
@@ -1938,10 +2057,13 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               {/* B2 Simulator Pricing Card */}
               <div className="p-5 rounded-2xl border border-sky-500/20 bg-sky-500/5 text-left relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-[10px] text-sky-400 font-black uppercase tracking-wider">Backblaze B2 Simulated Monthly Upkeep</p>
+                <p className="text-[10px] text-sky-400 font-black uppercase tracking-wider">Backblaze B2 Simulated Upkeep ({timeframeLabel})</p>
                 <h4 className="text-2xl font-black text-white mt-1.5">
-                  ${simulatedB2Cost.toFixed(4)} <span className="text-xs font-medium text-slate-500">/ mo</span>
+                  ₹{((simulatedB2Cost * timeframeFactor) * usdToInrRate).toFixed(2)} <span className="text-xs font-medium text-slate-500">{timeframeSuffix}</span>
                 </h4>
+                <p className="text-[10px] text-sky-400 font-bold mt-1">
+                  ${(simulatedB2Cost * timeframeFactor).toFixed(4)} USD
+                </p>
                 <p className="text-[10px] text-slate-500 mt-2.5 leading-relaxed">
                   Based on simulated storage capacity of <span className="text-slate-350 font-semibold">{simulatedStorageGB} GB</span> and scaled transaction API volumes.
                 </p>
@@ -2000,89 +2122,6 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                   Due to our Cloudflare DNS setup, requests are routed via the Cloudflare Edge network. Both providers participate in the **Bandwidth Alliance**, reducing outbound media download (egress) transfer fees from Backblaze B2 to $0.00.
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Backblaze B2 Charging Units Cost Table */}
-          <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
-            <h4 className="text-md font-bold text-white mb-1.5 flex items-center">
-              <DollarSign className="w-5 h-5 mr-2 text-sky-400" />
-              Backblaze B2 Billing Units Cost Breakdown
-            </h4>
-            <p className="text-slate-400 text-xs mb-6">
-              Detailed tracking of active storage utilization, transfer bandwidth, and API operations, including actual monthly and yearly projections.
-            </p>
-
-            <div className="overflow-x-auto border border-slate-800/60 rounded-2xl">
-              <table className="w-full text-left text-xs text-slate-400">
-                <thead className="text-[10px] text-slate-500 uppercase bg-slate-900/30 border-b border-slate-800">
-                  <tr>
-                    <th className="py-3 px-4">Billing Unit</th>
-                    <th className="py-3 px-4">Plan Limit / Allowance</th>
-                    <th className="py-3 px-4">Actual Usage "Till Now"</th>
-                    <th className="py-3 px-4">Cost (Current Month)</th>
-                    <th className="py-3 px-4">Cost (Projected Year)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/40 text-slate-350">
-                  {/* Row 1: B2 Storage Space */}
-                  <tr className="hover:bg-slate-800/10 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-white">Object Storage Size (GB)</td>
-                    <td className="py-4 px-4">10 GB Free</td>
-                    <td className="py-4 px-4">
-                      {actualB2StorageDecimalGB.toFixed(3)} GB ({formatDecimalSize(actualB2StorageBytes)})
-                      <span className="block text-[10px] text-slate-500 mt-1">{b2StorageSource}</span>
-                    </td>
-                    <td className="py-4 px-4 font-mono font-bold text-sky-400">${b2StorageCostMonth.toFixed(4)}</td>
-                    <td className="py-4 px-4 font-mono text-slate-400">${b2StorageCostYear.toFixed(4)}</td>
-                  </tr>
-
-                  {/* Row 2: B2 Download Egress */}
-                  <tr className="hover:bg-slate-800/10 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-white">Egress Download Bandwidth</td>
-                    <td className="py-4 px-4">Unlimited Free <span className="text-[9px] text-emerald-450">(Bandwidth Alliance)</span></td>
-                    <td className="py-4 px-4">Active Routing</td>
-                    <td className="py-4 px-4 font-mono font-bold text-sky-400">$0.0000</td>
-                    <td className="py-4 px-4 font-mono text-slate-400">$0.0000</td>
-                  </tr>
-
-                  {/* Row 3: Class A API Transactions */}
-                  <tr className="hover:bg-slate-800/10 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-white">Class A API Transactions (List, etc.)</td>
-                    <td className="py-4 px-4">Unlimited Free</td>
-                    <td className="py-4 px-4">Minimal</td>
-                    <td className="py-4 px-4 font-mono font-bold text-sky-400">$0.0000</td>
-                    <td className="py-4 px-4 font-mono text-slate-400">$0.0000</td>
-                  </tr>
-
-                  {/* Row 4: Class B API Transactions */}
-                  <tr className="hover:bg-slate-800/10 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-white">Class B API Transactions (Download metadata)</td>
-                    <td className="py-4 px-4">2,500/day Free (75,000/mo)</td>
-                    <td className="py-4 px-4">{formatNumber(b2ClassBCallsMonth)} calls/mo <span className="text-[10px] text-slate-500">(est.)</span></td>
-                    <td className="py-4 px-4 font-mono font-bold text-sky-400">${b2ClassBCostMonth.toFixed(4)}</td>
-                    <td className="py-4 px-4 font-mono text-slate-400">${b2ClassBCostYear.toFixed(4)}</td>
-                  </tr>
-
-                  {/* Row 5: Class C API Transactions */}
-                  <tr className="hover:bg-slate-800/10 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-white">Class C API Transactions (Upload creations)</td>
-                    <td className="py-4 px-4">2,500/day Free (75,000/mo)</td>
-                    <td className="py-4 px-4">{formatNumber(b2ClassCCallsMonth)} calls/mo <span className="text-[10px] text-slate-500">(est.)</span></td>
-                    <td className="py-4 px-4 font-mono font-bold text-sky-400">${b2ClassCCostMonth.toFixed(4)}</td>
-                    <td className="py-4 px-4 font-mono text-slate-400">${b2ClassCCostYear.toFixed(4)}</td>
-                  </tr>
-
-                  {/* Total row */}
-                  <tr className="bg-slate-900/30 font-bold border-t border-slate-800">
-                    <td className="py-4 px-4 text-white">Total Backblaze B2 Expenses</td>
-                    <td className="py-4 px-4">-</td>
-                    <td className="py-4 px-4">-</td>
-                    <td className="py-4 px-4 font-mono text-sky-400">${actualB2Cost.toFixed(4)} / mo</td>
-                    <td className="py-4 px-4 font-mono text-slate-350">${(actualB2Cost * 12).toFixed(4)} / yr</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
