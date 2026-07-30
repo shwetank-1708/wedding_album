@@ -265,6 +265,7 @@ export function ThemeHeader({
 
   const isPartnersActive = activeSubEvent?.id === 'event-partners';
   const isFindYouActive = activeSubEvent?.id === 'find-you';
+  const isFavouriteActive = activeSubEvent?.id === 'favourite';
 
   return (
     <View style={[
@@ -327,9 +328,12 @@ export function ThemeHeader({
         {/* Home Tab */}
         {renderTab(null, !activeSubEvent)}
 
+        {/* Favourite Tab */}
+        {renderTab({ id: 'favourite', title: 'Favourite' }, isFavouriteActive, 0)}
+
         {/* Sub-event Tabs */}
         {subEvents.map((sub, idx) =>
-          renderTab(sub, activeSubEvent?.id === sub.id, idx)
+          renderTab(sub, activeSubEvent?.id === sub.id, idx + 1)
         )}
 
         {/* Event Partners Tab */}
@@ -389,7 +393,7 @@ export function ThemeHeader({
             ]}>
               {(isCyberTech || isNeonCarnival) ? (isPartnersActive ? '[ PARTNERS ]' : '  PARTNERS  ') : (
                 isRetroArcade ? 'PARTNERS 🤝' : (
-                  isAcademicEditorial ? `${String(subEvents.length + 2).padStart(2, '0')} / PARTNERS` : (
+                  isAcademicEditorial ? `${String(subEvents.length + 3).padStart(2, '0')} / PARTNERS` : (
                     (isSportsTemplate || isMuseum || isBrutalist || isTechSleek || isExecutive) ? 'Partners' : <>Event Partners <Text style={{ fontSize: 10 }}>🤝</Text></>
                   )
                 )
@@ -456,7 +460,7 @@ export function ThemeHeader({
             ]}>
               {(isCyberTech || isNeonCarnival) ? (isFindYouActive ? '[ FIND YOU ]' : '  FIND YOU  ') : (
                 isRetroArcade ? 'FIND YOU 📸' : (
-                  isAcademicEditorial ? `${String(subEvents.length + 3).padStart(2, '0')} / FIND YOU` : (
+                  isAcademicEditorial ? `${String(subEvents.length + 4).padStart(2, '0')} / FIND YOU` : (
                     (isSportsTemplate || isMuseum || isBrutalist || isTechSleek || isExecutive) ? 'Find You' : <>Find You <Text style={{ fontSize: 10 }}>📸</Text></>
                   )
                 )
