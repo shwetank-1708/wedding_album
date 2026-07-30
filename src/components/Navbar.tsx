@@ -7,7 +7,6 @@ import { Menu, X, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { EveBashLogo } from "@/components/EveBashLogo";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const guestNavLinks = [
     { name: "Sample Galleries", href: "/sample-galleries" },
@@ -76,8 +75,6 @@ export default function Navbar() {
                             </Link>
                         ))}
 
-                        <ThemeToggle compact />
-
                         {user ? (
                             <Link
                                 href="/profile"
@@ -109,7 +106,6 @@ export default function Navbar() {
 
                     {/* Mobile Menu Button */}
                     <div className="md:hidden flex items-center gap-2">
-                        <ThemeToggle compact />
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="p-2 text-[var(--site-muted)] hover:text-[var(--site-text)] focus:outline-none transition-colors"

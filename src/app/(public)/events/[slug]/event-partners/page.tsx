@@ -2,19 +2,19 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Briefcase, ChevronRight, MapPin, Star } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Briefcase, ChevronRight, MapPin, Star } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { EventNavbar } from "@/components/EventNavbar";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Business, Event, getBusinessById, getEventById, getSubEvents } from "@/lib/database";
+import { getWebTemplateChrome } from "@/lib/webTemplateTheme";
 
 function getVendorLocation(business: Business) {
     return business.location?.address || "Location not listed";
 }
 
 function EventPartnersContent({ slug }: { slug: string }) {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const isShared = searchParams.get("shared") === "true";
 
@@ -75,6 +75,31 @@ function EventPartnersContent({ slug }: { slug: string }) {
         };
     }, [slug]);
 
+    const chromeTemplateId = (parentEvent || event)?.templateId || event?.templateId;
+
+    useEffect(() => {
+        if (!chromeTemplateId || typeof document === "undefined") return;
+
+        const chrome = getWebTemplateChrome(chromeTemplateId);
+        const root = document.documentElement;
+
+        root.dataset.eventTemplateChrome = "true";
+        root.style.setProperty("--event-template-primary", chrome.background);
+        root.style.setProperty("--event-template-text", chrome.text);
+        root.style.setProperty("--event-template-muted", chrome.muted);
+        root.style.setProperty("--event-template-accent", chrome.accent);
+        root.style.setProperty("--event-template-border", chrome.border);
+
+        return () => {
+            delete root.dataset.eventTemplateChrome;
+            root.style.removeProperty("--event-template-primary");
+            root.style.removeProperty("--event-template-text");
+            root.style.removeProperty("--event-template-muted");
+            root.style.removeProperty("--event-template-accent");
+            root.style.removeProperty("--event-template-border");
+        };
+    }, [chromeTemplateId]);
+
     if (loading) {
         return <LoadingScreen message="Loading event partners" />;
     }
@@ -91,28 +116,36 @@ function EventPartnersContent({ slug }: { slug: string }) {
     }
 
     const navEvent = parentEvent || event;
-    const sharedQuery = isShared ? "?shared=true" : "";
+    const templateChrome = getWebTemplateChrome(navEvent.templateId || event.templateId);
 
     return (
-        <main className="min-h-screen bg-stone-50 pb-24">
+        <main
+            className="event-template-shell min-h-screen bg-stone-50 pb-24"
+            style={{
+                "--event-template-primary": templateChrome.background,
+                "--event-template-text": templateChrome.text,
+                "--event-template-muted": templateChrome.muted,
+                "--event-template-accent": templateChrome.accent,
+                "--event-template-border": templateChrome.border,
+            } as React.CSSProperties}
+        >
             <EventNavbar
                 mainEventTitle={navEvent.title}
                 mainEventId={navEvent.id}
                 subEvents={subEvents}
                 isShared={isShared}
                 basePath={`/events/${navEvent.id}`}
+                activeGalleryId={navEvent.id}
+                activePage="event-partners"
+                showFavouriteGallery
+                favouriteGalleryActive={false}
+                chromeBackgroundColor={templateChrome.background}
+                chromeTextColor={templateChrome.text}
+                chromeAccentColor={templateChrome.accent}
+                chromeBorderColor={templateChrome.border}
             />
 
             <section className="mx-auto max-w-6xl px-4 pt-32 sm:px-6 lg:px-8">
-                <button
-                    type="button"
-                    onClick={() => router.push(`/events/${navEvent.id}${sharedQuery}`)}
-                    className="mb-12 flex items-center text-sm font-bold uppercase tracking-widest text-stone-700 transition-colors hover:text-stone-950"
-                >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Back to Event
-                </button>
-
                 <SectionHeader
                     title="The Dream Team"
                     subtitle={`The creative team and vendors behind this beautiful ${event.category?.toLowerCase() || "event"}.`}

@@ -26,6 +26,8 @@ interface PageFlipSocialBarProps {
   showDownload?: boolean;
   showFullscreen?: boolean;
   showFindYou?: boolean;
+  visible?: boolean;
+  immersive?: boolean;
   onDownload: () => void;
   onFullscreen: () => void;
   onFindYou?: () => void;
@@ -64,6 +66,8 @@ export function PageFlipSocialBar({
   showDownload = true,
   showFullscreen = true,
   showFindYou = false,
+  visible = true,
+  immersive = false,
   onDownload,
   onFullscreen,
   onFindYou,
@@ -176,7 +180,11 @@ export function PageFlipSocialBar({
 
   return (
     <>
-      <div className="fixed inset-x-3 bottom-5 z-[116] flex justify-center md:bottom-8">
+      <div className={cn(
+        "fixed inset-x-3 bottom-5 z-[116] flex justify-center transition-all duration-300 md:bottom-8",
+        !visible && "pointer-events-none translate-y-8 opacity-0",
+        immersive && "bottom-6 md:bottom-7"
+      )}>
         <div className={cn("flex max-w-[min(94vw,980px)] flex-wrap items-center justify-center gap-2 rounded-2xl border px-3 py-3 shadow-2xl backdrop-blur-2xl", config.pageClass)}>
           {showLikes && (
             <button type="button" onClick={handleToggleLike} disabled={likePending} className={cn(actionClass, isLiked && "text-rose-300")} aria-pressed={isLiked} aria-label={isLiked ? "Unlike media" : "Like media"}>

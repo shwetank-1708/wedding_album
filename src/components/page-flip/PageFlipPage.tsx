@@ -13,6 +13,7 @@ interface PageFlipPageProps {
   isTurning?: boolean;
   direction?: PageFlipDirection;
   zoomed?: boolean;
+  coverMode?: boolean;
   onMediaReady?: () => void;
 }
 
@@ -23,6 +24,7 @@ export const PageFlipPage = memo(function PageFlipPage({
   isTurning = false,
   direction = "next",
   zoomed = false,
+  coverMode = false,
   onMediaReady,
 }: PageFlipPageProps) {
   const [loading, setLoading] = useState(item.type === "image");
@@ -80,7 +82,7 @@ export const PageFlipPage = memo(function PageFlipPage({
             controls={isActive && !isTurning}
             playsInline
             preload="metadata"
-            className="h-full max-h-full w-full max-w-full object-contain"
+            className={cn("h-full max-h-full w-full max-w-full", coverMode ? "object-cover" : "object-contain")}
             onLoadedMetadata={onMediaReady}
             onError={() => setError(true)}
           />
@@ -92,7 +94,8 @@ export const PageFlipPage = memo(function PageFlipPage({
           decoding="async"
           draggable={false}
           className={cn(
-            "max-h-full max-w-full select-none object-contain transition-all duration-500",
+            "select-none transition-all duration-500",
+            coverMode ? "h-full w-full object-cover" : "max-h-full max-w-full object-contain",
             loading || error ? "opacity-0" : "opacity-100",
             zoomed ? "scale-125 cursor-zoom-out" : "scale-100 cursor-zoom-in",
             config.enableZoom && isTurning && "scale-[1.03]"

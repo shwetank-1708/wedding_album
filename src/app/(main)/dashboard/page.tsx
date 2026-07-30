@@ -364,7 +364,7 @@ export default function DashboardHub() {
                                     <button
                                         key={event.id}
                                         type="button"
-                                        onClick={() => router.push(`/events/${event.id}?mode=visitor`)}
+                                        onClick={() => window.open(`/events/${event.id}?mode=visitor`, "_blank", "noopener,noreferrer")}
                                         className="group relative h-64 overflow-hidden rounded-[1.5rem] border border-slate-800 bg-slate-900 text-left shadow-xl shadow-black/10 transition-transform hover:-translate-y-1"
                                     >
                                         <div className="absolute inset-0 overflow-hidden bg-slate-950">

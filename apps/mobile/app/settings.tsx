@@ -23,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
-  const { theme, setTheme, colors, isDark } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -522,36 +522,6 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Appearance Section */}
-        <Text style={styles.sectionLabel}>Appearance</Text>
-        <View style={styles.settingsCard}>
-          <View style={styles.actionItemRow}>
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name={isDark ? "moon.fill" : "sun.max.fill"} size={18} color="#d4af37" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.actionText}>App Theme</Text>
-              <Text style={styles.actionSubtext}>Switch appearance style</Text>
-            </View>
-            <View style={styles.themeToggleContainer}>
-              <TouchableOpacity 
-                style={[styles.themePill, isDark && styles.themePillActive]} 
-                activeOpacity={0.8}
-                onPress={() => setTheme('dark')}
-              >
-                <Text style={[styles.themePillText, isDark && styles.themePillTextActive]}>Dark</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.themePill, !isDark && styles.themePillActive]} 
-                activeOpacity={0.8}
-                onPress={() => setTheme('light')}
-              >
-                <Text style={[styles.themePillText, !isDark && styles.themePillTextActive]}>Light</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
         {/* FAQ Accordion Section */}
         <Text style={styles.sectionLabel}>Help Center & FAQs</Text>
         <View style={styles.settingsCard}>
@@ -969,33 +939,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   toggleDotActive: {
     alignSelf: 'flex-end',
-  },
-  themeToggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.05)',
-    borderRadius: 12,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  themePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    minWidth: 52,
-    alignItems: 'center',
-  },
-  themePillActive: {
-    backgroundColor: colors.gold,
-  },
-  themePillText: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.slate400,
-  },
-  themePillTextActive: {
-    color: '#050505',
-    fontFamily: 'Inter_700Bold',
   },
   divider: {
     height: 1,
