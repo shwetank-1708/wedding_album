@@ -30,6 +30,7 @@ function EventPageContent() {
     const [event, setEvent] = useState<Event | any | null>(null);
     const [subEvents, setSubEvents] = useState<Event[]>([]);
     const [photos, setPhotos] = useState<any[]>([]);
+    const [mediaTotals, setMediaTotals] = useState({ photos: 0, videos: 0 });
     const [activeGallery, setActiveGallery] = useState<Event | null>(null);
     const [activeVirtualGallery, setActiveVirtualGallery] = useState<"favourite" | null>(null);
     const [galleryMediaTab, setGalleryMediaTab] = useState<"photos" | "videos">("photos");
@@ -353,10 +354,11 @@ function EventPageContent() {
     }));
 
     const loadGalleryPhotos = async (gallery: Event, page = 0, append = false) => {
-        const { photos: databasePhotos, hasMore } = await getEventPhotosPaginated(gallery.id, gallery.legacyId, page, 20);
+        const { photos: databasePhotos, hasMore, totalPhotos, totalVideos } = await getEventPhotosPaginated(gallery.id, gallery.legacyId, page, 20);
         const transformedPhotos = transformPhotos(databasePhotos as DatabasePhoto[]);
 
         setPhotos(prev => append ? [...prev, ...transformedPhotos] : transformedPhotos);
+        setMediaTotals({ photos: totalPhotos, videos: totalVideos });
         setPhotoPage(page);
         setHasMorePhotos(hasMore);
     };
@@ -377,13 +379,18 @@ function EventPageContent() {
 
         if (eventIds.length === 0) {
             setPhotos([]);
+            setMediaTotals({ photos: 0, videos: 0 });
             setPhotoPage(0);
             setHasMorePhotos(false);
             return;
         }
 
         const databasePhotos = await getFavouritePhotosForEvents(eventIds);
-        setPhotos(transformPhotos(databasePhotos));
+        const transformedPhotos = transformPhotos(databasePhotos);
+        const favouritePhotoCount = transformedPhotos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video").length;
+        const favouriteVideoCount = transformedPhotos.filter(photo => photo.mediaType === "video" || photo.resourceType === "video").length;
+        setPhotos(transformedPhotos);
+        setMediaTotals({ photos: favouritePhotoCount, videos: favouriteVideoCount });
         setPhotoPage(0);
         setHasMorePhotos(false);
     };
@@ -402,6 +409,7 @@ function EventPageContent() {
         } catch (err) {
             console.error("Error loading gallery photos:", err);
             setPhotos([]);
+            setMediaTotals({ photos: 0, videos: 0 });
             setHasMorePhotos(false);
         }
     };
@@ -418,6 +426,7 @@ function EventPageContent() {
         } catch (err) {
             console.error("Error loading favourite photos:", err);
             setPhotos([]);
+            setMediaTotals({ photos: 0, videos: 0 });
             setHasMorePhotos(false);
         }
     };
@@ -562,6 +571,8 @@ function EventPageContent() {
     const photoItems = photos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video" && !!photo.thumbnailUrl);
     const videoItems = photos.filter(photo => photo.mediaType === "video" || photo.resourceType === "video");
     const activeGalleryItems = galleryMediaTab === "videos" ? videoItems : photoItems;
+    const displayedPhotoCount = mediaTotals.photos || photoItems.length;
+    const displayedVideoCount = mediaTotals.videos || videoItems.length;
     const activeGalleryTitle = activeVirtualGallery === "favourite" ? "Favourite" : activeGallery?.title || event.title || "Home";
     const activeGalleryId = activeVirtualGallery === "favourite" ? "__favourite__" : activeGallery?.id || event.id;
     const displayEvent = activeVirtualGallery === "favourite"
@@ -633,7 +644,7 @@ function EventPageContent() {
             <div className="mt-12">
                 <SectionHeader
                     title={activeVirtualGallery === "favourite" ? activeGalleryTitle : activeGallery ? activeGalleryTitle : "Home Gallery"}
-                    subtitle={`${photoItems.length} Photos · ${videoItems.length} Videos`}
+                    subtitle={`${displayedPhotoCount} Photos · ${displayedVideoCount} Videos`}
                 />
 
                 {activeGalleryMessage && (
@@ -644,8 +655,8 @@ function EventPageContent() {
 
                 <div className="mt-10 inline-flex rounded-2xl border border-stone-200 bg-white p-1 shadow-sm">
                     {([
-                        { id: "photos", label: `Photos (${photoItems.length})` },
-                        { id: "videos", label: `Videos (${videoItems.length})` },
+                        { id: "photos", label: `Photos (${displayedPhotoCount})` },
+                        { id: "videos", label: `Videos (${displayedVideoCount})` },
                     ] as const).map((item) => (
                         <button
                             key={item.id}

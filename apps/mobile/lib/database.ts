@@ -952,10 +952,21 @@ export async function getEventPhotosPaginated(
     legacyId?: string,
     page: number = 0,
     limit: number = 20
-): Promise<{ photos: Photo[], hasMore: boolean }> {
-    if (!eventId) return { photos: [], hasMore: false };
+): Promise<{ photos: Photo[], hasMore: boolean, totalPhotos: number, totalVideos: number }> {
+    if (!eventId) return { photos: [], hasMore: false, totalPhotos: 0, totalVideos: 0 };
     try {
         const ids = legacyId && legacyId !== eventId ? [eventId, legacyId] : [eventId];
+
+        const { data: countData, error: countError } = await supabase
+            .from('photos')
+            .select('id,event_id,storage_key,url,media_type,resource_type')
+            .in('event_id', ids);
+
+        if (countError) throw countError;
+
+        const countedMedia = (countData || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const totalVideos = countedMedia.filter(photo => photo.mediaType === 'video' || photo.resourceType === 'video').length;
+        const totalPhotos = countedMedia.length - totalVideos;
 
         // Fetch limit + 1 to determine if hasMore is true
         const { data, error } = await supabase
@@ -974,11 +985,58 @@ export async function getEventPhotosPaginated(
 
         return {
             photos: photosToReturn,
-            hasMore
+            hasMore,
+            totalPhotos,
+            totalVideos
         };
     } catch (error) {
         console.error("Error fetching paginated photos:", error);
-        return { photos: [], hasMore: false };
+        return { photos: [], hasMore: false, totalPhotos: 0, totalVideos: 0 };
+    }
+}
+
+export async function getFavouritePhotosForEvents(eventIds: string[]): Promise<Photo[]> {
+    const cleanEventIds = Array.from(new Set(eventIds.filter(Boolean)));
+    if (cleanEventIds.length === 0) return [];
+
+    try {
+        const { data: favouriteRows, error: favouritesError } = await supabase
+            .from('event_favourite_photos')
+            .select('photo_id, created_at')
+            .in('event_id', cleanEventIds)
+            .order('created_at', { ascending: false });
+
+        if (favouritesError) throw favouritesError;
+
+        const favouritePhotoIds = Array.from(new Set((favouriteRows || []).map((row: any) => row.photo_id).filter(Boolean)));
+        if (favouritePhotoIds.length === 0) return [];
+
+        const { data, error } = await supabase
+            .from('photos')
+            .select('*')
+            .in('id', favouritePhotoIds);
+
+        if (error) throw error;
+
+        const favouriteOrder = new Map(favouritePhotoIds.map((id, index) => [id, index]));
+        return (data || [])
+            .map(mapSqlToPhoto)
+            .filter(photo => !isCoverUsagePhoto(photo))
+            .sort((a, b) => (favouriteOrder.get(a.id) ?? 0) - (favouriteOrder.get(b.id) ?? 0));
+    } catch (error) {
+        const formatted = formatSupabaseError(error);
+        const code = formatted && typeof formatted === 'object' ? (formatted as any).code : undefined;
+        const message = String((formatted as any)?.message || '').toLowerCase();
+        if (code === '42P01' || code === 'PGRST205') {
+            console.warn('Favourite gallery table is not available yet.');
+            return [];
+        }
+        if (code === '42501' || message.includes('row-level security') || message.includes('permission denied')) {
+            console.warn('Favourite gallery table exists, but RLS policies are not allowing access yet.');
+            return [];
+        }
+        console.warn('Error fetching favourite photos:', formatted);
+        return [];
     }
 }
 

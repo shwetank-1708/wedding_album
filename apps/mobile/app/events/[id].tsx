@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { getEventById, getSubEvents, logGuestLogin, Event as DatabaseEvent, updateEvent, createEvent, getEventLogs, updateGuestStatus, updateGuestPermissions, deleteGuest, GuestLog, deleteEvent, getBusinessByVendorCode, getBusinessById, Business, updatePhotosOrder, updateSubEventsOrder, getEventPhotos, getEventPhotosPaginated, getRetainedMediaIdsForEventGrace, getUsers, UserProfile, removeGuestChatPermission, saveCoverUsagePhoto, deleteCoverUsagePhoto, getUserTotalStorage } from '@/lib/database';
+import { getEventById, getSubEvents, logGuestLogin, Event as DatabaseEvent, updateEvent, createEvent, getEventLogs, updateGuestStatus, updateGuestPermissions, deleteGuest, GuestLog, deleteEvent, getBusinessByVendorCode, getBusinessById, Business, updatePhotosOrder, updateSubEventsOrder, getEventPhotos, getEventPhotosPaginated, getRetainedMediaIdsForEventGrace, getUsers, UserProfile, removeGuestChatPermission, saveCoverUsagePhoto, deleteCoverUsagePhoto, getUserTotalStorage, getFavouritePhotosForEvents } from '@/lib/database';
 import { useAuth } from '@/context/AuthContext';
 import { MidnightColors, Fonts } from '../../constants/theme';
 import { styles, FunkyFonts } from '../../components/eventStyles';
@@ -42,6 +42,7 @@ import { FindYouPanel } from '../../components/event/FindYouPanel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_GRID_GAP = 3;
+const PHOTO_PAGE_SIZE = 20;
 const FREE_PLAN_VIDEO_LIMIT_BYTES = 200 * 1024 * 1024;
 const SPORTS_TEMPLATE_IDS = [
   'bohemian',
@@ -938,6 +939,7 @@ export default function EventDetailScreen() {
 
   const [activeSubEvent, setActiveSubEvent] = useState<DatabaseEvent | null>(null);
   const [photos, setPhotos] = useState<any[]>([]);
+  const [mediaTotals, setMediaTotals] = useState({ photos: 0, videos: 0 });
   const [storageStats, setStorageStats] = useState<{ used: number; limit: number; label: string; percent: number } | null>(null);
   const [retainedMediaIds, setRetainedMediaIds] = useState<Set<string>>(new Set());
 
@@ -971,12 +973,14 @@ export default function EventDetailScreen() {
   const [galleryMediaTab, setGalleryMediaTab] = useState<'photos' | 'videos'>('photos');
   const photoItems = React.useMemo(() => photos.filter(isPhotoMedia), [photos]);
   const videoItems = React.useMemo(() => photos.filter(isVideoMedia), [photos]);
+  const displayedPhotoCount = mediaTotals.photos || photoItems.length;
+  const displayedVideoCount = mediaTotals.videos || videoItems.length;
   const mediaTabs = React.useMemo<{ id: 'photos' | 'videos'; label: string }[]>(() => {
     return [
-      { id: 'photos', label: `Photos (${photoItems.length})` },
-      { id: 'videos', label: `Videos (${videoItems.length})` },
+      { id: 'photos', label: `Photos (${displayedPhotoCount})` },
+      { id: 'videos', label: `Videos (${displayedVideoCount})` },
     ];
-  }, [photoItems.length, videoItems.length]);
+  }, [displayedPhotoCount, displayedVideoCount]);
   const activeGalleryItems = galleryMediaTab === 'photos' ? photoItems : videoItems;
   const shouldWarnExpiredPlanMedia = subscriptionStatus.status === 'grace' && retainedMediaIds.size > 0;
   const shouldBlurMediaForPlan = useCallback((media: any) => {
@@ -1074,7 +1078,7 @@ export default function EventDetailScreen() {
           user
             ? getEventLogs(id)
             : Promise.resolve([]),
-          getEventPhotosPaginated(eventData.id, eventData.legacyId, 0, 24),
+          getEventPhotosPaginated(eventData.id, eventData.legacyId, 0, PHOTO_PAGE_SIZE),
           getRetainedMediaIdsForEventGrace(eventData.id, eventData.legacyId),
         ]);
 
@@ -1101,6 +1105,7 @@ export default function EventDetailScreen() {
         setSubEvents(normalizedSubs);
         setLinkedVendors(vendorsData.filter(v => v !== null) as Business[]);
         setPhotos(photoDataResult.photos);
+        setMediaTotals({ photos: photoDataResult.totalPhotos, videos: photoDataResult.totalVideos });
         setPhotoPage(0);
         setHasMorePhotos(photoDataResult.hasMore);
         setRetainedMediaIds(new Set(retainedIds));
@@ -1123,6 +1128,7 @@ export default function EventDetailScreen() {
       }
     } catch (err) {
       console.error('[EventDetail] Load error:', err);
+      setMediaTotals({ photos: 0, videos: 0 });
     } finally {
       setLoading(false);
     }
@@ -1133,16 +1139,45 @@ export default function EventDetailScreen() {
     const perfPhotosStart = Date.now();
     try {
       const [photoDataResult, retainedIds] = await Promise.all([
-        getEventPhotosPaginated(eventId, legacyId, 0, 24),
+        getEventPhotosPaginated(eventId, legacyId, 0, PHOTO_PAGE_SIZE),
         getRetainedMediaIdsForEventGrace(eventId, legacyId),
       ]);
       setPhotos(photoDataResult.photos);
+      setMediaTotals({ photos: photoDataResult.totalPhotos, videos: photoDataResult.totalVideos });
       setPhotoPage(0);
       setHasMorePhotos(photoDataResult.hasMore);
       setRetainedMediaIds(new Set(retainedIds));
       console.log(`[PERF] loadPhotos completed in ${Date.now() - perfPhotosStart}ms`);
     } catch (err) {
       console.error('[EventDetail] Photos load error:', err);
+      setPhotos([]);
+      setMediaTotals({ photos: 0, videos: 0 });
+      setHasMorePhotos(false);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  };
+
+  const getFavouriteEventIds = () => {
+    if (!event) return [];
+    return Array.from(new Set([event.id, event.legacyId, ...subEvents.map(sub => sub.id), ...subEvents.map(sub => sub.legacyId)].filter(Boolean) as string[]));
+  };
+
+  const loadFavouritePhotos = async () => {
+    setLoadingPhotos(true);
+    try {
+      const favouritePhotos = await getFavouritePhotosForEvents(getFavouriteEventIds());
+      const favouritePhotoCount = favouritePhotos.filter(isPhotoMedia).length;
+      const favouriteVideoCount = favouritePhotos.filter(isVideoMedia).length;
+      setPhotos(favouritePhotos);
+      setMediaTotals({ photos: favouritePhotoCount, videos: favouriteVideoCount });
+      setPhotoPage(0);
+      setHasMorePhotos(false);
+    } catch (err) {
+      console.error('[EventDetail] Favourite photos load error:', err);
+      setPhotos([]);
+      setMediaTotals({ photos: 0, videos: 0 });
+      setHasMorePhotos(false);
     } finally {
       setLoadingPhotos(false);
     }
@@ -1160,8 +1195,9 @@ export default function EventDetailScreen() {
       : (activeSubEvent ? activeSubEvent.legacyId : event.legacyId);
 
     try {
-      const { photos: nextPhotos, hasMore } = await getEventPhotosPaginated(activeId, legacyId, nextPage, 24);
+      const { photos: nextPhotos, hasMore, totalPhotos, totalVideos } = await getEventPhotosPaginated(activeId, legacyId, nextPage, PHOTO_PAGE_SIZE);
       setPhotos(prev => [...prev, ...nextPhotos]);
+      setMediaTotals({ photos: totalPhotos, videos: totalVideos });
       setPhotoPage(nextPage);
       setHasMorePhotos(hasMore);
     } catch (err) {
@@ -1172,8 +1208,19 @@ export default function EventDetailScreen() {
   };
 
   const handleSubEventChange = (sub: DatabaseEvent | null) => {
-    setActiveSubEvent(sub);
     setGalleryMediaTab('photos');
+    if (sub?.id === 'favourite') {
+      setActiveSubEvent({
+        ...sub,
+        description: `Your favourite photos from ${event?.title || 'this event'}.`,
+      } as any);
+      loadFavouritePhotos();
+      return;
+    }
+    setActiveSubEvent(sub);
+    if (sub?.id === 'event-partners' || sub?.id === 'find-you') {
+      return;
+    }
     if (sub) {
       loadPhotos(sub.id, sub.legacyId);
     } else if (event) {
@@ -5840,7 +5887,7 @@ export default function EventDetailScreen() {
                             {activeSubEvent ? activeSubEvent.title : 'Highlights'}
                           </Text>
                           <Text style={{ color: '#16a34a', fontFamily: selectedTemplate.serifItalic, fontStyle: 'italic' }}>
-                            {` (${photoItems.length})`}
+                            {` (${displayedPhotoCount})`}
                           </Text>
                         </>
                       ) : isRetroArcadeTemplate ? (
@@ -5849,7 +5896,7 @@ export default function EventDetailScreen() {
                             {(activeSubEvent ? activeSubEvent.title : 'Highlights').toUpperCase()}
                           </Text>
                           <Text style={{ color: '#231f20' }}>
-                            {` (${photoItems.length})`}
+                            {` (${displayedPhotoCount})`}
                           </Text>
                         </>
                       ) : isPopTemplate ? (
@@ -5858,7 +5905,7 @@ export default function EventDetailScreen() {
                             {activeSubEvent ? activeSubEvent.title : 'Highlights'}
                           </Text>
                           <Text style={{ color: '#ff4fb8' }}>
-                            {` (${photoItems.length})`}
+                            {` (${displayedPhotoCount})`}
                           </Text>
                         </>
                       ) : (
@@ -5879,8 +5926,8 @@ export default function EventDetailScreen() {
                         !isSportsTemplate && selectedTemplate.useSerif && { fontFamily: selectedTemplate.serifItalic, fontStyle: 'italic' }
                       ]}>
                         {galleryMediaTab === 'videos'
-                          ? `${videoItems.length} ${videoItems.length === 1 ? 'Video' : 'Videos'}`
-                          : (isSportsTemplate ? `${photoItems.length} matchday ${photoItems.length === 1 ? 'moment' : 'moments'}` : (isCyberTechTemplate ? `// ARCHIVED_FILES: ${photoItems.length}` : (isNeonCarnivalTemplate ? `STAGE CAPTURES: ${photoItems.length}` : (isMuseumTemplate ? `${photoItems.length} curated ${photoItems.length === 1 ? 'work' : 'works'}` : (isBrutalistTemplate ? `${photoItems.length} grid ${photoItems.length === 1 ? 'frame' : 'frames'}` : (isTechSleekTemplate ? `${photoItems.length} captured ${photoItems.length === 1 ? 'signal' : 'signals'}` : (isExecutiveTemplate ? `${photoItems.length} leadership ${photoItems.length === 1 ? 'moment' : 'moments'}` : `${photoItems.length} ${photoItems.length === 1 ? 'Photo' : 'Photos'}`)))))))}
+                          ? `${displayedVideoCount} ${displayedVideoCount === 1 ? 'Video' : 'Videos'}`
+                          : (isSportsTemplate ? `${displayedPhotoCount} matchday ${displayedPhotoCount === 1 ? 'moment' : 'moments'}` : (isCyberTechTemplate ? `// ARCHIVED_FILES: ${displayedPhotoCount}` : (isNeonCarnivalTemplate ? `STAGE CAPTURES: ${displayedPhotoCount}` : (isMuseumTemplate ? `${displayedPhotoCount} curated ${displayedPhotoCount === 1 ? 'work' : 'works'}` : (isBrutalistTemplate ? `${displayedPhotoCount} grid ${displayedPhotoCount === 1 ? 'frame' : 'frames'}` : (isTechSleekTemplate ? `${displayedPhotoCount} captured ${displayedPhotoCount === 1 ? 'signal' : 'signals'}` : (isExecutiveTemplate ? `${displayedPhotoCount} leadership ${displayedPhotoCount === 1 ? 'moment' : 'moments'}` : `${displayedPhotoCount} ${displayedPhotoCount === 1 ? 'Photo' : 'Photos'}`)))))))}
                       </Text>
                     )}
                   </View>
