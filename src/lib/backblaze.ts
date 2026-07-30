@@ -161,7 +161,7 @@ export async function finishLargeFile(
   auth: BackblazeAuth,
   fileId: string,
   partSha1Array: string[]
-): Promise<unknown> {
+): Promise<any> {
   const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_finish_large_file`, {
     method: "POST",
     headers: {
