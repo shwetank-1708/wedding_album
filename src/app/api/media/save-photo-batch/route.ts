@@ -94,7 +94,16 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const mediaDomain = requireEnv("MEDIA_DOMAIN").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const mediaDomain = (
+      process.env.MEDIA_DOMAIN ||
+      process.env.CLOUDFLARE_DOMAIN ||
+      process.env.NEXT_PUBLIC_MEDIA_DOMAIN ||
+      ""
+    ).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+
+    if (!mediaDomain) {
+      throw new Error("MEDIA_DOMAIN or CLOUDFLARE_DOMAIN is not configured");
+    }
 
     // Prepare batch upsert payload for Supabase and batch payload for Modal
     const upsertDataArray: any[] = [];
@@ -111,7 +120,7 @@ export async function POST(request: NextRequest) {
       if (!firstEventId) firstEventId = eventId;
 
       const url = `https://${mediaDomain}/${storageKey}`;
-      const isVideo = resourceType === "video" || fileName.split(".").pop()?.toLowerCase() === "mp4";
+      const isVideo = resourceType === "video" || !!fileName.match(/\.(mp4|mov|avi|mkv|webm)$/i);
       const actualResourceType = isVideo ? "video" : "image";
       const mediaType = isVideo ? "video" : "photo";
       const photoId = storageKey.replace(/\//g, "_");
@@ -146,7 +155,8 @@ export async function POST(request: NextRequest) {
           id: photoId,
           storage_key: storageKey,
           event_id: eventId,
-          url: url
+          url: url,
+          fileSize: Number(fileSize) || 0
         });
       }
     }
@@ -210,7 +220,7 @@ export async function POST(request: NextRequest) {
         if (videoPayloadArray.length > 0) {
           console.log(`[SavePhotoBatch] Queuing batch of ${videoPayloadArray.length} videos to Modal transcoding via QStash`);
           for (const video of videoPayloadArray) {
-            publishVideoTranscodeTask(video).catch((err) => {
+            publishVideoTranscodeTask(video, video.fileSize).catch((err) => {
               console.error(`[SavePhotoBatch] Error publishing video transcode task for ${video.storage_key}:`, err);
             });
           }

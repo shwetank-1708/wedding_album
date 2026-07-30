@@ -2122,7 +2122,7 @@ function DashboardContent() {
 
                     if (index === 0) firstUploadedUrl = uploadResult.url;
 
-                    const uniqueId = uploadResult.publicId.replace(/\//g, '_');
+                    const isVideoFile = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i);
                     const photo: Photo = {
                         id: uniqueId,
                         eventId: selectedEventId,
@@ -2133,9 +2133,9 @@ function DashboardContent() {
                         width: uploadResult.width,
                         height: uploadResult.height,
                         size: uploadResult.bytes || file.size,
-                        format: uploadResult.format || file.name.split('.').pop() || (galleryMediaTab === "videos" ? "mp4" : "jpg"),
-                        mediaType: galleryMediaTab === "videos" ? "video" : "photo",
-                        resourceType: galleryMediaTab === "videos" ? "video" : "image"
+                        format: uploadResult.format || file.name.split('.').pop()?.toLowerCase() || (isVideoFile ? "mp4" : "jpg"),
+                        mediaType: isVideoFile ? "video" : "photo",
+                        resourceType: isVideoFile ? "video" : "image"
                     };
 
                     // Store storageKey and photoId in the queue item so Realtime updates can map to it

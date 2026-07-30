@@ -115,7 +115,16 @@ export async function POST(request: NextRequest) {
     const backblazeAuth = await getCachedBackblazeAuth();
     const finishResult = await finishLargeFile(backblazeAuth, fileId, partSha1Array);
 
-    const mediaDomain = requireEnv("MEDIA_DOMAIN").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const mediaDomain = (
+      process.env.MEDIA_DOMAIN ||
+      process.env.CLOUDFLARE_DOMAIN ||
+      process.env.NEXT_PUBLIC_MEDIA_DOMAIN ||
+      ""
+    ).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+
+    if (!mediaDomain) {
+      throw new Error("MEDIA_DOMAIN or CLOUDFLARE_DOMAIN is not configured");
+    }
     const url = `https://${mediaDomain}/${storageKey}`;
 
     const resourceType = requestedResourceType === "video" ? "video" : "image";
