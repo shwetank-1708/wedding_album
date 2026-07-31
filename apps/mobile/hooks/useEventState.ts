@@ -14,7 +14,8 @@ import {
   Business,
   updatePhotosOrder,
   updateSubEventsOrder,
-  getEventPhotos
+  getEventPhotos,
+  generateEventJoinId
 } from '@/lib/database';
 import { uploadEventImage } from '@/lib/storage';
 import { getDefaultTemplateForEventCategory } from '@/constants/templates';
@@ -102,7 +103,7 @@ export function useEventState(id: string, user: any) {
       const eventData = await getEventById(id);
       if (eventData) {
         if (!eventData.joinId) {
-          const shortId = eventData.id.slice(0, 6).toUpperCase();
+          const shortId = generateEventJoinId(eventData.id);
           await updateEvent(eventData.id, { joinId: shortId });
           eventData.joinId = shortId;
         }

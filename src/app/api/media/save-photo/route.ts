@@ -190,7 +190,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const mediaDomain = requireEnv("MEDIA_DOMAIN").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    const mediaDomain = (
+      process.env.MEDIA_DOMAIN ||
+      process.env.CLOUDFLARE_DOMAIN ||
+      process.env.NEXT_PUBLIC_MEDIA_DOMAIN ||
+      ""
+    ).trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+
+    if (!mediaDomain) {
+      throw new Error("MEDIA_DOMAIN or CLOUDFLARE_DOMAIN is not configured");
+    }
     const url = `https://${mediaDomain}/${storageKey}`;
 
     const isVideo = resourceType === "video" || fileName.split(".").pop()?.toLowerCase() === "mp4";

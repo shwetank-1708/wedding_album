@@ -79,11 +79,12 @@ import {
     deleteCoverUsagePhoto,
     updatePhotosOrder,
     updateSubEventsOrder,
-    getEventFavouritePhotos,
-    toggleEventFavouritePhoto,
-    getFavouritePhotosForEvents,
-    setEventSampleGalleryStatus,
-} from "@/lib/database";
+	    getEventFavouritePhotos,
+	    toggleEventFavouritePhoto,
+	    getFavouritePhotosForEvents,
+	    generateEventJoinId,
+	    setEventSampleGalleryStatus,
+	} from "@/lib/database";
 import { uploadEventImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { Tooltip } from "@/components/Tooltip";
@@ -1905,7 +1906,7 @@ function DashboardContent() {
                 createdBy: creatorUid,
                 type: isSubEvent ? "sub" : "main",
                 category: isSubEvent ? (selectedMainEvent.category || eventType) : eventType,
-                joinId: eventId.slice(0, 6).toUpperCase(),
+                joinId: generateEventJoinId(eventId),
                 ...(isSubEvent && { parentId: selectedMainEvent.id }),
                 templateId: isSubEvent ? (selectedMainEvent.templateId || "hero") : selectedTemplate
             };
@@ -2121,10 +2122,11 @@ function DashboardContent() {
                         }
                     );
 
-                    if (index === 0) firstUploadedUrl = uploadResult.url;
+	                    if (index === 0) firstUploadedUrl = uploadResult.url;
 
-                    const uniqueId = uploadResult.publicId.replace(/\//g, '_');
-                    const photo: Photo = {
+	                    const uniqueId = uploadResult.publicId.replace(/\//g, '_');
+	                    const isVideoFile = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i);
+	                    const photo: Photo = {
                         id: uniqueId,
                         eventId: selectedEventId,
                         storageKey: uploadResult.publicId,
@@ -2134,9 +2136,9 @@ function DashboardContent() {
                         width: uploadResult.width,
                         height: uploadResult.height,
                         size: uploadResult.bytes || file.size,
-                        format: uploadResult.format || file.name.split('.').pop() || (galleryMediaTab === "videos" ? "mp4" : "jpg"),
-                        mediaType: galleryMediaTab === "videos" ? "video" : "photo",
-                        resourceType: galleryMediaTab === "videos" ? "video" : "image"
+                        format: uploadResult.format || file.name.split('.').pop()?.toLowerCase() || (isVideoFile ? "mp4" : "jpg"),
+                        mediaType: isVideoFile ? "video" : "photo",
+                        resourceType: isVideoFile ? "video" : "image"
                     };
 
                     // Store storageKey and photoId in the queue item so Realtime updates can map to it
@@ -2578,7 +2580,7 @@ function DashboardContent() {
     const ensureEventJoinId = async (eventToShare: Event) => {
         if (eventToShare.joinId) return eventToShare;
 
-        const joinId = eventToShare.id.slice(0, 6).toUpperCase();
+        const joinId = generateEventJoinId(eventToShare.id);
         const eventWithJoinId = { ...eventToShare, joinId };
         await updateEvent(eventToShare.id, { joinId });
         setUserEvents(prev => prev.map(evt => evt.id === eventToShare.id ? { ...evt, joinId } : evt));
@@ -2607,7 +2609,7 @@ function DashboardContent() {
         if (!shareModalEvent) return;
 
         const url = getEventShareUrl(shareModalEvent.id);
-        const text = `Join our event "${shareModalEvent.title}" on EveBash!\nJoin ID: ${shareModalEvent.joinId || shareModalEvent.id.slice(0, 6).toUpperCase()}\nLink: ${url}`;
+        const text = `Join our event "${shareModalEvent.title}" on EveBash!\nJoin ID: ${shareModalEvent.joinId || generateEventJoinId(shareModalEvent.id)}\nLink: ${url}`;
 
         try {
             if (navigator.share) {
@@ -3447,7 +3449,7 @@ function DashboardContent() {
     }
 
     const shareModalUrl = shareModalEvent ? getEventShareUrl(shareModalEvent.id) : "";
-    const shareModalJoinId = shareModalEvent?.joinId || shareModalEvent?.id.slice(0, 6).toUpperCase() || "";
+    const shareModalJoinId = shareModalEvent?.joinId || (shareModalEvent ? generateEventJoinId(shareModalEvent.id) : "");
 
     return (
         <div className={cn(
