@@ -83,6 +83,7 @@ import {
     toggleEventFavouritePhoto,
     getFavouritePhotosForEvents,
     generateEventJoinId,
+    setEventSampleGalleryStatus,
 } from "@/lib/database";
 import { uploadEventImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
@@ -739,6 +740,7 @@ function DashboardContent() {
     // Data State
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [loadingEvents, setLoadingEvents] = useState(false);
+    const [sampleGalleryUpdating, setSampleGalleryUpdating] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'hosted' | 'shared' | 'request'>('hosted');
     const [sharedEvents, setSharedEvents] = useState<Event[]>([]);
     const [currentEventPhotos, setCurrentEventPhotos] = useState<Photo[]>([]);
@@ -2910,6 +2912,34 @@ function DashboardContent() {
         }
     };
 
+    const handleToggleSampleGallery = async (event: Event) => {
+        if (sampleGalleryUpdating) return;
+
+        const nextStatus = !event.isSampleGallery;
+        setSampleGalleryUpdating(event.id);
+        setStatus("uploading");
+        setMessage(nextStatus ? "Adding event to Sample Galleries..." : "Removing event from Sample Galleries...");
+
+        const success = await setEventSampleGalleryStatus(event.id, nextStatus);
+
+        if (success) {
+            setUserEvents(prev => prev.map(item => item.id === event.id ? { ...item, isSampleGallery: nextStatus } : item));
+            setSharedEvents(prev => prev.map(item => item.id === event.id ? { ...item, isSampleGallery: nextStatus } : item));
+            setMessage(nextStatus ? "Event added to Sample Galleries." : "Event removed from Sample Galleries.");
+            setStatus("success");
+            fetchUserEvents();
+        } else {
+            setMessage("Could not update Sample Gallery status.");
+            setStatus("error");
+        }
+
+        setSampleGalleryUpdating(null);
+        setTimeout(() => {
+            setStatus("idle");
+            setMessage("");
+        }, 2200);
+    };
+
     const handleDeletePhoto = async (photoId: string) => {
         try {
             const success = await deletePhoto(photoId);
@@ -4051,12 +4081,12 @@ function DashboardContent() {
                                                                 <span className="text-sm font-bold">Loading sub-galleries...</span>
                                                             </div>
                                                         ) : eventDetailGalleries.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-4">
-                                                                {eventDetailGalleries.map((gallery, index) => (
+                                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                                {eventDetailGalleries.map((gallery) => (
                                                                     <div
                                                                         key={gallery.id}
                                                                         className={cn(
-                                                                            "group relative overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-amber-400/50 w-full sm:w-[280px] aspect-square flex-shrink-0",
+                                                                            "group relative aspect-square overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-amber-400/50",
                                                                             selectedEventId === gallery.id && manageMode === "add-image"
                                                                                 ? "border-amber-400/70 shadow-amber-950/10"
                                                                                 : "border-slate-700 shadow-slate-950/10"
@@ -5347,7 +5377,7 @@ function DashboardContent() {
                                                                     <div className="absolute left-7 top-14 bottom-6 w-px bg-stone-100"></div>
                                                                 )}
                                                                 
-                                                                <div className="flex items-center justify-between p-4 sm:p-5 bg-slate-900/50/50 hover:bg-slate-800/50 rounded-[1.5rem] transition-all border border-slate-700/50 group/event">
+                                                                <div className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-slate-900/50/50 hover:bg-slate-800/50 rounded-[1.5rem] transition-all border border-slate-700/50 group/event">
                                                                     <div className="flex items-center flex-1">
                                                                         <button
                                                                             onClick={() => toggleMainEvent(event.id)}
@@ -5369,6 +5399,9 @@ function DashboardContent() {
                                                                             )}
                                                                             <span className="text-base font-bold text-slate-200">{event.title}</span>
                                                                             <div className="flex items-center space-x-2 mt-1">
+                                                                                {event.isSampleGallery && (
+                                                                                    <span className="text-xs text-royal-gold font-bold">• Sample</span>
+                                                                                )}
                                                                                 {eventAdmins.length > 0 && (
                                                                                     <span className="text-xs text-teal-600 font-bold">• {eventAdmins.length} Admin{eventAdmins.length > 1 ? "s" : ""}</span>
                                                                                 )}
@@ -5381,6 +5414,24 @@ function DashboardContent() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                    {user?.role === "admin" && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(buttonEvent) => {
+                                                                                buttonEvent.stopPropagation();
+                                                                                handleToggleSampleGallery(event);
+                                                                            }}
+                                                                            disabled={sampleGalleryUpdating === event.id}
+                                                                            className={cn(
+                                                                                "shrink-0 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                                                                                event.isSampleGallery
+                                                                                    ? "border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                                                                                    : "border border-royal-gold/30 bg-royal-gold/10 text-royal-gold hover:bg-royal-gold/20"
+                                                                            )}
+                                                                        >
+                                                                            {sampleGalleryUpdating === event.id ? "Updating..." : event.isSampleGallery ? "Remove from Samples" : "Add to Samples"}
+                                                                        </button>
+                                                                    )}
                                                                 </div>
 
                                                                 {isMainExpanded && (

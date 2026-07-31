@@ -71,6 +71,12 @@ export default function Footer() {
                                 </Link>
                             </li>
                             <li>
+                                <Link href="/eb-network" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
+                                    <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
+                                    EB Network
+                                </Link>
+                            </li>
+                            <li>
                                 <Link href="/contact-us" className="text-[var(--site-muted)] hover:text-sky-400 transition-colors flex items-center group">
                                     <span className="w-1 h-1 rounded-full bg-[var(--site-muted)] mr-2 group-hover:bg-sky-500 transition-colors"></span>
                                     Contact Us

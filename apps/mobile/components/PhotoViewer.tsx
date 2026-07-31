@@ -119,6 +119,7 @@ export default function PhotoViewer({
   const [isLiking, setIsLiking] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [expandedProfileImage, setExpandedProfileImage] = useState<{ src: string; name: string } | null>(null);
 
   // Sync index when initialIndex changes
   useEffect(() => {
@@ -416,24 +417,35 @@ export default function PhotoViewer({
               ) : (
                 comments.filter((comment) => !comment.parentId).map((comment) => {
                   const replies = comments.filter((reply) => reply.parentId === comment.id);
+                  const commentProfileImage = comment.profileImage || null;
+                  const commentName = comment.userName || 'Guest';
                   return (
                     <View key={comment.id} style={styles.commentThread}>
                       <View style={styles.commentItem}>
-                        <View style={[
+                        <TouchableOpacity
+                          disabled={!commentProfileImage}
+                          onPress={() => commentProfileImage && setExpandedProfileImage({ src: commentProfileImage, name: commentName })}
+                          style={[
                           styles.commentAvatar,
-                          selectedTemplate.id === 'royal' && { backgroundColor: selectedTemplate.accentBg, borderWidth: 1, borderColor: selectedTemplate.accent }
-                        ]}>
-                          <Text style={[
-                            styles.commentAvatarText,
-                            selectedTemplate.id === 'royal' && { color: selectedTemplate.accent, fontFamily: Fonts.serif, fontWeight: 'bold' }
-                          ]}>{comment.userName?.charAt(0) || 'G'}</Text>
-                        </View>
+                            selectedTemplate.id === 'royal' && { backgroundColor: selectedTemplate.accentBg, borderWidth: 1, borderColor: selectedTemplate.accent }
+                          ]}
+                          activeOpacity={commentProfileImage ? 0.78 : 1}
+                        >
+                          {commentProfileImage ? (
+                            <ExpoImage source={{ uri: commentProfileImage }} style={styles.commentAvatarImage} contentFit="cover" />
+                          ) : (
+                            <Text style={[
+                              styles.commentAvatarText,
+                              selectedTemplate.id === 'royal' && { color: selectedTemplate.accent, fontFamily: Fonts.serif, fontWeight: 'bold' }
+                            ]}>{commentName.charAt(0)}</Text>
+                          )}
+                        </TouchableOpacity>
                         <View style={styles.commentContent}>
                           <View style={styles.commentRow}>
                             <Text style={[
                               styles.commentName,
                               selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text }
-                            ]} numberOfLines={1}>{comment.userName || 'Guest'}</Text>
+                            ]} numberOfLines={1}>{commentName}</Text>
                             <Text style={styles.commentTime}>
                               {comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
                             </Text>
@@ -461,42 +473,57 @@ export default function PhotoViewer({
                       </View>
 
                       {replies.map((reply) => (
-                        <View key={reply.id} style={styles.replyItem}>
-                          <View style={[
-                            styles.replyAvatar,
-                            selectedTemplate.id === 'royal' && { backgroundColor: selectedTemplate.accentBg, borderWidth: 1, borderColor: selectedTemplate.accent }
-                          ]}>
-                            <Text style={[
-                              styles.replyAvatarText,
-                              selectedTemplate.id === 'royal' && { color: selectedTemplate.accent, fontFamily: Fonts.serif, fontWeight: 'bold' }
-                            ]}>{reply.userName?.charAt(0) || 'G'}</Text>
-                          </View>
-                          <View style={styles.commentContent}>
-                            <View style={styles.commentRow}>
-                              <Text style={[
-                                styles.replyName,
-                                selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text }
-                              ]} numberOfLines={1}>{reply.userName || 'Guest'}</Text>
-                              <Text style={styles.commentTime}>
-                                {reply.createdAt ? new Date(reply.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
-                              </Text>
+                        (() => {
+                          const replyProfileImage = reply.profileImage || null;
+                          const replyName = reply.userName || 'Guest';
+                          return (
+                            <View key={reply.id} style={styles.replyItem}>
+                              <TouchableOpacity
+                                disabled={!replyProfileImage}
+                                onPress={() => replyProfileImage && setExpandedProfileImage({ src: replyProfileImage, name: replyName })}
+                                style={[
+                                  styles.replyAvatar,
+                                  selectedTemplate.id === 'royal' && { backgroundColor: selectedTemplate.accentBg, borderWidth: 1, borderColor: selectedTemplate.accent }
+                                ]}
+                                activeOpacity={replyProfileImage ? 0.78 : 1}
+                              >
+                                {replyProfileImage ? (
+                                  <ExpoImage source={{ uri: replyProfileImage }} style={styles.replyAvatarImage} contentFit="cover" />
+                                ) : (
+                                  <Text style={[
+                                    styles.replyAvatarText,
+                                    selectedTemplate.id === 'royal' && { color: selectedTemplate.accent, fontFamily: Fonts.serif, fontWeight: 'bold' }
+                                  ]}>{replyName.charAt(0)}</Text>
+                                )}
+                              </TouchableOpacity>
+                              <View style={styles.commentContent}>
+                                <View style={styles.commentRow}>
+                                  <Text style={[
+                                    styles.replyName,
+                                    selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text }
+                                  ]} numberOfLines={1}>{replyName}</Text>
+                                  <Text style={styles.commentTime}>
+                                    {reply.createdAt ? new Date(reply.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                                  </Text>
+                                </View>
+                                <View style={[
+                                  styles.replyBubble,
+                                  selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' }
+                                ]}>
+                                  <Text style={[
+                                    styles.replyText,
+                                    selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif }
+                                  ]}>{reply.text}</Text>
+                                  {reply.userId === viewerIdentity.id && (
+                                    <TouchableOpacity onPress={() => handleDeleteComment(reply.id)}>
+                                      <Text style={[styles.deleteBtnText, styles.replyDeleteText]}>DELETE</Text>
+                                    </TouchableOpacity>
+                                  )}
+                                </View>
+                              </View>
                             </View>
-                            <View style={[
-                              styles.replyBubble,
-                              selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' }
-                            ]}>
-                              <Text style={[
-                                styles.replyText,
-                                selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif }
-                              ]}>{reply.text}</Text>
-                              {reply.userId === viewerIdentity.id && (
-                                <TouchableOpacity onPress={() => handleDeleteComment(reply.id)}>
-                                  <Text style={[styles.deleteBtnText, styles.replyDeleteText]}>DELETE</Text>
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                          </View>
-                        </View>
+                          );
+                        })()
                       ))}
                     </View>
                   );
@@ -528,6 +555,26 @@ export default function PhotoViewer({
             </View>
           </KeyboardAvoidingView>
         )}
+
+        <Modal
+          visible={!!expandedProfileImage}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setExpandedProfileImage(null)}
+        >
+          <View style={styles.profilePreviewOverlay}>
+            <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setExpandedProfileImage(null)} />
+            {expandedProfileImage && (
+              <View style={[styles.profilePreviewCard, { backgroundColor: viewerTheme.panel, borderColor: viewerTheme.frameBorder }]}>
+                <TouchableOpacity style={[styles.profilePreviewClose, { backgroundColor: viewerTheme.controlBg }]} onPress={() => setExpandedProfileImage(null)}>
+                  <IconSymbol name="xmark" size={18} color={viewerTheme.controlText} />
+                </TouchableOpacity>
+                <ExpoImage source={{ uri: expandedProfileImage.src }} style={styles.profilePreviewImage} contentFit="cover" />
+                <Text style={[styles.profilePreviewName, { color: viewerTheme.text }]} numberOfLines={1}>{expandedProfileImage.name}</Text>
+              </View>
+            )}
+          </View>
+        </Modal>
       </View>
     </Modal>
   );

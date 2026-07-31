@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { EveBashLogoBadge } from '@/components/EveBashLogo';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAppTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { Fonts, MidnightColors } from '@/constants/theme';
 
 const { height } = Dimensions.get('window');
@@ -25,6 +26,7 @@ const HERO_IMAGE = 'https://images.unsplash.com/photo-1519741497674-611481863552
 export default function HomeScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
+  const { user } = useAuth();
   const styles = getStyles(colors, isDark);
 
   return (
@@ -65,20 +67,30 @@ export default function HomeScreen() {
               <TouchableOpacity
                 activeOpacity={0.86}
                 style={styles.primaryButton}
-                onPress={() => router.push('/sample-galleries')}
+                onPress={() => user ? router.push('/(tabs)/dashboard') : router.push('/login')}
               >
-                <IconSymbol name="camera" size={18} color="#0f172a" />
-                <Text style={styles.primaryButtonText}>View Portfolio</Text>
+                <IconSymbol name={user ? 'square.grid.2x2.fill' : 'person.fill'} size={18} color="#0f172a" />
+                <Text style={styles.primaryButtonText}>{user ? 'Open Dashboard' : 'Create Account'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 activeOpacity={0.86}
                 style={styles.secondaryButton}
-                onPress={() => router.push('/contact')}
+                onPress={() => router.push('/sample-galleries')}
               >
-                <Text style={styles.secondaryButtonText}>Book a Session</Text>
+                <Text style={styles.secondaryButtonText}>View Samples</Text>
               </TouchableOpacity>
             </View>
+
+            {!user && (
+              <TouchableOpacity
+                activeOpacity={0.78}
+                style={styles.loginLink}
+                onPress={() => router.push('/login')}
+              >
+                <Text style={styles.loginLinkText}>Already have an account? Login</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -281,6 +293,17 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   heroActions: {
     width: '100%',
     gap: 13,
+  },
+  loginLink: {
+    marginTop: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  loginLinkText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontFamily: Fonts.outfit.bold,
+    fontSize: 13,
+    textAlign: 'center',
   },
   primaryButton: {
     minHeight: 54,

@@ -2,6 +2,21 @@ import { supabase } from "./supabase";
 
 export type NotificationPreferenceType = 'likesAndComments' | 'eventInvites' | 'businessMatches' | 'marketing';
 
+function formatPushError(error: unknown) {
+  if (!error) return "Unknown error";
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    return {
+      code: record.code,
+      message: record.message,
+      details: record.details,
+      hint: record.hint,
+    };
+  }
+  return String(error);
+}
+
 /**
  * Sends a push notification to a specific user via their registered Expo Push Token.
  * 
@@ -29,7 +44,7 @@ export async function sendPushNotification(
       .maybeSingle();
 
     if (error) {
-      console.error(`[PushNotifications] Error fetching profile for recipient ${recipientId}:`, error);
+      console.warn(`[PushNotifications] Could not fetch push profile for recipient ${recipientId}. Skipping push.`, formatPushError(error));
       return false;
     }
 

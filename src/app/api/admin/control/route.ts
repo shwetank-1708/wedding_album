@@ -1142,6 +1142,19 @@ export async function POST(request: NextRequest) {
         await deleteEventTree(supabaseAdmin, eventId);
         return jsonResponse({ success: true });
       }
+      case "toggleSampleGallery": {
+        const eventId = String(payload.eventId || "");
+        if (!eventId) throw new Error("Event id is required");
+        const isSampleGallery = Boolean(payload.isSampleGallery);
+
+        const { error } = await supabaseAdmin
+          .from("events")
+          .update({ is_sample_gallery: isSampleGallery })
+          .eq("id", eventId);
+
+        if (error) throw error;
+        return jsonResponse({ success: true });
+      }
       case "deleteGuest": {
         const guestId = String(payload.guestId || "");
         if (!guestId) throw new Error("Guest id is required");

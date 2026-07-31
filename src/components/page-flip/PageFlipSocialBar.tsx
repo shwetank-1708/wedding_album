@@ -12,6 +12,7 @@ interface PhotoInteraction {
   id: string;
   userId: string;
   userName: string;
+  profileImage?: string | null;
   text?: string;
   createdAt?: string;
 }
@@ -34,18 +35,19 @@ interface PageFlipSocialBarProps {
 }
 
 function getGuestIdentity() {
-  if (typeof window === "undefined") return { id: "anonymous", name: "Guest" };
+  if (typeof window === "undefined") return { id: "anonymous", name: "Guest", profileImage: null };
   const saved = sessionStorage.getItem("wedding_guest_details");
-  if (!saved) return { id: "anonymous", name: "Guest" };
+  if (!saved) return { id: "anonymous", name: "Guest", profileImage: null };
 
   try {
     const parsed = JSON.parse(saved) as { name?: string; phone?: string };
     return {
       id: parsed.phone || "anonymous",
       name: parsed.name || "Guest",
+      profileImage: null,
     };
   } catch {
-    return { id: "anonymous", name: "Guest" };
+    return { id: "anonymous", name: "Guest", profileImage: null };
   }
 }
 
@@ -74,7 +76,7 @@ export function PageFlipSocialBar({
 }: PageFlipSocialBarProps) {
   const { user } = useAuth();
   const identity = useMemo(() => {
-    if (user) return { id: user.uid, name: user.name || user.email?.split("@")[0] || "User" };
+    if (user) return { id: user.uid, name: user.name || user.email?.split("@")[0] || "User", profileImage: user.profileImage || null };
     return getGuestIdentity();
   }, [user]);
   const [likes, setLikes] = useState<PhotoInteraction[]>([]);
@@ -84,6 +86,7 @@ export function PageFlipSocialBar({
   const [likePending, setLikePending] = useState(false);
   const [commentPending, setCommentPending] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [expandedProfileImage, setExpandedProfileImage] = useState<{ src: string; name: string } | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
   const isLiked = likes.some((like) => like.userId === identity.id);
 
@@ -115,7 +118,7 @@ export function PageFlipSocialBar({
 
   const handleToggleLike = async () => {
     if (likePending) return;
-    const optimisticLike = { id: `optimistic-${identity.id}`, userId: identity.id, userName: identity.name };
+    const optimisticLike = { id: `optimistic-${identity.id}`, userId: identity.id, userName: identity.name, profileImage: identity.profileImage || null };
     const previousLikes = likes;
     setLikePending(true);
     setLikes((current) => isLiked ? current.filter((like) => like.userId !== identity.id) : [optimisticLike, ...current]);
@@ -139,6 +142,7 @@ export function PageFlipSocialBar({
       id: `optimistic-${Date.now()}`,
       userId: identity.id,
       userName: identity.name,
+      profileImage: identity.profileImage || null,
       text,
       createdAt: new Date().toISOString(),
     };
@@ -250,21 +254,46 @@ export function PageFlipSocialBar({
                   <p className="text-sm font-bold">No comments yet</p>
                 </div>
               ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="rounded-2xl border border-current/10 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-black">{comment.userName || "Guest"}</p>
-                      <span className="shrink-0 text-xs opacity-55">{formatCommentTime(comment.createdAt)}</span>
+                comments.map((comment) => {
+                  const profileImage = comment.profileImage || null;
+                  const commentName = comment.userName || "Guest";
+                  return (
+                    <div key={comment.id} className="rounded-2xl border border-current/10 p-4">
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          disabled={!profileImage}
+                          onClick={() => profileImage && setExpandedProfileImage({ src: profileImage, name: commentName })}
+                          className={cn(
+                            "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-current/10 bg-current/10 text-sm font-black uppercase transition",
+                            profileImage ? "cursor-zoom-in hover:scale-105" : "cursor-default"
+                          )}
+                          aria-label={profileImage ? `Enlarge ${commentName}'s profile picture` : `${commentName} has no profile picture`}
+                        >
+                          {profileImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={profileImage} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span>{commentName.charAt(0)}</span>
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <p className="truncate text-sm font-black">{commentName}</p>
+                            <span className="shrink-0 text-xs opacity-55">{formatCommentTime(comment.createdAt)}</span>
+                          </div>
+                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed opacity-80">{comment.text}</p>
+                          {comment.userId === identity.id && !comment.id.startsWith("optimistic-") && (
+                            <button type="button" onClick={() => handleDeleteComment(comment.id)} className="mt-3 flex items-center gap-1 text-xs font-black uppercase tracking-widest text-rose-300">
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed opacity-80">{comment.text}</p>
-                    {comment.userId === identity.id && !comment.id.startsWith("optimistic-") && (
-                      <button type="button" onClick={() => handleDeleteComment(comment.id)} className="mt-3 flex items-center gap-1 text-xs font-black uppercase tracking-widest text-rose-300">
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -284,6 +313,22 @@ export function PageFlipSocialBar({
               </div>
               <p className="mt-2 text-right text-[10px] font-bold uppercase tracking-widest opacity-45">{commentText.length}/1000</p>
             </form>
+          </div>
+        </div>
+      )}
+
+      {expandedProfileImage && (
+        <div className="fixed inset-0 z-[155] flex items-center justify-center bg-black/70 p-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-label={`${expandedProfileImage.name}'s profile picture`}>
+          <button type="button" className="absolute inset-0 cursor-zoom-out" onClick={() => setExpandedProfileImage(null)} aria-label="Close profile picture" />
+          <div className={cn("relative w-full max-w-sm rounded-3xl border p-4 shadow-2xl", config.pageClass)}>
+            <button type="button" onClick={() => setExpandedProfileImage(null)} className={cn("absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border", config.controlClass)} aria-label="Close profile picture">
+              <X className="h-4 w-4" />
+            </button>
+            <div className="aspect-square overflow-hidden rounded-2xl bg-black/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={expandedProfileImage.src} alt={`${expandedProfileImage.name}'s profile picture`} className="h-full w-full object-cover" />
+            </div>
+            <p className="mt-4 truncate text-center text-sm font-black">{expandedProfileImage.name}</p>
           </div>
         </div>
       )}

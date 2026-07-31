@@ -74,6 +74,8 @@ export interface Event {
     titleAlign?: 'left' | 'center' | 'right';
     hostName?: string;
     showWelcomeCard?: boolean;
+    isSampleGallery?: boolean;
+    sampleGalleryOrder?: number;
 }
 
 export interface Photo {
@@ -303,7 +305,9 @@ function mapSqlToEvent(e: any): Event {
         coverMode: e.cover_mode,
         titleAlign: e.title_align,
         vendors: e.vendors || [],
-        hostName: e.host_name
+        hostName: e.host_name,
+        isSampleGallery: !!e.is_sample_gallery,
+        sampleGalleryOrder: e.sample_gallery_order
     };
 }
 
@@ -761,6 +765,24 @@ export async function getUserEvents(userIds: string | string[], type?: 'main' | 
         return filteredEvents.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     } catch (error) {
         console.error("Error fetching user events:", error);
+        return [];
+    }
+}
+
+export async function getSampleGalleryEvents(): Promise<Event[]> {
+    try {
+        const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('is_sample_gallery', true)
+            .or('type.eq.main,and(type.is.null,parent_id.is.null)')
+            .order('sample_gallery_order', { ascending: true, nullsFirst: false })
+            .order('title', { ascending: true });
+
+        if (error) throw error;
+        return (data || []).map(mapSqlToEvent);
+    } catch (error) {
+        console.error("Error fetching sample gallery events:", error);
         return [];
     }
 }
@@ -1253,8 +1275,8 @@ export function onPhotoInteractions(photoId: string, callback: (data: { likes: a
 
     const fetchAndTrigger = async () => {
         const [likesRes, commentsRes] = await Promise.all([
-            supabase.from('likes').select('id, created_at, user_id, profiles(name)').eq('photo_id', photoId),
-            supabase.from('comments').select('id, text, created_at, user_id, parent_id, profiles(name)').eq('photo_id', photoId)
+            supabase.from('likes').select('id, created_at, user_id, profiles(name, profile_image)').eq('photo_id', photoId),
+            supabase.from('comments').select('id, text, created_at, user_id, parent_id, profiles(name, profile_image)').eq('photo_id', photoId)
         ]);
 
         if (!likesRes.error && likesRes.data) {
@@ -1263,6 +1285,7 @@ export function onPhotoInteractions(photoId: string, callback: (data: { likes: a
                 photoId: photoId,
                 userId: l.user_id,
                 userName: l.profiles?.name || 'Guest User',
+                profileImage: l.profiles?.profile_image || null,
                 createdAt: l.created_at
             }));
             currentLikes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1274,6 +1297,7 @@ export function onPhotoInteractions(photoId: string, callback: (data: { likes: a
                 photoId: photoId,
                 userId: c.user_id,
                 userName: c.profiles?.name || 'Guest User',
+                profileImage: c.profiles?.profile_image || null,
                 text: c.text,
                 parentId: c.parent_id || null,
                 createdAt: c.created_at
