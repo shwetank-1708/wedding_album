@@ -2122,10 +2122,11 @@ function DashboardContent() {
                         }
                     );
 
-                    if (index === 0) firstUploadedUrl = uploadResult.url;
+	                    if (index === 0) firstUploadedUrl = uploadResult.url;
 
-                    const isVideoFile = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i);
-                    const photo: Photo = {
+	                    const uniqueId = uploadResult.publicId.replace(/\//g, '_');
+	                    const isVideoFile = file.type.startsWith("video/") || !!file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i);
+	                    const photo: Photo = {
                         id: uniqueId,
                         eventId: selectedEventId,
                         storageKey: uploadResult.publicId,
