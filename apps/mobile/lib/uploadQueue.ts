@@ -604,17 +604,6 @@ async function uploadWorker(item: UploadQueueItem) {
 
     const { uploadUrl, authorizationToken, storageKey } = getUrlResult;
 
-    // Get file size to save with metadata
-    let fileSize = 0;
-    try {
-      const info = await FileSystem.getInfoAsync(item.fileUri);
-      if (info && info.exists) {
-        fileSize = info.size || 0;
-      }
-    } catch (infoErr) {
-      console.warn('[UploadQueue] Could not get file size info:', infoErr);
-    }
-
     // 2. Upload file binary directly to B2
     console.log(`[UploadQueue] Uploading file binary directly to B2 for: ${storageKey}`);
     const uploadTask = FileSystem.createUploadTask(
