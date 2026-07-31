@@ -1,25 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MidnightColors, Fonts } from '../constants/theme';
 import { useAppTheme } from '@/context/ThemeContext';
-
-const albums = [
-  {
-    name: "Samarth & Jyoti Wedding",
-    slug: "samarth-jyoti-wedding",
-    category: "Wedding",
-    year: "2024",
-    coverImg: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1400&auto=format&fit=crop"
-  },
-];
+import { Event, getSampleGalleryEvents } from '@/lib/database';
 
 export default function SampleGalleriesScreen() {
   const router = useRouter();
   const { colors, isDark } = useAppTheme();
   const styles = getStyles(colors, isDark);
+  const [albums, setAlbums] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getSampleGalleryEvents().then((events) => {
+      if (!mounted) return;
+      setAlbums(events);
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <View style={styles.safeArea}>
@@ -53,24 +60,34 @@ export default function SampleGalleriesScreen() {
         </View>
 
         <View style={styles.grid}>
-          {albums.map((album) => (
+          {loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={colors.gold} />
+              <Text style={styles.emptyText}>Loading sample galleries...</Text>
+            </View>
+          ) : albums.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No samples yet</Text>
+              <Text style={styles.emptyText}>Sample galleries will appear here once selected by the admin.</Text>
+            </View>
+          ) : albums.map((album) => (
             <TouchableOpacity 
-              key={album.slug} 
+              key={album.id} 
               style={styles.card}
               activeOpacity={0.85}
-              onPress={() => router.push(`/events/${album.slug}`)}
+              onPress={() => router.push(`/events/${album.id}`)}
             >
-              <Image source={{ uri: album.coverImg }} style={styles.cardImage} />
+              <Image source={{ uri: album.coverImage }} style={styles.cardImage} />
               <LinearGradient
                 colors={['transparent', 'rgba(2, 6, 23, 0.9)']}
                 style={styles.cardGradient}
               />
               <View style={styles.cardContent}>
                 <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{album.category}</Text>
+                  <Text style={styles.categoryText}>{album.category || 'Event'}</Text>
                 </View>
-                <Text style={styles.cardTitle}>{album.name}</Text>
-                <Text style={styles.cardYear}>{album.year}</Text>
+                <Text style={styles.cardTitle}>{album.title}</Text>
+                <Text style={styles.cardYear}>{album.date}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -123,4 +140,16 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   categoryText: { fontSize: 10, color: colors.gold, fontFamily: Fonts.inter.bold, textTransform: 'uppercase' },
   cardTitle: { fontSize: 20, color: '#fff', fontFamily: Fonts.outfit.bold },
   cardYear: { fontSize: 12, color: colors.slate400, fontFamily: Fonts.inter.medium, marginTop: 2 },
+  emptyState: {
+    minHeight: 180,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  emptyTitle: { fontSize: 18, color: colors.white, fontFamily: Fonts.outfit.bold },
+  emptyText: { marginTop: 8, fontSize: 13, color: colors.slate400, fontFamily: Fonts.inter.regular, textAlign: 'center' },
 });

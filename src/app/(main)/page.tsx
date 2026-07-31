@@ -62,20 +62,26 @@ export default function Home() {
                         <ScrollReveal direction="left" delay={0.8}>
                             <Link href="/sample-galleries" className="group">
                                 <span className="inline-flex items-center space-x-3 px-10 py-5 bg-white text-slate-900 hover:bg-slate-100 transition-all duration-500 uppercase tracking-widest text-sm font-bold rounded-full shadow-2xl hover:scale-105 transform hero-btn-portfolio">
-                                    <span>View Portfolio</span>
+                                    <span>View Samples</span>
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </span>
                             </Link>
                         </ScrollReveal>
 
                         <ScrollReveal direction="right" delay={1.0}>
-                            <Link href="/contact-us" className="group">
+                            <Link href="/login" className="group">
                                 <span className="inline-flex items-center space-x-3 px-10 py-5 bg-transparent border-2 border-white/60 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-500 uppercase tracking-widest text-sm font-bold rounded-full hover:shadow-2xl hover:scale-105 transform hero-btn-book">
-                                    <span>Book a Session</span>
+                                    <span>Create Account</span>
                                 </span>
                             </Link>
                         </ScrollReveal>
                     </div>
+
+                    <ScrollReveal delay={1.1}>
+                        <Link href="/login" className="inline-flex text-sm font-bold text-white/80 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white hover:decoration-white">
+                            Already have an account? Login
+                        </Link>
+                    </ScrollReveal>
                 </div>
                 
                 {/* Scroll Indicator */}
@@ -144,7 +150,7 @@ export default function Home() {
             </section>
 
             <footer className="py-20 text-center text-[var(--site-muted)] font-sans text-sm border-t border-royal-gold/10">
-                <p>© 2026 WedAlbum. The Gold Standard in Memories.</p>
+                <p>© 2026 EveBash. The Gold Standard in Memories.</p>
             </footer>
         </div>
     );

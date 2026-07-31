@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Event, Photo, UserProfile } from '../lib/analytics';
-import { Search, Mail, Phone, Calendar, Clock, Filter, Users, ShieldCheck, CreditCard, Activity, ChevronDown, RotateCcw, Trash2, UserX } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, Clock, Filter, Users, ShieldCheck, CreditCard, Activity, ChevronDown, RotateCcw, Trash2, UserX, Star } from 'lucide-react';
 
 interface Props {
   users: UserProfile[];
@@ -14,6 +14,7 @@ interface Props {
   onResetUserData?: (userId: string) => Promise<void> | void;
   onDeleteUser?: (userId: string) => Promise<void> | void;
   onDeleteEvent?: (eventId: string) => Promise<void> | void;
+  onToggleSampleGallery?: (eventId: string, isSampleGallery: boolean) => Promise<void> | void;
   currentAdminId?: string;
 }
 
@@ -114,7 +115,7 @@ const openDatePicker = (event: React.MouseEvent<HTMLInputElement>) => {
   }
 };
 
-export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onPlanChange, onDurationChange, onPlanDatesChange, onPromoteSuperAdmin, onRevokeSuperAdmin, onResetUserData, onDeleteUser, onDeleteEvent, currentAdminId }) => {
+export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onPlanChange, onDurationChange, onPlanDatesChange, onPromoteSuperAdmin, onRevokeSuperAdmin, onResetUserData, onDeleteUser, onDeleteEvent, onToggleSampleGallery, currentAdminId }) => {
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
@@ -125,6 +126,7 @@ export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onP
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [sampleUpdatingEventId, setSampleUpdatingEventId] = useState<string | null>(null);
   const [expandedEventsUserId, setExpandedEventsUserId] = useState<string | null>(null);
   const [expandedSubGalleriesEventId, setExpandedSubGalleriesEventId] = useState<string | null>(null);
 
@@ -265,6 +267,25 @@ export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onP
       await onDeleteEvent(event.id);
     } finally {
       setDeletingEventId(null);
+    }
+  };
+
+  const handleToggleSampleGallery = async (event: Event) => {
+    if (!onToggleSampleGallery || sampleUpdatingEventId) return;
+    const nextStatus = !event.isSampleGallery;
+    const title = event.title || 'Untitled Event';
+    const confirmed = window.confirm(
+      nextStatus
+        ? `Add "${title}" to Sample Galleries?`
+        : `Remove "${title}" from Sample Galleries?`
+    );
+    if (!confirmed) return;
+
+    setSampleUpdatingEventId(event.id);
+    try {
+      await onToggleSampleGallery(event.id, nextStatus);
+    } finally {
+      setSampleUpdatingEventId(null);
     }
   };
 
@@ -860,6 +881,11 @@ export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onP
                                       <span className="shrink-0 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300">
                                         {formatMediaSize(event.totalMediaBytes)}
                                       </span>
+                                      {event.isSampleGallery && (
+                                        <span className="shrink-0 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                                          Sample
+                                        </span>
+                                      )}
                                     </div>
                                     <p className="mt-1 text-xs text-slate-500">
                                       {formatDisplayDate(event.createdAt)}
@@ -876,6 +902,20 @@ export const UserGrid: React.FC<Props> = ({ users, events = [], photos = [], onP
                                     ID: {event.id}
                                   </p>
                                   <div className="flex shrink-0 items-center gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={!onToggleSampleGallery || sampleUpdatingEventId === event.id}
+                                      onClick={() => handleToggleSampleGallery(event)}
+                                      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:cursor-wait disabled:opacity-50 ${
+                                        event.isSampleGallery
+                                          ? 'border-amber-500/25 bg-amber-500/10 text-amber-300 hover:border-amber-400/60 hover:bg-amber-500/20'
+                                          : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300 hover:border-emerald-400/60 hover:bg-emerald-500/20'
+                                      }`}
+                                      title={event.isSampleGallery ? 'Remove this event from Sample Galleries' : 'Add this event to Sample Galleries'}
+                                    >
+                                      <Star className={`h-3 w-3 ${event.isSampleGallery ? 'fill-current' : ''}`} />
+                                      {sampleUpdatingEventId === event.id ? 'Saving' : event.isSampleGallery ? 'Remove Sample' : 'Add Sample'}
+                                    </button>
                                     {event.subGalleries.length > 0 ? (
                                       <button
                                         type="button"

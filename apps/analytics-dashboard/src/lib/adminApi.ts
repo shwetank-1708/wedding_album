@@ -10,6 +10,7 @@ export type AdminAction =
   | 'resetUserData'
   | 'deleteUser'
   | 'deleteEvent'
+  | 'toggleSampleGallery'
   | 'deleteGuest'
   | 'scanBackblazeOrphans'
   | 'deleteBackblazeOrphans'

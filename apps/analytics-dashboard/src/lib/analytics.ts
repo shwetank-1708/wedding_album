@@ -42,6 +42,7 @@ export interface Event {
   parentId?: string;
   type?: string;
   vendors?: string[];
+  isSampleGallery?: boolean;
   isDeleted?: boolean;
   deletedAt?: string;
   status?: string;
@@ -127,7 +128,7 @@ export async function fetchEvents(): Promise<Event[]> {
   try {
     const { data, error } = await supabase
       .from('events')
-      .select('id, title, date, created_by, parent_id, type, vendors')
+      .select('id, title, date, created_by, parent_id, type, vendors, is_sample_gallery')
       .order('date', { ascending: false });
 
     if (error) throw error;
@@ -139,7 +140,8 @@ export async function fetchEvents(): Promise<Event[]> {
       createdBy: d.created_by || '',
       parentId: d.parent_id || '',
       type: d.type || (d.parent_id ? 'sub' : 'main'),
-      vendors: d.vendors || []
+      vendors: d.vendors || [],
+      isSampleGallery: !!d.is_sample_gallery
     }));
   } catch (err) {
     console.error("Error fetching events:", err);

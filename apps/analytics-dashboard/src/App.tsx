@@ -747,6 +747,13 @@ export default function App() {
                   onDeleteEvent={eventId =>
                     handleAdminAction('deleteEvent', { eventId }, 'Event deleted.')
                   }
+                  onToggleSampleGallery={(eventId, isSampleGallery) =>
+                    handleAdminAction(
+                      'toggleSampleGallery',
+                      { eventId, isSampleGallery },
+                      isSampleGallery ? 'Event added to Sample Galleries.' : 'Event removed from Sample Galleries.'
+                    )
+                  }
                 />
               )}
               {activeTab === 'events' && <EventGrid events={events} users={users} guests={guests} photos={photos} />}
