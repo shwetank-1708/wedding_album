@@ -46,13 +46,49 @@ const BENEFITS = [
 
 const DEFAULT_BUSINESS_COVER = "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800";
 
+export default function BizHubComingSoonPage() {
+  return (
+    <main className="min-h-screen bg-[#050505] px-4 py-24 text-white sm:px-6 lg:px-8">
+      <section className="mx-auto flex min-h-[70vh] max-w-5xl flex-col items-center justify-center text-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/25 bg-indigo-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-indigo-200">
+          <Store className="h-4 w-4" />
+          EB Business
+        </div>
+        <h1 className="max-w-3xl font-playfair text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Coming Soon
+        </h1>
+        <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-300 sm:text-lg">
+          EB Business will help event vendors and service providers create a polished business profile,
+          showcase portfolios, receive enquiries, and connect with people planning memorable celebrations.
+        </p>
+        <div className="mt-10 grid w-full gap-4 text-left sm:grid-cols-3">
+          {[
+            { title: "Business Profiles", desc: "Create a premium listing for your event service.", icon: Store },
+            { title: "Portfolio Showcase", desc: "Present your best work through elegant galleries.", icon: ImageIcon },
+            { title: "Growth Tools", desc: "Track enquiries, visibility, and audience interest.", icon: BarChart3 },
+          ].map(({ title, desc, icon: Icon }) => (
+            <div key={title} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function getBusinessLimit(role?: string | null) {
   if (role === "premium" || role === "elite" || role === "admin") return Infinity;
   if (role === "standard") return 5;
   return 1;
 }
 
-export default function BizHubPage() {
+// Preserved for the next EB Business rollout. Do not delete; this is the original full implementation.
+export function LegacyBizHubPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 

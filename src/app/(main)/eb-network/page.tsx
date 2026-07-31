@@ -46,6 +46,41 @@ const SORT_OPTIONS = ["Rating", "Distance", "Name"];
 const DISTANCE_OPTIONS = [5, 10, 20, 50, 100];
 const DEFAULT_BUSINESS_COVER = "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800";
 
+export default function MarketplaceComingSoonPage() {
+  return (
+    <main className="min-h-screen bg-[#050505] px-4 py-24 text-white sm:px-6 lg:px-8">
+      <section className="mx-auto flex min-h-[70vh] max-w-5xl flex-col items-center justify-center text-center">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/25 bg-indigo-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-indigo-200">
+          <Store className="h-4 w-4" />
+          EB Network
+        </div>
+        <h1 className="max-w-3xl font-playfair text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Coming Soon
+        </h1>
+        <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-300 sm:text-lg">
+          EB Network will be a curated marketplace to discover trusted photographers, venues, decorators,
+          makeup artists, caterers, planners, and event partners for your celebrations.
+        </p>
+        <div className="mt-10 grid w-full gap-4 text-left sm:grid-cols-3">
+          {[
+            { title: "Trusted Vendors", desc: "Explore event professionals across key categories.", icon: Briefcase },
+            { title: "Smart Discovery", desc: "Find partners by service, location, and event need.", icon: Search },
+            { title: "Event Ready", desc: "Shortlist and connect with vendors for your occasion.", icon: Heart },
+          ].map(({ title, desc, icon: Icon }) => (
+            <div key={title} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-400/10 text-indigo-200">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -66,7 +101,8 @@ function getExperienceLabel(experience?: number) {
   return experience ? `${experience}+ Yrs Exp` : "Established";
 }
 
-export default function MarketplacePage() {
+// Preserved for the next EB Network rollout. Do not delete; this is the original full implementation.
+export function LegacyMarketplacePage() {
   const { user } = useAuth();
   const router = useRouter();
 
