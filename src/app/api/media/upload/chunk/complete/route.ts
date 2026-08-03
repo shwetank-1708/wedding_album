@@ -113,7 +113,17 @@ export async function POST(request: NextRequest) {
     // 1. Complete the B2 multipart/large file upload
     console.log(`[CompleteChunkedUpload] Completing large file for id ${fileId} with key ${storageKey}...`);
     const backblazeAuth = await getCachedBackblazeAuth();
-    const finishResult = await finishLargeFile(backblazeAuth, fileId, partSha1Array);
+    let finishResult: { contentLength?: number } = {};
+    try {
+      finishResult = await finishLargeFile(backblazeAuth, fileId, partSha1Array);
+    } catch (finishErr: any) {
+      const msg = String(finishErr?.message || "");
+      if (msg.includes("No active upload for") || msg.includes("already_finished") || msg.includes("bad_request")) {
+        console.warn(`[CompleteChunkedUpload] B2 large file session already completed or closed (${msg}). Proceeding to save DB record...`);
+      } else {
+        throw finishErr;
+      }
+    }
 
     const mediaDomain = (
       process.env.MEDIA_DOMAIN ||

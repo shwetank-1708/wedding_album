@@ -322,6 +322,7 @@ async function uploadLargeFileInChunks(
 
     const completeData = await completeRes.json().catch(() => ({}));
     if (!completeRes.ok) {
+        clearResumeState(file.name, file.size);
         throw new Error(completeData.error || `Failed to complete chunked upload (status: ${completeRes.status})`);
     }
 
