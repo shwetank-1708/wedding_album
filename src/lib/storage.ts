@@ -118,7 +118,7 @@ async function uploadLargeFileInChunks(
 ) {
     console.log(`[Storage] Starting chunk-wise direct B2 upload for large file: ${file.name} (${file.size} bytes)`);
 
-    const resourceType = file.type.startsWith("video/") ? "video" : "image";
+    const resourceType = (file.type?.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv"].includes(file.name.split('.').pop()?.toLowerCase() || "")) ? "video" : "image";
     const { data: { session } } = await supabase.auth.getSession();
 
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -356,7 +356,7 @@ export async function uploadEventImage(
     try {
         console.log(`[Storage] Starting direct B2 upload for: ${file.name} to event: ${eventId} (lane: ${laneIndex})`);
 
-        const resourceType = file.type.startsWith("video/") ? "video" : "image";
+        const resourceType = (file.type?.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv"].includes(file.name.split('.').pop()?.toLowerCase() || "")) ? "video" : "image";
         const { data: { session } } = await supabase.auth.getSession();
 
         const headers: Record<string, string> = {

@@ -137,8 +137,11 @@ export async function POST(request: NextRequest) {
     }
     const url = `https://${mediaDomain}/${storageKey}`;
 
-    const resourceType = requestedResourceType === "video" ? "video" : "image";
-    const mediaType = resourceType === "video" ? "video" : "photo";
+    const videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv"];
+    const fileExt = fileName.split(".").pop()?.toLowerCase() || "";
+    const isVideo = requestedResourceType === "video" || videoExtensions.includes(fileExt) || storageKey.includes("/videos/");
+    const resourceType = isVideo ? "video" : "image";
+    const mediaType = isVideo ? "video" : "photo";
 
     // 2. Save metadata to Supabase database
     const photoId = storageKey.replace(/\//g, "_");

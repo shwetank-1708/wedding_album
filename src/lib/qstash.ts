@@ -161,12 +161,6 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
 }
 
 export async function publishVideoTranscodeTask(payload: { id: string; storage_key: string; event_id: string; url?: string }, fileSize?: number): Promise<boolean> {
-  const qstashToken = process.env.QSTASH_TOKEN;
-  if (!qstashToken) {
-    console.warn("[QStash] QSTASH_TOKEN is not configured. Video transcoding task will not run.");
-    return false;
-  }
-
   let targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run";
   let timeout = "300s";
 
@@ -179,6 +173,27 @@ export async function publishVideoTranscodeTask(payload: { id: string; storage_k
       // Medium tier (> 100 MB): 10 min timeout
       targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run";
       timeout = "600s";
+    }
+  }
+
+  if (!qstashToken) {
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Falling back to direct Modal invocation...");
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photo_id: payload.id,
+          storage_key: payload.storage_key,
+          event_id: payload.event_id,
+          url: payload.url
+        }),
+      });
+      console.log(`[Modal Direct] Directly triggered Modal video transcode worker. Target: ${targetUrl}, Status: ${response.status}`);
+      return response.ok;
+    } catch (directErr) {
+      console.error("[Modal Direct] Failed to directly trigger Modal worker:", directErr);
+      return false;
     }
   }
 
