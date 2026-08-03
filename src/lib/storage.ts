@@ -1,6 +1,17 @@
 import { supabase } from "@/lib/supabase";
 
 /**
+ * Computes the SHA-1 hash of a Blob using the browser's SubtleCrypto API.
+ * Returns the hex-encoded hash string.
+ */
+async function sha1OfBlob(blob: Blob): Promise<string> {
+    const buffer = await blob.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest("SHA-1", buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
  * Uploads a file directly to Backblaze B2, bypassing the server body size limit.
  * 1. Obtains direct upload token/url from Railway.
  * 2. Uploads binary directly to Backblaze B2.
@@ -119,6 +130,12 @@ async function uploadLargeFileInChunks(
 
                 const { uploadUrl, authorizationToken } = partUrlData;
 
+                // Compute actual SHA-1 of the chunk before uploading so we can
+                // send it in the header and use it in partSha1Array without
+                // depending on what B2 echoes back (which is "do_not_verify"
+                // when we use the do_not_verify shortcut).
+                const chunkSha1 = await sha1OfBlob(chunkBlob);
+
                 // Send part directly to B2
                 const response = await fetch(uploadUrl, {
                     method: "POST",
@@ -126,7 +143,7 @@ async function uploadLargeFileInChunks(
                         Authorization: authorizationToken,
                         "Content-Type": "application/octet-stream",
                         "X-Bz-Part-Number": String(partNumber),
-                        "X-Bz-Content-Sha1": "do_not_verify", // Let B2 return the SHA-1 in headers
+                        "X-Bz-Content-Sha1": chunkSha1,
                         "Content-Length": String(chunkBlob.size),
                     },
                     body: chunkBlob,
@@ -137,13 +154,9 @@ async function uploadLargeFileInChunks(
                     throw new Error(`Part upload failed with status ${response.status}: ${errText}`);
                 }
 
-                // Retrieve the SHA-1 of the uploaded part returned by B2
-                // We try parsing the JSON response body first, as it is always accessible regardless of CORS header exposure rules
-                const resData = await response.json().catch(() => ({}));
-                sha1 = resData.contentSha1 || response.headers.get("X-Bz-Content-Sha1") || response.headers.get("x-bz-content-sha1") || "";
-                if (!sha1 || sha1 === "do_not_verify") {
-                    throw new Error("B2 did not return part SHA-1 checksum");
-                }
+                // Use the SHA-1 we computed client-side — it is guaranteed to be
+                // a real hash and is not subject to CORS header visibility issues.
+                sha1 = chunkSha1;
 
                 uploadSuccess = true;
                 partSha1Array.push(sha1);
