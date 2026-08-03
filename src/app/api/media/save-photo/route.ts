@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
           storage_key: storageKey,
           event_id: eventId,
           url
-        }).catch((err) => {
+        }, Number(fileSize) || 0).catch((err) => {
           console.error("[SavePhoto] Error publishing video transcode task via QStash:", err);
         });
       });
