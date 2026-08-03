@@ -130,11 +130,11 @@ async function uploadLargeFileInChunks(
 
                 const { uploadUrl, authorizationToken } = partUrlData;
 
-                // Compute actual SHA-1 of the chunk before uploading so we can
-                // send it in the header and use it in partSha1Array without
-                // depending on what B2 echoes back (which is "do_not_verify"
-                // when we use the do_not_verify shortcut).
+                // Compute actual SHA-1 of the chunk client-side.
+                // B2 requires a SHA-1 in the header; computing it ourselves avoids
+                // depending on what B2 echoes back in the response (which varies by version).
                 const chunkSha1 = await sha1OfBlob(chunkBlob);
+                console.log(`[Storage] Chunk ${partNumber} SHA-1: ${chunkSha1.substring(0, 8)}...`);
 
                 // Send part directly to B2
                 const response = await fetch(uploadUrl, {
@@ -154,9 +154,14 @@ async function uploadLargeFileInChunks(
                     throw new Error(`Part upload failed with status ${response.status}: ${errText}`);
                 }
 
-                // Use the SHA-1 we computed client-side — it is guaranteed to be
-                // a real hash and is not subject to CORS header visibility issues.
-                sha1 = chunkSha1;
+                // Retrieve SHA-1 from response header and handle "unverified:" prefix if present
+                const b2Sha1 = response.headers.get("x-bz-content-sha1") || "";
+                sha1 = b2Sha1.startsWith("unverified:") ? b2Sha1.split(":")[1] : b2Sha1;
+                
+                // If B2 didn't provide a hash, fallback to our client-side computed hash
+                if (!sha1) sha1 = chunkSha1;
+
+                console.log(`[Storage] Chunk ${partNumber} uploaded successfully, sha1: ${sha1.substring(0, 8)}...`);
 
                 uploadSuccess = true;
                 partSha1Array.push(sha1);
