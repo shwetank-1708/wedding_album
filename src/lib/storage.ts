@@ -138,7 +138,9 @@ async function uploadLargeFileInChunks(
                 }
 
                 // Retrieve the SHA-1 of the uploaded part returned by B2
-                sha1 = response.headers.get("X-Bz-Content-Sha1") || "";
+                // We try parsing the JSON response body first, as it is always accessible regardless of CORS header exposure rules
+                const resData = await response.json().catch(() => ({}));
+                sha1 = resData.contentSha1 || response.headers.get("X-Bz-Content-Sha1") || response.headers.get("x-bz-content-sha1") || "";
                 if (!sha1 || sha1 === "do_not_verify") {
                     throw new Error("B2 did not return part SHA-1 checksum");
                 }
