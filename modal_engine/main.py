@@ -513,9 +513,9 @@ def run_transcode(request: dict):
                 "ffmpeg", "-y", "-i", str(raw_input_path),
                 "-filter_complex",
                 "[0:v]split=3[v1][v2][v3]; "
-                "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
-                "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
-                "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
+                "[v1]scale=-2:1080[v1out]; "
+                "[v2]scale=-2:720[v2out]; "
+                "[v3]scale=-2:480[v3out]",
                 "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
                 "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
                 "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
@@ -534,9 +534,9 @@ def run_transcode(request: dict):
                 "ffmpeg", "-y", "-i", str(raw_input_path),
                 "-filter_complex",
                 "[0:v]split=3[v1][v2][v3]; "
-                "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
-                "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
-                "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
+                "[v1]scale=-2:1080[v1out]; "
+                "[v2]scale=-2:720[v2out]; "
+                "[v3]scale=-2:480[v3out]",
                 "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
                 "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
                 "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
