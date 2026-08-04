@@ -163,17 +163,14 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
 export async function publishVideoTranscodeTask(payload: { id: string; storage_key: string; event_id: string; url?: string }, fileSize?: number): Promise<boolean> {
   const qstashToken = process.env.QSTASH_TOKEN;
   let targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run";
-  let timeout = "300s";
 
   if (fileSize) {
     if (fileSize > 1024 * 1024 * 1024) {
-      // Large tier (> 1 GB): 20 min timeout
+      // Large tier (> 1 GB)
       targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-1aa355.modal.run";
-      timeout = "1200s";
     } else if (fileSize > 100 * 1024 * 1024) {
-      // Medium tier (> 100 MB): 10 min timeout
+      // Medium tier (> 100 MB)
       targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run";
-      timeout = "600s";
     }
   }
 
@@ -201,15 +198,16 @@ export async function publishVideoTranscodeTask(payload: { id: string; storage_k
   console.log(`[QStash] Publishing video transcode task for ${payload.storage_key} to Modal target: ${targetUrl} (fileSize: ${fileSize || 'unknown'})`);
 
   try {
-    const headers: Record<string, string> = {
-      "Authorization": `Bearer ${qstashToken}`,
-      "Content-Type": "application/json",
-      "Upstash-Timeout": timeout
-    };
-
+    // Note: Upstash-Timeout is intentionally omitted.
+    // QStash only needs to deliver the HTTP trigger to Modal's web endpoint, which responds
+    // immediately (< 5s). The actual long-running transcode work happens asynchronously
+    // inside the Modal container with its own function-level timeout (up to 1200s).
     const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
       method: "POST",
-      headers,
+      headers: {
+        "Authorization": `Bearer ${qstashToken}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         photo_id: payload.id,
         storage_key: payload.storage_key,
