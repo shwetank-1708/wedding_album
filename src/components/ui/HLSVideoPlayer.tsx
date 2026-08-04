@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, Film, AlertCircle } from "lucide-react";
 
 interface HLSVideoPlayerProps {
@@ -14,19 +14,13 @@ interface HLSVideoPlayerProps {
   style?: React.CSSProperties;
 }
 
-/**
- * Determines if a URL is an HLS manifest (.m3u8) or a raw video file.
- */
+/** True if the URL is an HLS manifest */
 function isHLSUrl(url: string) {
   return url.includes(".m3u8");
 }
 
-/**
- * Determines if a URL is still the raw unprocessed video (not yet transcoded by Modal).
- * Raw videos are stored under /events/.../videos/ while HLS is stored under /hls/...
- */
+/** True if the URL is still the raw unprocessed video (not yet under /hls/) */
 function isRawVideoUrl(url: string) {
-  // Raw video URL: not under hls/ prefix
   return !url.includes("/hls/") && !url.includes(".m3u8");
 }
 
@@ -45,80 +39,86 @@ export function HLSVideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<any>(null);
   const [state, setState] = useState<PlayerState>("loading");
+  const [activeSrc, setActiveSrc] = useState(src);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // When parent passes a new src (e.g. via Realtime subscription updating the photo URL),
+  // pick it up so we can transition from "processing" → playing once HLS is ready
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
+    setActiveSrc(src);
+  }, [src]);
 
-    // Destroy any previous HLS instance
+  const startPlayback = useCallback((url: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    // Raw unprocessed file: show "processing" state
-    if (isRawVideoUrl(src)) {
-      setState("processing");
-      return;
-    }
-
-    // HLS URL (.m3u8)
-    if (isHLSUrl(src)) {
+    if (isHLSUrl(url)) {
       // Safari natively supports HLS
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = src;
+        video.src = url;
         video.load();
         setState("playing");
+        if (autoPlay) video.play().catch(() => {});
         return;
       }
 
-      // Chrome/Firefox/Android — use HLS.js
+      // Chrome / Firefox / Android — use HLS.js
       import("hls.js").then(({ default: Hls }) => {
         if (!Hls.isSupported()) {
-          // Absolute fallback: try native anyway (will likely fail on non-Safari)
-          video.src = src;
+          video.src = url;
           video.load();
           setState("playing");
           return;
         }
 
         const hls = new Hls({
-          // Start from lowest quality to begin playback fast, then auto-upgrade
-          startLevel: -1,
-          // Buffer 10s ahead
+          startLevel: -1,       // begin at lowest rendition, auto-upgrade
           maxBufferLength: 10,
-          // Cap initial buffer to 2s so playback starts immediately
           maxMaxBufferLength: 30,
         });
 
         hlsRef.current = hls;
-        hls.loadSource(src);
+        hls.loadSource(url);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setState("playing");
-          if (autoPlay) {
-            video.play().catch(() => {
-              // Autoplay blocked by browser policy — fine, user can click play
-            });
-          }
+          if (autoPlay) video.play().catch(() => {});
         });
 
         hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
           if (data.fatal) {
-            setErrorMsg("Failed to load video stream.");
             setState("error");
+            setErrorMsg("Failed to load video stream.");
           }
         });
       });
       return;
     }
 
-    // Fallback: direct MP4/MOV (small videos <100MB that weren't chunked)
-    video.src = src;
+    // Direct MP4/MOV fallback (small videos that bypass the chunked path)
+    video.src = url;
     video.load();
     setState("playing");
+    if (autoPlay) video.play().catch(() => {});
+  }, [autoPlay]);
+
+  useEffect(() => {
+    if (!activeSrc) return;
+
+    if (isRawVideoUrl(activeSrc)) {
+      // Show "Processing" — wait for the parent to pass an updated HLS src
+      setState("processing");
+      return;
+    }
+
+    // HLS or direct MP4 — start playback
+    startPlayback(activeSrc);
 
     return () => {
       if (hlsRef.current) {
@@ -126,13 +126,22 @@ export function HLSVideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [src, autoPlay]);
+  }, [activeSrc, startPlayback]);
 
-  // Processing state — Modal worker is still transcoding
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, []);
+
   if (state === "processing") {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-3 bg-slate-950 text-white ${className}`}
+        className={`relative flex flex-col items-center justify-center gap-3 bg-slate-950 text-white overflow-hidden ${className}`}
         style={style}
       >
         {poster && (
@@ -151,14 +160,13 @@ export function HLSVideoPlayer({
             Processing video…
           </div>
           <p className="text-xs text-white/50 max-w-[220px] leading-relaxed">
-            Your video is being transcoded for smooth playback. Check back in a few minutes.
+            Your video is being transcoded for smooth playback. It will start automatically once ready — no need to refresh.
           </p>
         </div>
       </div>
     );
   }
 
-  // Error state
   if (state === "error") {
     return (
       <div
@@ -173,7 +181,6 @@ export function HLSVideoPlayer({
 
   return (
     <div className={`relative ${className}`} style={style}>
-      {/* Loading spinner — shown until manifest parsed */}
       {state === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-white/60" />
@@ -186,7 +193,6 @@ export function HLSVideoPlayer({
         controls={controls}
         playsInline={playsInline}
         muted={muted}
-        autoPlay={autoPlay}
         preload="metadata"
         onCanPlay={() => setState("playing")}
         onError={() => {

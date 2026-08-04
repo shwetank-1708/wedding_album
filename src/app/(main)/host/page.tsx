@@ -6303,7 +6303,16 @@ function DashboardContent() {
                 {/* Image Preview Lightbox */}
                 <Lightbox
                     isOpen={!!viewingPhoto}
-                    photo={viewingPhoto}
+                    photo={viewingPhoto ? (() => {
+                        // Merge live photo data so HLSVideoPlayer gets the latest
+                        // HLS URL if Realtime updated it after the lightbox was opened
+                        const livePhoto = currentEventPhotos.find(p => p.id === viewingPhoto.id);
+                        return {
+                            ...viewingPhoto,
+                            src: livePhoto?.url || viewingPhoto.src,
+                            thumbnailUrl: livePhoto?.thumbnailUrl || viewingPhoto.thumbnailUrl,
+                        };
+                    })() : null}
                     onClose={() => setViewingPhoto(null)}
                     theme={getWebLightboxTheme(selectedMainEvent?.templateId)}
                     onRotate={(direction) => viewingPhoto?.id ? handleRotatePhoto(viewingPhoto.id, direction) : undefined}
