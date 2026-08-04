@@ -274,17 +274,17 @@ export async function POST(request: NextRequest) {
         });
       }
     } else if (actualResourceType === "video") {
-      console.log(`[SavePhoto] Queuing video transcode task via QStash for: ${storageKey}`);
-      after(() => {
-        publishVideoTranscodeTask({
+      console.log(`[SavePhoto] Queuing video transcode task for: ${storageKey}`);
+      try {
+        await publishVideoTranscodeTask({
           id: photoId,
           storage_key: storageKey,
           event_id: eventId,
           url
-        }, Number(fileSize) || 0).catch((err) => {
-          console.error("[SavePhoto] Error publishing video transcode task via QStash:", err);
-        });
-      });
+        }, Number(fileSize) || 0);
+      } catch (err) {
+        console.error("[SavePhoto] Error publishing video transcode task:", err);
+      }
     }
 
     return jsonResponse({

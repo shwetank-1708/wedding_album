@@ -182,14 +182,15 @@ export async function POST(request: NextRequest) {
 
     // 3. Trigger transcode or resizing
     if (resourceType === "video") {
-      after(() => {
-        publishVideoTranscodeTask(
+      try {
+        console.log(`[CompleteChunkedUpload] Triggering video transcode for ${photoId} (fileSize: ${fileSize})`);
+        await publishVideoTranscodeTask(
           { id: photoId, storage_key: storageKey, event_id: eventId, url },
           fileSize
-        ).catch((err) => {
-          console.error("[CompleteChunkedUpload] Error publishing video transcode task:", err);
-        });
-      });
+        );
+      } catch (err) {
+        console.error("[CompleteChunkedUpload] Error publishing video transcode task:", err);
+      }
     }
 
     // Notify event owner when a guest uploads media
