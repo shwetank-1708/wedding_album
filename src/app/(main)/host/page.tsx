@@ -2008,7 +2008,7 @@ function DashboardContent() {
             const concurrencyLimit = 3;
             let activeCount = 0;
             let currentIndex = 0;
-            let chunkBuffer: { photo: Photo; queueItemId: string }[] = [];
+            let chunkBuffer: { photo: Photo; queueItemId: string; transcodeTriggered?: boolean }[] = [];
             let completedCount = 0;
 
             const flushChunkBuffer = async () => {
