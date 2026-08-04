@@ -2031,7 +2031,8 @@ function DashboardContent() {
                                 eventId: item.photo.eventId,
                                 fileName: item.photo.storageKey.split('/').pop() || 'image.jpg',
                                 fileSize: item.photo.size,
-                                resourceType: item.photo.resourceType
+                                resourceType: item.photo.resourceType,
+                                skipTranscode: item.transcodeTriggered ?? false
                             }))
                         })
                     });
@@ -2050,7 +2051,8 @@ function DashboardContent() {
                                         eventId: item.photo.eventId,
                                         fileName: item.photo.storageKey.split('/').pop() || 'image.jpg',
                                         fileSize: item.photo.size,
-                                        resourceType: item.photo.resourceType
+                                        resourceType: item.photo.resourceType,
+                                        skipTranscode: item.transcodeTriggered ?? false
                                     }))
                                 })
                             });
@@ -2148,7 +2150,10 @@ function DashboardContent() {
                             : item
                     ));
 
-                    chunkBuffer.push({ photo, queueItemId });
+                    // If this was a chunked upload (>100MB) AND a video, upload/chunk/complete
+                    // already triggered the transcode — skip it in save-photo-batch
+                    const transcodeTriggered = isVideoFile && file.size > 100 * 1024 * 1024;
+                    chunkBuffer.push({ photo, queueItemId, transcodeTriggered });
                     // Flush immediately after each upload so resizing starts right away (non-blocking)
                     flushChunkBuffer();
 

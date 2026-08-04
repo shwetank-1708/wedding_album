@@ -150,7 +150,9 @@ export async function POST(request: NextRequest) {
           width: null,
           height: null
         });
-      } else if (actualResourceType === "video") {
+      } else if (actualResourceType === "video" && !photo.skipTranscode) {
+        // Only trigger transcode here for small videos (<100MB direct uploads).
+        // Large chunked uploads (>100MB) are already triggered by upload/chunk/complete.
         videoPayloadArray.push({
           id: photoId,
           storage_key: storageKey,
@@ -158,6 +160,8 @@ export async function POST(request: NextRequest) {
           url: url,
           fileSize: Number(fileSize) || 0
         });
+      } else if (actualResourceType === "video" && photo.skipTranscode) {
+        console.log(`[SavePhotoBatch] Skipping transcode trigger for ${storageKey} — already triggered by chunk/complete`);
       }
     }
 
