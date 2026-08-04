@@ -65,10 +65,47 @@ function uploadWithXhr(
 // Persisted in localStorage so uploads survive page reloads / lost connections.
 
 const CHUNK_SIZE = 10 * 1024 * 1024;       // 10 MB per chunk
-const UPLOAD_CONCURRENCY = 3;              // parallel chunk uploads
 const MAX_CHUNK_RETRIES = 4;               // attempts per chunk before giving up
 const RESUME_EXPIRY_MS = 23 * 60 * 60 * 1000; // 23 h (B2 large-file sessions last 24 h)
 const RESUME_KEY_PREFIX = "evebash_upload_v1_";
+
+/**
+ * Google Drive-style Dynamic Adaptive Upload Concurrency.
+ * Automatically inspects the browser's Network Information API (5G, 4G, 3G, Wi-Fi)
+ * and hardware specs to pick the ideal concurrency (8 on fast desktop Wi-Fi/LAN,
+ * 4 on mobile, 2 on 3G) preventing RAM overload and socket congestion.
+ */
+function getOptimalConcurrency(): number {
+    if (typeof window === "undefined") return 4;
+
+    const nav = navigator as any;
+    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+
+    // Default target for desktop devices: 8 parallel upload streams (Google Drive behavior)
+    let concurrency = 8;
+
+    // Detect mobile device to avoid RAM/battery strain
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+        concurrency = 4;
+    }
+
+    // Inspect real-time network conditions if supported by the browser
+    if (conn) {
+        const effectiveType = conn.effectiveType; // 'slow-2g', '2g', '3g', '4g'
+        const rtt = conn.rtt; // round trip time in ms
+
+        if (effectiveType === "2g" || effectiveType === "slow-2g") {
+            concurrency = 1;
+        } else if (effectiveType === "3g" || (rtt && rtt > 300)) {
+            concurrency = 2;
+        } else if (conn.saveData) {
+            concurrency = 2;
+        }
+    }
+
+    return concurrency;
+}
 
 interface UploadResumeState {
     fileId: string;
@@ -282,9 +319,10 @@ async function uploadLargeFileInChunks(
         }
     };
 
-    // Launch UPLOAD_CONCURRENCY workers in parallel
-    const actualConcurrency = Math.min(UPLOAD_CONCURRENCY, pendingIndices.length);
-    console.log(`[Storage] Starting ${actualConcurrency} parallel upload workers for ${pendingIndices.length} pending chunks...`);
+    // Launch dynamic adaptive workers in parallel (Google Drive style: 8 on desktop, 4 on mobile, 2 on 3G)
+    const targetConcurrency = getOptimalConcurrency();
+    const actualConcurrency = Math.min(targetConcurrency, pendingIndices.length);
+    console.log(`[Storage] Launching ${actualConcurrency} adaptive parallel upload workers (target: ${targetConcurrency}) for ${pendingIndices.length} pending chunks...`);
 
     try {
         await Promise.all(Array.from({ length: actualConcurrency }, () => worker()));
