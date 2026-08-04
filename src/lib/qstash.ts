@@ -161,6 +161,7 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
 }
 
 export async function publishVideoTranscodeTask(payload: { id: string; storage_key: string; event_id: string; url?: string }, fileSize?: number): Promise<boolean> {
+  const qstashToken = process.env.QSTASH_TOKEN;
   let targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run";
   let timeout = "300s";
 
