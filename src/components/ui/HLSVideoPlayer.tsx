@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2, Film, AlertCircle } from "lucide-react";
+import { Loader2, Film, AlertCircle, Settings, Check } from "lucide-react";
 
 interface HLSVideoPlayerProps {
   src: string;
@@ -42,6 +42,12 @@ export function HLSVideoPlayer({
   const [activeSrc, setActiveSrc] = useState(src);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Quality selector states
+  const [levels, setLevels] = useState<any[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<number>(-1); // -1 is Auto
+  const [activeLevel, setActiveLevel] = useState<number>(-1);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   // When parent passes a new src (e.g. via Realtime subscription updating the photo URL),
   // pick it up so we can transition from "processing" → playing once HLS is ready
   useEffect(() => {
@@ -55,6 +61,9 @@ export function HLSVideoPlayer({
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
+      setLevels([]);
+      setSelectedLevel(-1);
+      setActiveLevel(-1);
     }
 
     if (isHLSUrl(url)) {
@@ -88,7 +97,13 @@ export function HLSVideoPlayer({
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setState("playing");
+          setLevels(hls.levels || []);
+          setSelectedLevel(hls.loadLevel);
           if (autoPlay) video.play().catch(() => {});
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_event: any, data: any) => {
+          setActiveLevel(data.level);
         });
 
         hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
@@ -138,6 +153,14 @@ export function HLSVideoPlayer({
     };
   }, []);
 
+  const changeQuality = (levelIndex: number) => {
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = levelIndex;
+      setSelectedLevel(levelIndex);
+      setMenuOpen(false);
+    }
+  };
+
   if (state === "processing") {
     return (
       <div
@@ -179,13 +202,28 @@ export function HLSVideoPlayer({
     );
   }
 
+  // Get current active quality height label
+  const getActiveHeightLabel = () => {
+    if (selectedLevel === -1) {
+      if (activeLevel >= 0 && levels[activeLevel]) {
+        return `Auto (${levels[activeLevel].height}p)`;
+      }
+      return "Auto";
+    }
+    if (levels[selectedLevel]) {
+      return `${levels[selectedLevel].height}p`;
+    }
+    return "Auto";
+  };
+
   return (
-    <div className={`relative ${className}`} style={style}>
+    <div className={`relative group/player ${className}`} style={style}>
       {state === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-950 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-white/60" />
         </div>
       )}
+      
       <video
         ref={videoRef}
         poster={poster}
@@ -200,6 +238,55 @@ export function HLSVideoPlayer({
           setErrorMsg("Failed to load video.");
         }}
       />
+
+      {/* Floating Quality Selector button (Only shown when HLS.js levels are loaded and player is playing) */}
+      {levels.length > 0 && (
+        <div className="absolute top-4 right-4 z-20 pointer-events-auto opacity-0 group-hover/player:opacity-100 transition-opacity duration-300">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white border border-white/20 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur-md transition-all cursor-pointer active:scale-95 animate-fadeIn"
+          >
+            <Settings className={`w-3.5 h-3.5 ${menuOpen ? "rotate-45" : ""} transition-transform duration-300`} />
+            <span>{getActiveHeightLabel()}</span>
+          </button>
+
+          {/* Click Backdrop to close dropdown */}
+          {menuOpen && (
+            <div className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} />
+          )}
+
+          {/* Dropdown Menu */}
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 bg-zinc-950/90 border border-white/10 rounded-xl py-1.5 w-32 flex flex-col shadow-2xl backdrop-blur-md z-20 origin-top-right">
+              <div className="px-3 py-1 text-[10px] font-bold text-white/40 uppercase tracking-wider border-b border-white/5 pb-1 mb-1">Quality</div>
+              
+              {/* Auto Selection */}
+              <button
+                onClick={() => changeQuality(-1)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition-colors text-white font-medium flex items-center justify-between cursor-pointer"
+              >
+                <span>Auto</span>
+                {selectedLevel === -1 && <Check className="w-3.5 h-3.5 text-sky-400" />}
+              </button>
+
+              {/* Individual rendition levels (Sorted highest height first) */}
+              {[...levels]
+                .map((level, originalIndex) => ({ level, originalIndex }))
+                .sort((a, b) => b.level.height - a.level.height)
+                .map(({ level, originalIndex }) => (
+                  <button
+                    key={originalIndex}
+                    onClick={() => changeQuality(originalIndex)}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition-colors text-white font-medium flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{level.height}p</span>
+                    {selectedLevel === originalIndex && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
