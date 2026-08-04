@@ -84,21 +84,19 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
     }
 
     if (isHLSUrl(url)) {
-      // Safari natively supports HLS
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url;
-        video.load();
-        setState("playing");
-        if (autoPlay) video.play().catch(() => {});
-        return;
-      }
-
-      // Chrome / Firefox / Android — use HLS.js
+      // Prioritize HLS.js for custom quality selection (supported on Chrome, Firefox, Edge, Android, and macOS Safari)
       import("hls.js").then(({ default: Hls }) => {
         if (!Hls.isSupported()) {
-          video.src = url;
-          video.load();
-          setState("playing");
+          // Fallback to native HLS support (e.g., iOS Safari)
+          if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = url;
+            video.load();
+            setState("playing");
+            if (autoPlay) video.play().catch(() => {});
+          } else {
+            setState("error");
+            setErrorMsg("HLS playback is not supported on this browser.");
+          }
           return;
         }
 
