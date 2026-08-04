@@ -263,7 +263,7 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
 
       {/* Floating Quality Selector button (Only shown when HLS.js levels are loaded and player is playing) */}
       {levels.length > 0 && (
-        <div className="absolute top-4 right-4 z-20 pointer-events-auto opacity-0 group-hover/player:opacity-100 transition-opacity duration-300">
+        <div className="absolute top-4 right-4 z-20 pointer-events-auto">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white border border-white/20 rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur-md transition-all cursor-pointer active:scale-95 animate-fadeIn"
