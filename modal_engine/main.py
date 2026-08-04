@@ -647,7 +647,8 @@ def transcode_chunk(chunk_info: dict) -> dict:
     """
     Parallel chunk worker: receives a 30-second chunk from B2 temp storage,
     transcodes it into HLS segments for all 3 quality tiers using CODEC_CONFIG,
-    uploads them back to B2, and returns per-quality segment metadata.
+    uploads segments DIRECTLY to final B2 destination with chunk-prefixed filenames,
+    and returns per-quality segment metadata (filenames and durations).
     """
     import subprocess
     import tempfile
@@ -656,8 +657,8 @@ def transcode_chunk(chunk_info: dict) -> dict:
     import re
 
     chunk_index = chunk_info["chunk_index"]
-    b2_chunk_key = chunk_info["b2_chunk_key"]    # e.g. tmp/chunks/<job_id>/chunk_000.mp4
-    hls_tmp_prefix = chunk_info["hls_tmp_prefix"] # e.g. tmp/hls/<job_id>
+    b2_chunk_key = chunk_info["b2_chunk_key"]        # e.g. tmp/chunks/<job_id>/chunk_000.mp4
+    final_hls_prefix = chunk_info["final_hls_prefix"]# e.g. hls/<object_key>
     has_audio = chunk_info["has_audio"]
 
     bucket_name = os.environ.get('B2_BUCKET_NAME')
@@ -680,7 +681,7 @@ def transcode_chunk(chunk_info: dict) -> dict:
         out_dir = tmp_path / "hls"
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # Download this chunk from B2 temp storage
+        # Download chunk from B2 temp storage
         print(f"[ChunkWorker-{chunk_index}] Downloading chunk from B2: {b2_chunk_key}")
         b2_client.download_file(bucket_name, b2_chunk_key, str(chunk_path))
 
@@ -711,12 +712,11 @@ def transcode_chunk(chunk_info: dict) -> dict:
             f"{out_dir}/%v/playlist.m3u8"
         ]
 
-        print(f"[ChunkWorker-{chunk_index}] Running FFmpeg (has_audio={has_audio})...")
+        print(f"[ChunkWorker-{chunk_index}] Running FFmpeg...")
         result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(f"[ChunkWorker-{chunk_index}] FFmpeg failed: {result.stderr[-1000:]}")
 
-        # Parse each quality playlist and collect segment durations and counts
         quality_info = {}
         for r in resolutions:
             qname = r["name"]
@@ -725,23 +725,25 @@ def transcode_chunk(chunk_info: dict) -> dict:
             if playlist_file.exists():
                 content = playlist_file.read_text()
                 extinf_values = [float(m.group(1)) for m in re.finditer(r'#EXTINF:([\d.]+),', content)]
-            quality_info[qname] = {"count": len(extinf_values), "durations": extinf_values}
 
-        # Upload all .ts segments to B2 temp path
-        chunk_b2_prefix = f"{hls_tmp_prefix}/chunk_{chunk_index:03d}"
-        for ts_file in out_dir.glob("**/seg_*.ts"):
-            quality_name = ts_file.parent.name
-            seg_filename = ts_file.name
-            b2_key = f"{chunk_b2_prefix}/{quality_name}/{seg_filename}"
-            b2_client.upload_file(
-                str(ts_file), bucket_name, b2_key,
-                ExtraArgs={"ContentType": "video/MP2T"}
-            )
+            # Upload .ts segments directly to final B2 destination key with chunk-prefixed filename
+            seg_metadata = []
+            ts_files = sorted((out_dir / qname).glob("seg_*.ts")) if (out_dir / qname).exists() else []
+            for seg_i, ts_file in enumerate(ts_files):
+                final_seg_name = f"seg_c{chunk_index:03d}_{seg_i:03d}.ts"
+                final_b2_key = f"{final_hls_prefix}/{qname}/{final_seg_name}"
+                b2_client.upload_file(
+                    str(ts_file), bucket_name, final_b2_key,
+                    ExtraArgs={"ContentType": "video/MP2T"}
+                )
+                dur = extinf_values[seg_i] if seg_i < len(extinf_values) else CODEC_CONFIG["hls_time"]
+                seg_metadata.append({"filename": final_seg_name, "duration": dur})
 
-        print(f"[ChunkWorker-{chunk_index}] Done. Uploaded segments to B2 prefix: {chunk_b2_prefix}")
+            quality_info[qname] = seg_metadata
+
+        print(f"[ChunkWorker-{chunk_index}] Done. Direct uploaded segments to B2 prefix: {final_hls_prefix}")
         return {
             "chunk_index": chunk_index,
-            "b2_prefix": chunk_b2_prefix,
             "quality_info": quality_info,
         }
 
@@ -749,13 +751,12 @@ def transcode_chunk(chunk_info: dict) -> dict:
 def run_parallel_transcode(request: dict) -> dict:
     """
     Parallel chunk transcoding coordinator. Used by medium and large workers.
-    1. Downloads video from B2 and extracts poster + audio/resolution metadata.
-    2. Splits the video into 30-second keyframe-aligned chunks (stream copy — no re-encode).
+    1. Downloads video from B2 and extracts poster + audio metadata.
+    2. Fast-splits video into 30-second chunks using stream copy (no re-encoding, takes ~1s).
     3. Uploads raw chunks to B2 temp storage.
-    4. Fans out to transcode_chunk.map() — one Modal container per chunk.
-    5. Merges HLS segments with globally unique sequential segment indices.
-    6. Builds a seamless final master.m3u8 and uploads everything to final B2 path.
-    7. Updates Supabase and logs cost.
+    4. Fans out to transcode_chunk.map() — workers upload segments directly to final B2 path.
+    5. Builds and uploads final playlist manifests instantly in memory (zero merge delay).
+    6. Updates Supabase and logs cost.
     """
     import time
     import subprocess
@@ -764,7 +765,6 @@ def run_parallel_transcode(request: dict) -> dict:
     import boto3
     import uuid
     import math
-    import re
     from supabase import create_client, Client
 
     start_time = time.time()
@@ -790,6 +790,7 @@ def run_parallel_transcode(request: dict) -> dict:
     bucket_name = os.environ.get('B2_BUCKET_NAME')
     media_domain = (os.environ.get("MEDIA_DOMAIN") or "media.evebash.com").replace("https://", "").strip("/")
     job_id = uuid.uuid4().hex[:12]
+    hls_final_prefix = f"hls/{object_key}"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = pathlib.Path(tmp_dir)
@@ -832,34 +833,13 @@ def run_parallel_transcode(request: dict) -> dict:
         total_duration = float(probe_dur.stdout.strip() or "0")
         chunk_secs = 30
         num_chunks = max(1, math.ceil(total_duration / chunk_secs))
-        print(f"[ParallelTranscode] Video duration: {total_duration:.1f}s → {num_chunks} chunks of {chunk_secs}s each.")
+        print(f"[ParallelTranscode] Video duration: {total_duration:.1f}s → {num_chunks} expected chunks.")
 
-        # ── Step 4: Keyframe-aligned chunk split (stream copy — near-instant) ─
-        # Force a keyframe every chunk_secs seconds so each chunk is independently decodable.
-        # Two-pass approach: first insert keyframes, then do stream-copy split.
-        keyframed_path = tmp_path / "keyframed.mp4"
-        print("[ParallelTranscode] Inserting keyframes at chunk boundaries...")
-        kf_expr = f"expr:gte(t, n_forced * {chunk_secs})"
-        kf_cmd = [
-            "ffmpeg", "-y", "-i", str(raw_input_path),
-            "-force_key_frames", kf_expr,
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "0",   # lossless-ish, very fast
-        ]
-        if has_audio:
-            kf_cmd += ["-c:a", "copy"]
-        else:
-            kf_cmd += ["-an"]
-        kf_cmd.append(str(keyframed_path))
-        kf_res = subprocess.run(kf_cmd, capture_output=True, text=True)
-        if kf_res.returncode != 0:
-            # Fallback: skip keyframe step and split original directly
-            print(f"[ParallelTranscode] Keyframe insertion failed, splitting original: {kf_res.stderr[-300:]}")
-            keyframed_path = raw_input_path
-
+        # ── Step 4: Fast stream-copy split (no re-encoding, completes in ~1s) ──
         print("[ParallelTranscode] Splitting video into chunks (stream copy)...")
         split_pattern = str(chunks_dir / "chunk_%03d.mp4")
         split_cmd = [
-            "ffmpeg", "-y", "-i", str(keyframed_path),
+            "ffmpeg", "-y", "-i", str(raw_input_path),
             "-c", "copy", "-f", "segment",
             "-segment_time", str(chunk_secs),
             "-reset_timestamps", "1",
@@ -876,20 +856,18 @@ def run_parallel_transcode(request: dict) -> dict:
 
         # ── Step 5: Upload raw chunks to B2 temp storage ────────────────────
         chunk_tmp_prefix = f"tmp/chunks/{job_id}"
-        hls_tmp_prefix = f"tmp/hls/{job_id}"
         chunk_b2_keys = []
         for chunk_file in chunk_files:
             b2_key = f"{chunk_tmp_prefix}/{chunk_file.name}"
             b2_client.upload_file(str(chunk_file), bucket_name, b2_key)
             chunk_b2_keys.append(b2_key)
-            print(f"[ParallelTranscode] Uploaded chunk to B2: {b2_key}")
 
-        # ── Step 6: Fan out — one Modal container per chunk ─────────────────
+        # ── Step 6: Fan out — workers transcode & upload segments directly ─────
         chunk_inputs = [
             {
                 "chunk_index": i,
                 "b2_chunk_key": chunk_b2_keys[i],
-                "hls_tmp_prefix": hls_tmp_prefix,
+                "final_hls_prefix": hls_final_prefix,
                 "has_audio": has_audio,
             }
             for i in range(actual_num_chunks)
@@ -899,37 +877,20 @@ def run_parallel_transcode(request: dict) -> dict:
         chunk_results.sort(key=lambda r: r["chunk_index"])
         print(f"[ParallelTranscode] All {actual_num_chunks} chunk workers completed.")
 
-        # ── Step 7: Merge HLS segments ───────────────────────────────────────
-        # Download all .ts files and renumber them globally across all chunks.
+        # ── Step 7: Build playlist manifests in memory (instant — 0s delay) ───
         resolutions = CODEC_CONFIG["resolutions"]
-        # Determine final HLS output directory
-        for r in resolutions:
-            (final_hls_dir / r["name"]).mkdir(parents=True, exist_ok=True)
-
-        # For each quality, collect all segment durations ordered by chunk, then by segment within chunk
-        quality_segment_data = {r["name"]: [] for r in resolutions}  # name → list of (b2_key, duration)
-        for cr in chunk_results:
-            chunk_index = cr["chunk_index"]
-            chunk_b2_prefix = cr["b2_prefix"]
-            for r in resolutions:
-                qname = r["name"]
-                qinfo = cr["quality_info"].get(qname, {})
-                seg_count = qinfo.get("count", 0)
-                durations = qinfo.get("durations", [])
-                for seg_i in range(seg_count):
-                    b2_seg_key = f"{chunk_b2_prefix}/{qname}/seg_{seg_i:03d}.ts"
-                    dur = durations[seg_i] if seg_i < len(durations) else CODEC_CONFIG["hls_time"]
-                    quality_segment_data[qname].append((b2_seg_key, dur))
-
-        # Download, rename, re-upload all segments sequentially; build merged playlists
-        hls_final_prefix = f"hls/{object_key}"
         for r in resolutions:
             qname = r["name"]
-            segs = quality_segment_data[qname]
-            if not segs:
+            all_segs = []
+            for cr in chunk_results:
+                segs = cr["quality_info"].get(qname, [])
+                all_segs.extend(segs)
+
+            if not all_segs:
                 continue
-            max_extinf = max(d for _, d in segs)
-            target_duration = math.ceil(max_extinf)
+
+            max_dur = max(s["duration"] for s in all_segs)
+            target_duration = math.ceil(max_dur)
 
             playlist_lines = [
                 "#EXTM3U",
@@ -939,29 +900,23 @@ def run_parallel_transcode(request: dict) -> dict:
                 "#EXT-X-PLAYLIST-TYPE:VOD",
             ]
 
-            for global_idx, (b2_seg_key, duration) in enumerate(segs):
-                local_ts = final_hls_dir / qname / f"segment_{global_idx:03d}.ts"
-                b2_client.download_file(bucket_name, b2_seg_key, str(local_ts))
-                final_seg_b2_key = f"{hls_final_prefix}/{qname}/segment_{global_idx:03d}.ts"
-                b2_client.upload_file(
-                    str(local_ts), bucket_name, final_seg_b2_key,
-                    ExtraArgs={"ContentType": "video/MP2T"}
-                )
-                playlist_lines.append(f"#EXTINF:{duration:.6f},")
-                playlist_lines.append(f"segment_{global_idx:03d}.ts")
+            for s in all_segs:
+                playlist_lines.append(f"#EXTINF:{s['duration']:.6f},")
+                playlist_lines.append(s["filename"])
 
             playlist_lines.append("#EXT-X-ENDLIST")
             playlist_content = "\n".join(playlist_lines) + "\n"
-            playlist_local = final_hls_dir / qname / "playlist.m3u8"
-            playlist_local.write_text(playlist_content)
-            b2_client.upload_file(
-                str(playlist_local), bucket_name, f"{hls_final_prefix}/{qname}/playlist.m3u8",
-                ExtraArgs={"ContentType": "application/x-mpegURL"}
-            )
-            print(f"[ParallelTranscode] Merged {len(segs)} segments for {qname}.")
 
-        # ── Step 8: Build master.m3u8 ────────────────────────────────────────
-        # Bandwidth map matches CODEC_CONFIG bitrates
+            # Upload playlist.m3u8 directly to B2
+            b2_client.put_object(
+                Bucket=bucket_name,
+                Key=f"{hls_final_prefix}/{qname}/playlist.m3u8",
+                Body=playlist_content.encode("utf-8"),
+                ContentType="application/x-mpegURL"
+            )
+            print(f"[ParallelTranscode] Built & uploaded {qname}/playlist.m3u8 ({len(all_segs)} segments).")
+
+        # ── Step 8: Build and upload master.m3u8 ─────────────────────────────
         bandwidth_map = {
             "1080p": {"bandwidth": 4540800, "resolution": "1920x1080"},
             "720p":  {"bandwidth": 2890800, "resolution": "1280x720"},
@@ -976,15 +931,15 @@ def run_parallel_transcode(request: dict) -> dict:
             master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw},RESOLUTION={res},CODECS=\"{codecs_str}\"")
             master_lines.append(f"{qname}/playlist.m3u8")
             master_lines.append("")
-        master_content = "\n".join(master_lines)
-        master_local = final_hls_dir / "master.m3u8"
-        master_local.write_text(master_content)
-        b2_client.upload_file(
-            str(master_local), bucket_name, f"{hls_final_prefix}/master.m3u8",
-            ExtraArgs={"ContentType": "application/x-mpegURL"}
+
+        b2_client.put_object(
+            Bucket=bucket_name,
+            Key=f"{hls_final_prefix}/master.m3u8",
+            Body="\n".join(master_lines).encode("utf-8"),
+            ContentType="application/x-mpegURL"
         )
 
-        # ── Step 9: Upload poster ────────────────────────────────────────────
+        # ── Step 9: Upload poster frame ──────────────────────────────────────
         poster_url = None
         if poster_path.exists():
             b2_client.upload_file(
@@ -995,20 +950,12 @@ def run_parallel_transcode(request: dict) -> dict:
 
         hls_master_url = f"https://{media_domain}/{hls_final_prefix}/master.m3u8"
 
-        # ── Step 10: Clean up B2 temp chunk files ────────────────────────────
+        # ── Step 10: Clean up raw temp chunk files in B2 ─────────────────────
         try:
             for key in chunk_b2_keys:
                 b2_client.delete_object(Bucket=bucket_name, Key=key)
-            for cr in chunk_results:
-                for r in resolutions:
-                    seg_count = cr["quality_info"].get(r["name"], {}).get("count", 0)
-                    for seg_i in range(seg_count):
-                        b2_client.delete_object(
-                            Bucket=bucket_name,
-                            Key=f"{cr['b2_prefix']}/{r['name']}/seg_{seg_i:03d}.ts"
-                        )
         except Exception as cleanup_err:
-            print(f"[ParallelTranscode] B2 temp cleanup warning: {cleanup_err}")
+            print(f"[ParallelTranscode] Temp cleanup warning: {cleanup_err}")
 
         # ── Step 11: Update Supabase ─────────────────────────────────────────
         update_data = {"url": hls_master_url, "resource_type": "video", "media_type": "video"}
