@@ -84,9 +84,14 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
     }
 
     if (isHLSUrl(url)) {
+      console.log(`[HLSPlayer] Attempting to load HLS manifest: ${url}`);
       // Prioritize HLS.js for custom quality selection (supported on Chrome, Firefox, Edge, Android, and macOS Safari)
       import("hls.js").then(({ default: Hls }) => {
-        if (!Hls.isSupported()) {
+        const supported = Hls.isSupported();
+        console.log(`[HLSPlayer] Hls.js isSupported = ${supported}`);
+        
+        if (!supported) {
+          console.warn("[HLSPlayer] Hls.js not supported. Falling back to native browser playback...");
           // Fallback to native HLS support (e.g., iOS Safari)
           if (video.canPlayType("application/vnd.apple.mpegurl")) {
             video.src = url;
@@ -94,12 +99,14 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
             setState("playing");
             if (autoPlay) video.play().catch(() => {});
           } else {
+            console.error("[HLSPlayer] Native HLS playback not supported by browser.");
             setState("error");
             setErrorMsg("HLS playback is not supported on this browser.");
           }
           return;
         }
 
+        console.log("[HLSPlayer] Initializing Hls.js instance...");
         const hls = new Hls({
           startLevel: -1,       // begin at lowest rendition, auto-upgrade
           maxBufferLength: 10,
@@ -111,17 +118,21 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          const parsedLevels = hls.levels || [];
+          console.log(`[HLSPlayer] Manifest parsed. Found ${parsedLevels.length} quality levels:`, parsedLevels.map(l => `${l.height}p`));
           setState("playing");
-          setLevels(hls.levels || []);
+          setLevels(parsedLevels);
           setSelectedLevel(hls.loadLevel);
           if (autoPlay) video.play().catch(() => {});
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (_event: any, data: any) => {
+          console.log(`[HLSPlayer] Quality level switched to: ${data.level}`);
           setActiveLevel(data.level);
         });
 
         hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
+          console.error("[HLSPlayer] Hls.js error:", data);
           if (data.fatal) {
             setState("error");
             setErrorMsg("Failed to load video stream.");
@@ -132,6 +143,7 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
     }
 
     // Direct MP4/MOV fallback (small videos that bypass the chunked path)
+    console.log(`[HLSPlayer] Playing direct video format fallback: ${url}`);
     video.src = url;
     video.load();
     setState("playing");
