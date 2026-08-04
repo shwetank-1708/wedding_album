@@ -4868,6 +4868,7 @@ function DashboardContent() {
                                                                 width: photo.width,
                                                                 height: photo.height,
                                                                 filename: photo.storageKey?.split('/').pop() || (isVideo ? "video" : "photo"),
+                                                                thumbnailUrl: photo.thumbnailUrl,
                                                                 mediaType: isVideo ? "video" : "photo",
                                                                 resourceType: isVideo ? "video" : "image"
                                                             });
@@ -5104,6 +5105,7 @@ function DashboardContent() {
                                                                                         width: photo.width,
                                                                                         height: photo.height,
                                                                                         filename: photo.storageKey?.split('/').pop() || (isVideo ? "video" : "photo"),
+                                                                                        thumbnailUrl: photo.thumbnailUrl,
                                                                                         mediaType: isVideo ? "video" : "photo",
                                                                                         resourceType: isVideo ? "video" : "image"
                                                                                     });
