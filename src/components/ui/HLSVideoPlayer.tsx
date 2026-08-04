@@ -272,7 +272,7 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
       />
 
       {/* Floating Quality Selector button (Only shown when HLS.js levels are loaded and player is playing) */}
-      {levels.length > 0 && (
+      {levels.length > 1 && (
         <div className="absolute top-4 right-4 z-20 pointer-events-auto">
           <button
             onClick={() => setMenuOpen(!menuOpen)}

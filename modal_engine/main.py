@@ -488,34 +488,71 @@ def run_transcode(request: dict):
         ]
         subprocess.run(poster_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+        # Check if video has an audio stream using ffprobe
+        has_audio = False
+        try:
+            probe_cmd = [
+                "ffprobe", "-v", "error", "-select_streams", "a", 
+                "-show_entries", "stream=index", "-of", "csv=p=0", 
+                str(raw_input_path)
+            ]
+            probe_res = subprocess.run(probe_cmd, capture_output=True, text=True)
+            if probe_res.stdout.strip():
+                has_audio = True
+                print("[VideoTranscode] Audio stream detected in input video.")
+            else:
+                print("[VideoTranscode] No audio stream detected in input video (silent video).")
+        except Exception as probe_err:
+            print(f"[VideoTranscode] Error probing audio: {probe_err}")
+
         # 3. Transcode to HLS (1080p, 720p, 480p adaptive bitrate streams)
         master_playlist_path = output_hls_dir / "master.m3u8"
-        hls_cmd = [
-            "ffmpeg", "-y", "-i", str(raw_input_path),
-            "-filter_complex",
-            "[0:v]split=3[v1,v2,v3]; "
-            "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
-            "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
-            "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
-            "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
-            "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
-            "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
-            "-map", "a:0?", "-c:a:0", "aac", "-b:a:0", "128k",
-            "-map", "a:0?", "-c:a:1", "aac", "-b:a:1", "128k",
-            "-map", "a:0?", "-c:a:2", "aac", "-b:a:2", "96k",
-            "-var_stream_map", "v:0,a:0,name:1080p v:1,a:1,name:720p v:2,a:2,name:480p",
-            "-preset", "veryfast", "-g", "48", "-sc_threshold", "0",
-            "-hls_time", "4", "-hls_playlist_type", "vod",
-            "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
-            "-master_pl_name", "master.m3u8",
-            f"{output_hls_dir}/%v/playlist.m3u8"
-        ]
+        
+        if has_audio:
+            hls_cmd = [
+                "ffmpeg", "-y", "-i", str(raw_input_path),
+                "-filter_complex",
+                "[0:v]split=3[v1,v2,v3]; "
+                "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
+                "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
+                "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
+                "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
+                "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
+                "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
+                "-map", "a:0", "-c:a:0", "aac", "-b:a:0", "128k",
+                "-map", "a:0", "-c:a:1", "aac", "-b:a:1", "128k",
+                "-map", "a:0", "-c:a:2", "aac", "-b:a:2", "96k",
+                "-var_stream_map", "v:0,a:0,name:1080p v:1,a:1,name:720p v:2,a:2,name:480p",
+                "-preset", "veryfast", "-g", "48", "-sc_threshold", "0",
+                "-hls_time", "4", "-hls_playlist_type", "vod",
+                "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
+                "-master_pl_name", "master.m3u8",
+                f"{output_hls_dir}/%v/playlist.m3u8"
+            ]
+        else:
+            hls_cmd = [
+                "ffmpeg", "-y", "-i", str(raw_input_path),
+                "-filter_complex",
+                "[0:v]split=3[v1,v2,v3]; "
+                "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
+                "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
+                "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
+                "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
+                "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
+                "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
+                "-var_stream_map", "v:0,name:1080p v:1,name:720p v:2,name:480p",
+                "-preset", "veryfast", "-g", "48", "-sc_threshold", "0",
+                "-hls_time", "4", "-hls_playlist_type", "vod",
+                "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
+                "-master_pl_name", "master.m3u8",
+                f"{output_hls_dir}/%v/playlist.m3u8"
+            ]
 
-        print(f"[VideoTranscode] Running FFmpeg HLS encoding pipeline...")
+        print(f"[VideoTranscode] Running FFmpeg HLS encoding pipeline (has_audio={has_audio})...")
         ffmpeg_res = subprocess.run(hls_cmd, capture_output=True, text=True)
 
         if ffmpeg_res.returncode != 0:
-            print(f"[VideoTranscode] Multi-rendition FFmpeg failed, running fallback single stream...")
+            print(f"[VideoTranscode] Multi-rendition FFmpeg failed, running fallback single stream... STDERR: {ffmpeg_res.stderr}")
             fallback_cmd = [
                 "ffmpeg", "-y", "-i", str(raw_input_path),
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
