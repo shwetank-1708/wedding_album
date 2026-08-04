@@ -512,7 +512,7 @@ def run_transcode(request: dict):
             hls_cmd = [
                 "ffmpeg", "-y", "-i", str(raw_input_path),
                 "-filter_complex",
-                "[0:v]split=3[v1,v2,v3]; "
+                "[0:v]split=3[v1][v2][v3]; "
                 "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
                 "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
                 "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
@@ -533,7 +533,7 @@ def run_transcode(request: dict):
             hls_cmd = [
                 "ffmpeg", "-y", "-i", str(raw_input_path),
                 "-filter_complex",
-                "[0:v]split=3[v1,v2,v3]; "
+                "[0:v]split=3[v1][v2][v3]; "
                 "[v1]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1out]; "
                 "[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v2out]; "
                 "[v3]scale=w=854:h=480:force_original_aspect_ratio=decrease[v3out]",
