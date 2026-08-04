@@ -428,9 +428,27 @@ def find_matching_photos(request: dict):
         return {"error": str(e), "matches": []}
 
 
+# ---------------------------------------------------------------------------
+# Shared codec configuration — identical parameters passed to every chunk worker
+# so all segments are codec-compatible and can be merged without discontinuity.
+# ---------------------------------------------------------------------------
+CODEC_CONFIG = {
+    "preset": "veryfast",
+    "keyint": 48,          # Must match across ALL chunk workers
+    "sc_threshold": 0,
+    "hls_time": 4,
+    "resolutions": [
+        {"name": "1080p", "scale": "-2:1080", "vbitrate": "4000k", "maxrate": "4500k", "bufsize": "6000k", "abitrate": "128k"},
+        {"name": "720p",  "scale": "-2:720",  "vbitrate": "2500k", "maxrate": "2800k", "bufsize": "3500k", "abitrate": "128k"},
+        {"name": "480p",  "scale": "-2:480",  "vbitrate": "1000k", "maxrate": "1200k", "bufsize": "1500k", "abitrate": "96k"},
+    ]
+}
+
+
 def run_transcode(request: dict):
     """
-    QStash Webhook Entrypoint for Video Transcoding.
+    Sequential single-container transcode path.
+    Used by process_video_transcode_standard (small files <100MB).
     Downloads raw video from B2, runs FFmpeg to generate adaptive HLS renditions (.m3u8 + .ts),
     poster frame, uploads to B2, and updates Supabase database.
     """
@@ -492,8 +510,8 @@ def run_transcode(request: dict):
         has_audio = False
         try:
             probe_cmd = [
-                "ffprobe", "-v", "error", "-select_streams", "a", 
-                "-show_entries", "stream=index", "-of", "csv=p=0", 
+                "ffprobe", "-v", "error", "-select_streams", "a",
+                "-show_entries", "stream=index", "-of", "csv=p=0",
                 str(raw_input_path)
             ]
             probe_res = subprocess.run(probe_cmd, capture_output=True, text=True)
@@ -505,48 +523,39 @@ def run_transcode(request: dict):
         except Exception as probe_err:
             print(f"[VideoTranscode] Error probing audio: {probe_err}")
 
-        # 3. Transcode to HLS (1080p, 720p, 480p adaptive bitrate streams)
+        # 3. Build and run the multi-resolution FFmpeg HLS command
         master_playlist_path = output_hls_dir / "master.m3u8"
-        
+        resolutions = CODEC_CONFIG["resolutions"]
+        preset = CODEC_CONFIG["preset"]
+        keyint = CODEC_CONFIG["keyint"]
+        sc_threshold = CODEC_CONFIG["sc_threshold"]
+        hls_time = CODEC_CONFIG["hls_time"]
+
+        split_labels = "".join(f"[v{i+1}]" for i in range(len(resolutions)))
+        filter_complex_parts = [f"[0:v]split={len(resolutions)}{split_labels}"]
+        for i, r in enumerate(resolutions):
+            filter_complex_parts.append(f"[v{i+1}]scale={r['scale']}[v{i+1}out]")
+        filter_complex = "; ".join(filter_complex_parts)
+
+        hls_cmd = ["ffmpeg", "-y", "-i", str(raw_input_path), "-filter_complex", filter_complex]
+        for i, r in enumerate(resolutions):
+            hls_cmd += ["-map", f"[v{i+1}out]", f"-c:v:{i}", "libx264",
+                        f"-b:v:{i}", r["vbitrate"], f"-maxrate:v:{i}", r["maxrate"], f"-bufsize:v:{i}", r["bufsize"]]
         if has_audio:
-            hls_cmd = [
-                "ffmpeg", "-y", "-i", str(raw_input_path),
-                "-filter_complex",
-                "[0:v]split=3[v1][v2][v3]; "
-                "[v1]scale=-2:1080[v1out]; "
-                "[v2]scale=-2:720[v2out]; "
-                "[v3]scale=-2:480[v3out]",
-                "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
-                "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
-                "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
-                "-map", "a:0", "-c:a:0", "aac", "-b:a:0", "128k",
-                "-map", "a:0", "-c:a:1", "aac", "-b:a:1", "128k",
-                "-map", "a:0", "-c:a:2", "aac", "-b:a:2", "96k",
-                "-var_stream_map", "v:0,a:0,name:1080p v:1,a:1,name:720p v:2,a:2,name:480p",
-                "-preset", "veryfast", "-g", "48", "-sc_threshold", "0",
-                "-hls_time", "4", "-hls_playlist_type", "vod",
-                "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
-                "-master_pl_name", "master.m3u8",
-                f"{output_hls_dir}/%v/playlist.m3u8"
-            ]
+            for i, r in enumerate(resolutions):
+                hls_cmd += ["-map", "a:0", f"-c:a:{i}", "aac", f"-b:a:{i}", r["abitrate"]]
+            var_stream_map = " ".join(f"v:{i},a:{i},name:{r['name']}" for i, r in enumerate(resolutions))
         else:
-            hls_cmd = [
-                "ffmpeg", "-y", "-i", str(raw_input_path),
-                "-filter_complex",
-                "[0:v]split=3[v1][v2][v3]; "
-                "[v1]scale=-2:1080[v1out]; "
-                "[v2]scale=-2:720[v2out]; "
-                "[v3]scale=-2:480[v3out]",
-                "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "4000k", "-maxrate:v:0", "4500k", "-bufsize:v:0", "6000k",
-                "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "2500k", "-maxrate:v:1", "2800k", "-bufsize:v:1", "3500k",
-                "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "1000k", "-maxrate:v:2", "1200k", "-bufsize:v:2", "1500k",
-                "-var_stream_map", "v:0,name:1080p v:1,name:720p v:2,name:480p",
-                "-preset", "veryfast", "-g", "48", "-sc_threshold", "0",
-                "-hls_time", "4", "-hls_playlist_type", "vod",
-                "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
-                "-master_pl_name", "master.m3u8",
-                f"{output_hls_dir}/%v/playlist.m3u8"
-            ]
+            var_stream_map = " ".join(f"v:{i},name:{r['name']}" for i, r in enumerate(resolutions))
+
+        hls_cmd += [
+            "-var_stream_map", var_stream_map,
+            "-preset", preset, "-g", str(keyint), "-sc_threshold", str(sc_threshold),
+            "-hls_time", str(hls_time), "-hls_playlist_type", "vod",
+            "-hls_segment_filename", f"{output_hls_dir}/%v/segment_%03d.ts",
+            "-master_pl_name", "master.m3u8",
+            f"{output_hls_dir}/%v/playlist.m3u8"
+        ]
 
         print(f"[VideoTranscode] Running FFmpeg HLS encoding pipeline (has_audio={has_audio})...")
         ffmpeg_res = subprocess.run(hls_cmd, capture_output=True, text=True)
@@ -599,12 +608,12 @@ def run_transcode(request: dict):
 
         # 6. Log infrastructure cost
         duration = time.time() - start_time
-        cpu_cores = 2.0
+        cpu_cores = 1.0
         memory_gb = 2.0
         estimated_cost_inr = duration * ((cpu_cores * 0.00131) + (memory_gb * 0.000222))
         try:
             supabase.table("modal_cost_logs").insert({
-                "function_name": "process_video_transcode",
+                "function_name": "process_video_transcode_standard",
                 "cpu_cores": cpu_cores,
                 "memory_gb": memory_gb,
                 "execution_time_seconds": duration,
@@ -620,6 +629,418 @@ def run_transcode(request: dict):
             "hls_url": hls_master_url,
             "poster_url": poster_url,
             "duration_seconds": duration
+        }
+
+
+# ---------------------------------------------------------------------------
+# PARALLEL CHUNK TRANSCODING PIPELINE (used by medium + large workers)
+# ---------------------------------------------------------------------------
+
+@app.function(
+    image=image,
+    cpu=2.0,
+    memory=4096,
+    timeout=300,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+def transcode_chunk(chunk_info: dict) -> dict:
+    """
+    Parallel chunk worker: receives a 30-second chunk from B2 temp storage,
+    transcodes it into HLS segments for all 3 quality tiers using CODEC_CONFIG,
+    uploads them back to B2, and returns per-quality segment metadata.
+    """
+    import subprocess
+    import tempfile
+    import pathlib
+    import boto3
+    import re
+
+    chunk_index = chunk_info["chunk_index"]
+    b2_chunk_key = chunk_info["b2_chunk_key"]    # e.g. tmp/chunks/<job_id>/chunk_000.mp4
+    hls_tmp_prefix = chunk_info["hls_tmp_prefix"] # e.g. tmp/hls/<job_id>
+    has_audio = chunk_info["has_audio"]
+
+    bucket_name = os.environ.get('B2_BUCKET_NAME')
+    b2_client = boto3.client(
+        's3',
+        endpoint_url=f"https://{os.environ.get('B2_ENDPOINT')}",
+        aws_access_key_id=os.environ.get('B2_KEY_ID'),
+        aws_secret_access_key=os.environ.get('B2_APPLICATION_KEY')
+    )
+
+    resolutions = CODEC_CONFIG["resolutions"]
+    preset = CODEC_CONFIG["preset"]
+    keyint = CODEC_CONFIG["keyint"]
+    sc_threshold = CODEC_CONFIG["sc_threshold"]
+    hls_time = CODEC_CONFIG["hls_time"]
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = pathlib.Path(tmp_dir)
+        chunk_path = tmp_path / f"chunk_{chunk_index:03d}.mp4"
+        out_dir = tmp_path / "hls"
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Download this chunk from B2 temp storage
+        print(f"[ChunkWorker-{chunk_index}] Downloading chunk from B2: {b2_chunk_key}")
+        b2_client.download_file(bucket_name, b2_chunk_key, str(chunk_path))
+
+        # Build FFmpeg filter_complex and stream maps using shared CODEC_CONFIG
+        split_labels = "".join(f"[v{i+1}]" for i in range(len(resolutions)))
+        filter_parts = [f"[0:v]split={len(resolutions)}{split_labels}"]
+        for i, r in enumerate(resolutions):
+            filter_parts.append(f"[v{i+1}]scale={r['scale']}[v{i+1}out]")
+        filter_complex = "; ".join(filter_parts)
+
+        ffmpeg_cmd = ["ffmpeg", "-y", "-i", str(chunk_path), "-filter_complex", filter_complex]
+        for i, r in enumerate(resolutions):
+            ffmpeg_cmd += ["-map", f"[v{i+1}out]", f"-c:v:{i}", "libx264",
+                           f"-b:v:{i}", r["vbitrate"], f"-maxrate:v:{i}", r["maxrate"], f"-bufsize:v:{i}", r["bufsize"]]
+        if has_audio:
+            for i, r in enumerate(resolutions):
+                ffmpeg_cmd += ["-map", "a:0", f"-c:a:{i}", "aac", f"-b:a:{i}", r["abitrate"]]
+            var_stream_map = " ".join(f"v:{i},a:{i},name:{r['name']}" for i, r in enumerate(resolutions))
+        else:
+            var_stream_map = " ".join(f"v:{i},name:{r['name']}" for i, r in enumerate(resolutions))
+
+        ffmpeg_cmd += [
+            "-var_stream_map", var_stream_map,
+            "-preset", preset, "-g", str(keyint), "-sc_threshold", str(sc_threshold),
+            "-hls_time", str(hls_time), "-hls_playlist_type", "vod",
+            "-hls_segment_filename", f"{out_dir}/%v/seg_%03d.ts",
+            "-master_pl_name", "master.m3u8",
+            f"{out_dir}/%v/playlist.m3u8"
+        ]
+
+        print(f"[ChunkWorker-{chunk_index}] Running FFmpeg (has_audio={has_audio})...")
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"[ChunkWorker-{chunk_index}] FFmpeg failed: {result.stderr[-1000:]}")
+
+        # Parse each quality playlist and collect segment durations and counts
+        quality_info = {}
+        for r in resolutions:
+            qname = r["name"]
+            playlist_file = out_dir / qname / "playlist.m3u8"
+            extinf_values = []
+            if playlist_file.exists():
+                content = playlist_file.read_text()
+                extinf_values = [float(m.group(1)) for m in re.finditer(r'#EXTINF:([\d.]+),', content)]
+            quality_info[qname] = {"count": len(extinf_values), "durations": extinf_values}
+
+        # Upload all .ts segments to B2 temp path
+        chunk_b2_prefix = f"{hls_tmp_prefix}/chunk_{chunk_index:03d}"
+        for ts_file in out_dir.glob("**/seg_*.ts"):
+            quality_name = ts_file.parent.name
+            seg_filename = ts_file.name
+            b2_key = f"{chunk_b2_prefix}/{quality_name}/{seg_filename}"
+            b2_client.upload_file(
+                str(ts_file), bucket_name, b2_key,
+                ExtraArgs={"ContentType": "video/MP2T"}
+            )
+
+        print(f"[ChunkWorker-{chunk_index}] Done. Uploaded segments to B2 prefix: {chunk_b2_prefix}")
+        return {
+            "chunk_index": chunk_index,
+            "b2_prefix": chunk_b2_prefix,
+            "quality_info": quality_info,
+        }
+
+
+def run_parallel_transcode(request: dict) -> dict:
+    """
+    Parallel chunk transcoding coordinator. Used by medium and large workers.
+    1. Downloads video from B2 and extracts poster + audio/resolution metadata.
+    2. Splits the video into 30-second keyframe-aligned chunks (stream copy — no re-encode).
+    3. Uploads raw chunks to B2 temp storage.
+    4. Fans out to transcode_chunk.map() — one Modal container per chunk.
+    5. Merges HLS segments with globally unique sequential segment indices.
+    6. Builds a seamless final master.m3u8 and uploads everything to final B2 path.
+    7. Updates Supabase and logs cost.
+    """
+    import time
+    import subprocess
+    import tempfile
+    import pathlib
+    import boto3
+    import uuid
+    import math
+    import re
+    from supabase import create_client, Client
+
+    start_time = time.time()
+
+    photo_id   = request.get("photo_id") or request.get("id")
+    object_key = request.get("storage_key") or request.get("object_key")
+
+    if not object_key or not photo_id:
+        return {"error": "Missing storage_key or photo_id", "status": "failed"}
+
+    print(f"[ParallelTranscode] Starting for: {object_key} (ID: {photo_id})")
+
+    supabase: Client = create_client(
+        os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
+    b2_client = boto3.client(
+        's3',
+        endpoint_url=f"https://{os.environ.get('B2_ENDPOINT')}",
+        aws_access_key_id=os.environ.get('B2_KEY_ID'),
+        aws_secret_access_key=os.environ.get('B2_APPLICATION_KEY')
+    )
+    bucket_name = os.environ.get('B2_BUCKET_NAME')
+    media_domain = (os.environ.get("MEDIA_DOMAIN") or "media.evebash.com").replace("https://", "").strip("/")
+    job_id = uuid.uuid4().hex[:12]
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = pathlib.Path(tmp_dir)
+        raw_input_path = tmp_path / "input_raw.mp4"
+        chunks_dir = tmp_path / "chunks"
+        chunks_dir.mkdir(parents=True, exist_ok=True)
+        final_hls_dir = tmp_path / "final_hls"
+        final_hls_dir.mkdir(parents=True, exist_ok=True)
+
+        # ── Step 1: Download raw video ──────────────────────────────────────
+        print(f"[ParallelTranscode] Downloading raw video from B2...")
+        b2_client.download_file(bucket_name, object_key, str(raw_input_path))
+
+        # ── Step 2: Extract poster frame ────────────────────────────────────
+        poster_path = final_hls_dir / "poster.jpg"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(raw_input_path), "-ss", "00:00:01",
+             "-vframes", "1", "-q:v", "2", str(poster_path)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+
+        # ── Step 3: Probe audio and video duration ──────────────────────────
+        has_audio = False
+        probe_audio = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "a",
+             "-show_entries", "stream=index", "-of", "csv=p=0", str(raw_input_path)],
+            capture_output=True, text=True
+        )
+        if probe_audio.stdout.strip():
+            has_audio = True
+            print("[ParallelTranscode] Audio stream detected.")
+        else:
+            print("[ParallelTranscode] No audio stream (silent video).")
+
+        probe_dur = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "csv=p=0", str(raw_input_path)],
+            capture_output=True, text=True
+        )
+        total_duration = float(probe_dur.stdout.strip() or "0")
+        chunk_secs = 30
+        num_chunks = max(1, math.ceil(total_duration / chunk_secs))
+        print(f"[ParallelTranscode] Video duration: {total_duration:.1f}s → {num_chunks} chunks of {chunk_secs}s each.")
+
+        # ── Step 4: Keyframe-aligned chunk split (stream copy — near-instant) ─
+        # Force a keyframe every chunk_secs seconds so each chunk is independently decodable.
+        # Two-pass approach: first insert keyframes, then do stream-copy split.
+        keyframed_path = tmp_path / "keyframed.mp4"
+        print("[ParallelTranscode] Inserting keyframes at chunk boundaries...")
+        kf_expr = f"expr:gte(t, n_forced * {chunk_secs})"
+        kf_cmd = [
+            "ffmpeg", "-y", "-i", str(raw_input_path),
+            "-force_key_frames", kf_expr,
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "0",   # lossless-ish, very fast
+        ]
+        if has_audio:
+            kf_cmd += ["-c:a", "copy"]
+        else:
+            kf_cmd += ["-an"]
+        kf_cmd.append(str(keyframed_path))
+        kf_res = subprocess.run(kf_cmd, capture_output=True, text=True)
+        if kf_res.returncode != 0:
+            # Fallback: skip keyframe step and split original directly
+            print(f"[ParallelTranscode] Keyframe insertion failed, splitting original: {kf_res.stderr[-300:]}")
+            keyframed_path = raw_input_path
+
+        print("[ParallelTranscode] Splitting video into chunks (stream copy)...")
+        split_pattern = str(chunks_dir / "chunk_%03d.mp4")
+        split_cmd = [
+            "ffmpeg", "-y", "-i", str(keyframed_path),
+            "-c", "copy", "-f", "segment",
+            "-segment_time", str(chunk_secs),
+            "-reset_timestamps", "1",
+            split_pattern
+        ]
+        split_res = subprocess.run(split_cmd, capture_output=True, text=True)
+        if split_res.returncode != 0:
+            print(f"[ParallelTranscode] Split failed: {split_res.stderr[-500:]}")
+            return {"error": "Video split failed", "status": "failed"}
+
+        chunk_files = sorted(chunks_dir.glob("chunk_*.mp4"))
+        actual_num_chunks = len(chunk_files)
+        print(f"[ParallelTranscode] Produced {actual_num_chunks} chunk files.")
+
+        # ── Step 5: Upload raw chunks to B2 temp storage ────────────────────
+        chunk_tmp_prefix = f"tmp/chunks/{job_id}"
+        hls_tmp_prefix = f"tmp/hls/{job_id}"
+        chunk_b2_keys = []
+        for chunk_file in chunk_files:
+            b2_key = f"{chunk_tmp_prefix}/{chunk_file.name}"
+            b2_client.upload_file(str(chunk_file), bucket_name, b2_key)
+            chunk_b2_keys.append(b2_key)
+            print(f"[ParallelTranscode] Uploaded chunk to B2: {b2_key}")
+
+        # ── Step 6: Fan out — one Modal container per chunk ─────────────────
+        chunk_inputs = [
+            {
+                "chunk_index": i,
+                "b2_chunk_key": chunk_b2_keys[i],
+                "hls_tmp_prefix": hls_tmp_prefix,
+                "has_audio": has_audio,
+            }
+            for i in range(actual_num_chunks)
+        ]
+        print(f"[ParallelTranscode] Launching {actual_num_chunks} parallel transcode workers via Modal.map...")
+        chunk_results = list(transcode_chunk.map(chunk_inputs))
+        chunk_results.sort(key=lambda r: r["chunk_index"])
+        print(f"[ParallelTranscode] All {actual_num_chunks} chunk workers completed.")
+
+        # ── Step 7: Merge HLS segments ───────────────────────────────────────
+        # Download all .ts files and renumber them globally across all chunks.
+        resolutions = CODEC_CONFIG["resolutions"]
+        # Determine final HLS output directory
+        for r in resolutions:
+            (final_hls_dir / r["name"]).mkdir(parents=True, exist_ok=True)
+
+        # For each quality, collect all segment durations ordered by chunk, then by segment within chunk
+        quality_segment_data = {r["name"]: [] for r in resolutions}  # name → list of (b2_key, duration)
+        for cr in chunk_results:
+            chunk_index = cr["chunk_index"]
+            chunk_b2_prefix = cr["b2_prefix"]
+            for r in resolutions:
+                qname = r["name"]
+                qinfo = cr["quality_info"].get(qname, {})
+                seg_count = qinfo.get("count", 0)
+                durations = qinfo.get("durations", [])
+                for seg_i in range(seg_count):
+                    b2_seg_key = f"{chunk_b2_prefix}/{qname}/seg_{seg_i:03d}.ts"
+                    dur = durations[seg_i] if seg_i < len(durations) else CODEC_CONFIG["hls_time"]
+                    quality_segment_data[qname].append((b2_seg_key, dur))
+
+        # Download, rename, re-upload all segments sequentially; build merged playlists
+        hls_final_prefix = f"hls/{object_key}"
+        for r in resolutions:
+            qname = r["name"]
+            segs = quality_segment_data[qname]
+            if not segs:
+                continue
+            max_extinf = max(d for _, d in segs)
+            target_duration = math.ceil(max_extinf)
+
+            playlist_lines = [
+                "#EXTM3U",
+                "#EXT-X-VERSION:3",
+                f"#EXT-X-TARGETDURATION:{target_duration}",
+                "#EXT-X-MEDIA-SEQUENCE:0",
+                "#EXT-X-PLAYLIST-TYPE:VOD",
+            ]
+
+            for global_idx, (b2_seg_key, duration) in enumerate(segs):
+                local_ts = final_hls_dir / qname / f"segment_{global_idx:03d}.ts"
+                b2_client.download_file(bucket_name, b2_seg_key, str(local_ts))
+                final_seg_b2_key = f"{hls_final_prefix}/{qname}/segment_{global_idx:03d}.ts"
+                b2_client.upload_file(
+                    str(local_ts), bucket_name, final_seg_b2_key,
+                    ExtraArgs={"ContentType": "video/MP2T"}
+                )
+                playlist_lines.append(f"#EXTINF:{duration:.6f},")
+                playlist_lines.append(f"segment_{global_idx:03d}.ts")
+
+            playlist_lines.append("#EXT-X-ENDLIST")
+            playlist_content = "\n".join(playlist_lines) + "\n"
+            playlist_local = final_hls_dir / qname / "playlist.m3u8"
+            playlist_local.write_text(playlist_content)
+            b2_client.upload_file(
+                str(playlist_local), bucket_name, f"{hls_final_prefix}/{qname}/playlist.m3u8",
+                ExtraArgs={"ContentType": "application/x-mpegURL"}
+            )
+            print(f"[ParallelTranscode] Merged {len(segs)} segments for {qname}.")
+
+        # ── Step 8: Build master.m3u8 ────────────────────────────────────────
+        # Bandwidth map matches CODEC_CONFIG bitrates
+        bandwidth_map = {
+            "1080p": {"bandwidth": 4540800, "resolution": "1920x1080"},
+            "720p":  {"bandwidth": 2890800, "resolution": "1280x720"},
+            "480p":  {"bandwidth": 1205600, "resolution": "854x480"},
+        }
+        codecs_str = "avc1.640028,mp4a.40.2" if has_audio else "avc1.640028"
+        master_lines = ["#EXTM3U", "#EXT-X-VERSION:3"]
+        for r in resolutions:
+            qname = r["name"]
+            bw = bandwidth_map.get(qname, {}).get("bandwidth", 1000000)
+            res = bandwidth_map.get(qname, {}).get("resolution", "")
+            master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw},RESOLUTION={res},CODECS=\"{codecs_str}\"")
+            master_lines.append(f"{qname}/playlist.m3u8")
+            master_lines.append("")
+        master_content = "\n".join(master_lines)
+        master_local = final_hls_dir / "master.m3u8"
+        master_local.write_text(master_content)
+        b2_client.upload_file(
+            str(master_local), bucket_name, f"{hls_final_prefix}/master.m3u8",
+            ExtraArgs={"ContentType": "application/x-mpegURL"}
+        )
+
+        # ── Step 9: Upload poster ────────────────────────────────────────────
+        poster_url = None
+        if poster_path.exists():
+            b2_client.upload_file(
+                str(poster_path), bucket_name, f"{hls_final_prefix}/poster.jpg",
+                ExtraArgs={"ContentType": "image/jpeg"}
+            )
+            poster_url = f"https://{media_domain}/{hls_final_prefix}/poster.jpg"
+
+        hls_master_url = f"https://{media_domain}/{hls_final_prefix}/master.m3u8"
+
+        # ── Step 10: Clean up B2 temp chunk files ────────────────────────────
+        try:
+            for key in chunk_b2_keys:
+                b2_client.delete_object(Bucket=bucket_name, Key=key)
+            for cr in chunk_results:
+                for r in resolutions:
+                    seg_count = cr["quality_info"].get(r["name"], {}).get("count", 0)
+                    for seg_i in range(seg_count):
+                        b2_client.delete_object(
+                            Bucket=bucket_name,
+                            Key=f"{cr['b2_prefix']}/{r['name']}/seg_{seg_i:03d}.ts"
+                        )
+        except Exception as cleanup_err:
+            print(f"[ParallelTranscode] B2 temp cleanup warning: {cleanup_err}")
+
+        # ── Step 11: Update Supabase ─────────────────────────────────────────
+        update_data = {"url": hls_master_url, "resource_type": "video", "media_type": "video"}
+        if poster_url:
+            update_data["thumbnail_url"] = poster_url
+        supabase.table("photos").update(update_data).eq("id", photo_id).execute()
+        print(f"[ParallelTranscode] Successfully encoded & updated photo {photo_id} with HLS URL: {hls_master_url}")
+
+        # ── Step 12: Log cost ────────────────────────────────────────────────
+        duration_total = time.time() - start_time
+        cpu_cores = 1.0
+        memory_gb = 2.0
+        estimated_cost_inr = duration_total * ((cpu_cores * 0.00131) + (memory_gb * 0.000222))
+        try:
+            supabase.table("modal_cost_logs").insert({
+                "function_name": "process_video_transcode_parallel",
+                "cpu_cores": cpu_cores,
+                "memory_gb": memory_gb,
+                "execution_time_seconds": duration_total,
+                "estimated_cost_inr": estimated_cost_inr,
+                "faces_detected": 0
+            }).execute()
+        except Exception as log_err:
+            print(f"[ParallelTranscode] Cost log failed: {log_err}")
+
+        return {
+            "status": "success",
+            "photo_id": photo_id,
+            "hls_url": hls_master_url,
+            "poster_url": poster_url,
+            "duration_seconds": duration_total,
+            "chunks_processed": actual_num_chunks,
         }
 
 
@@ -639,22 +1060,24 @@ def process_video_transcode_standard(request: dict):
     image=image,
     cpu=2.0,
     memory=4096,
-    timeout=600,
-    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
-)
-@modal.fastapi_endpoint(method="POST")
-def process_video_transcode_medium(request: dict):
-    return run_transcode(request)
-
-
-@app.function(
-    image=image,
-    cpu=4.0,
-    memory=8192,
     timeout=1200,
     secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
 )
 @modal.fastapi_endpoint(method="POST")
+def process_video_transcode_medium(request: dict):
+    """Parallel chunk transcode coordinator for medium files (100MB – 1GB)."""
+    return run_parallel_transcode(request)
+
+
+@app.function(
+    image=image,
+    cpu=2.0,
+    memory=4096,
+    timeout=1800,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
 def process_video_transcode_large(request: dict):
-    return run_transcode(request)
+    """Parallel chunk transcode coordinator for large files (>1GB)."""
+    return run_parallel_transcode(request)
 
