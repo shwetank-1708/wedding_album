@@ -638,8 +638,8 @@ def run_transcode(request: dict):
 
 @app.function(
     image=image,
-    cpu=2.0,
-    memory=4096,
+    cpu=1.0,
+    memory=2048,
     timeout=300,
     secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
 )
@@ -831,7 +831,7 @@ def run_parallel_transcode(request: dict) -> dict:
             capture_output=True, text=True
         )
         total_duration = float(probe_dur.stdout.strip() or "0")
-        chunk_secs = 30
+        chunk_secs = 60
         num_chunks = max(1, math.ceil(total_duration / chunk_secs))
         print(f"[ParallelTranscode] Video duration: {total_duration:.1f}s → {num_chunks} expected chunks.")
 
