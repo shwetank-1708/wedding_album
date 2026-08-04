@@ -5,6 +5,7 @@ import React, { memo, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GalleryMediaItem, PageFlipDirection, PageFlipThemeConfig } from "./types";
+import { HLSVideoPlayer } from "@/components/ui/HLSVideoPlayer";
 
 interface PageFlipPageProps {
   item: GalleryMediaItem;
@@ -75,13 +76,12 @@ export const PageFlipPage = memo(function PageFlipPage({
               </div>
             </div>
           )}
-          <video
+          <HLSVideoPlayer
             ref={videoRef}
             src={item.previewUrl}
             poster={item.thumbnailUrl}
             controls={isActive && !isTurning}
             playsInline
-            preload="metadata"
             className={cn("h-full max-h-full w-full max-w-full", coverMode ? "object-cover" : "object-contain")}
             onLoadedMetadata={onMediaReady}
             onError={() => setError(true)}

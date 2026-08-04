@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, forwardRef } from "react";
 import { Loader2, Film, AlertCircle, Settings, Check } from "lucide-react";
 
 interface HLSVideoPlayerProps {
@@ -12,6 +12,8 @@ interface HLSVideoPlayerProps {
   playsInline?: boolean;
   muted?: boolean;
   style?: React.CSSProperties;
+  onLoadedMetadata?: () => void;
+  onError?: () => void;
 }
 
 /** True if the URL is an HLS manifest */
@@ -26,17 +28,22 @@ function isRawVideoUrl(url: string) {
 
 type PlayerState = "loading" | "processing" | "playing" | "error";
 
-export function HLSVideoPlayer({
-  src,
-  poster,
-  className = "",
-  autoPlay = false,
-  controls = true,
-  playsInline = true,
-  muted = false,
-  style,
-}: HLSVideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>((
+  {
+    src,
+    poster,
+    className = "",
+    autoPlay = false,
+    controls = true,
+    playsInline = true,
+    muted = false,
+    style,
+    onLoadedMetadata,
+    onError,
+  },
+  ref
+) => {
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<any>(null);
   const [state, setState] = useState<PlayerState>("loading");
   const [activeSrc, setActiveSrc] = useState(src);
@@ -48,6 +55,16 @@ export function HLSVideoPlayer({
   const [activeLevel, setActiveLevel] = useState<number>(-1);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Combine forwarded ref and local ref
+  const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    localVideoRef.current = node;
+    if (typeof ref === "function") {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+    }
+  }, [ref]);
+
   // When parent passes a new src (e.g. via Realtime subscription updating the photo URL),
   // pick it up so we can transition from "processing" → playing once HLS is ready
   useEffect(() => {
@@ -55,7 +72,7 @@ export function HLSVideoPlayer({
   }, [src]);
 
   const startPlayback = useCallback((url: string) => {
-    const video = videoRef.current;
+    const video = localVideoRef.current;
     if (!video) return;
 
     if (hlsRef.current) {
@@ -225,17 +242,22 @@ export function HLSVideoPlayer({
       )}
       
       <video
-        ref={videoRef}
+        ref={setVideoRef}
         poster={poster}
         className="w-full h-full object-contain"
         controls={controls}
         playsInline={playsInline}
         muted={muted}
         preload="metadata"
-        onCanPlay={() => setState("playing")}
+        onCanPlay={() => {
+          setState("playing");
+          onLoadedMetadata?.();
+        }}
+        onLoadedMetadata={onLoadedMetadata}
         onError={() => {
           setState("error");
           setErrorMsg("Failed to load video.");
+          onError?.();
         }}
       />
 
@@ -289,4 +311,6 @@ export function HLSVideoPlayer({
       )}
     </div>
   );
-}
+});
+
+HLSVideoPlayer.displayName = "HLSVideoPlayer";
