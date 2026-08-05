@@ -885,123 +885,126 @@ def run_parallel_transcode(request: dict) -> dict:
             chunk_files = sorted(chunks_dir.glob("chunk_*.mp4"))
             actual_num_chunks = len(chunk_files)
 
-            # ── Step 5: Upload raw chunks in parallel ─────────────────────────
-            chunk_tmp_prefix = f"tmp/chunks/{job_id}"
-            chunk_b2_keys = [f"{chunk_tmp_prefix}/{cf.name}" for cf in chunk_files]
+            try:
+                # ── Step 5: Upload raw chunks in parallel ─────────────────────────
+                chunk_tmp_prefix = f"tmp/chunks/{job_id}"
+                chunk_b2_keys = [f"{chunk_tmp_prefix}/{cf.name}" for cf in chunk_files]
 
-            from concurrent.futures import ThreadPoolExecutor
-            def upload_single_chunk(cf, key):
-                b2_client.upload_file(str(cf), bucket_name, key)
+                from concurrent.futures import ThreadPoolExecutor
+                def upload_single_chunk(cf, key):
+                    b2_client.upload_file(str(cf), bucket_name, key)
 
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                list(executor.map(upload_single_chunk, chunk_files, chunk_b2_keys))
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    list(executor.map(upload_single_chunk, chunk_files, chunk_b2_keys))
 
-            # ── Step 6: Fan out to parallel transcode_chunk workers ────────────
-            chunk_inputs = [
-                {
-                    "chunk_index": i,
-                    "b2_chunk_key": chunk_b2_keys[i],
-                    "final_hls_prefix": hls_final_prefix,
-                    "has_audio": has_audio,
-                }
-                for i in range(actual_num_chunks)
-            ]
-            chunk_results = list(transcode_chunk.map(chunk_inputs))
-            chunk_results.sort(key=lambda r: r["chunk_index"])
-
-            # ── Step 7: Build playlist manifests in memory ─────────────────────
-            resolutions = CODEC_CONFIG["resolutions"]
-            for r in resolutions:
-                qname = r["name"]
-                all_segs = []
-                for cr in chunk_results:
-                    segs = cr["quality_info"].get(qname, [])
-                    all_segs.extend(segs)
-
-                if not all_segs:
-                    continue
-
-                max_dur = max(s["duration"] for s in all_segs)
-                target_duration = math.ceil(max_dur)
-
-                playlist_lines = [
-                    "#EXTM3U",
-                    "#EXT-X-VERSION:3",
-                    f"#EXT-X-TARGETDURATION:{target_duration}",
-                    "#EXT-X-MEDIA-SEQUENCE:0",
-                    "#EXT-X-PLAYLIST-TYPE:VOD",
+                # ── Step 6: Fan out to parallel transcode_chunk workers ────────────
+                chunk_inputs = [
+                    {
+                        "chunk_index": i,
+                        "b2_chunk_key": chunk_b2_keys[i],
+                        "final_hls_prefix": hls_final_prefix,
+                        "has_audio": has_audio,
+                    }
+                    for i in range(actual_num_chunks)
                 ]
+                chunk_results = list(transcode_chunk.map(chunk_inputs))
+                chunk_results.sort(key=lambda r: r["chunk_index"])
 
-                for s in all_segs:
-                    playlist_lines.append(f"#EXTINF:{s['duration']:.6f},")
-                    playlist_lines.append(s["filename"])
+                # ── Step 7: Build playlist manifests in memory ─────────────────────
+                resolutions = CODEC_CONFIG["resolutions"]
+                for r in resolutions:
+                    qname = r["name"]
+                    all_segs = []
+                    for cr in chunk_results:
+                        segs = cr["quality_info"].get(qname, [])
+                        all_segs.extend(segs)
 
-                playlist_lines.append("#EXT-X-ENDLIST")
-                playlist_content = "\n".join(playlist_lines) + "\n"
+                    if not all_segs:
+                        continue
+
+                    max_dur = max(s["duration"] for s in all_segs)
+                    target_duration = math.ceil(max_dur)
+
+                    playlist_lines = [
+                        "#EXTM3U",
+                        "#EXT-X-VERSION:3",
+                        f"#EXT-X-TARGETDURATION:{target_duration}",
+                        "#EXT-X-MEDIA-SEQUENCE:0",
+                        "#EXT-X-PLAYLIST-TYPE:VOD",
+                    ]
+
+                    for s in all_segs:
+                        playlist_lines.append(f"#EXTINF:{s['duration']:.6f},")
+                        playlist_lines.append(s["filename"])
+
+                    playlist_lines.append("#EXT-X-ENDLIST")
+                    playlist_content = "\n".join(playlist_lines) + "\n"
+
+                    b2_client.put_object(
+                        Bucket=bucket_name,
+                        Key=f"{hls_final_prefix}/{qname}/playlist.m3u8",
+                        Body=playlist_content.encode("utf-8"),
+                        ContentType="application/x-mpegURL"
+                    )
+
+                # ── Step 8: Build and upload master.m3u8 ─────────────────────────
+                bandwidth_map = {
+                    "1080p": {"bandwidth": 4540800, "resolution": "1920x1080"},
+                    "720p":  {"bandwidth": 2890800, "resolution": "1280x720"},
+                    "480p":  {"bandwidth": 1205600, "resolution": "854x480"},
+                }
+                codecs_str = "avc1.640028,mp4a.40.2" if has_audio else "avc1.640028"
+                master_lines = ["#EXTM3U", "#EXT-X-VERSION:3"]
+                for r in resolutions:
+                    qname = r["name"]
+                    bw = bandwidth_map.get(qname, {}).get("bandwidth", 1000000)
+                    res = bandwidth_map.get(qname, {}).get("resolution", "")
+                    master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw},RESOLUTION={res},CODECS=\"{codecs_str}\"")
+                    master_lines.append(f"{qname}/playlist.m3u8")
+                    master_lines.append("")
 
                 b2_client.put_object(
                     Bucket=bucket_name,
-                    Key=f"{hls_final_prefix}/{qname}/playlist.m3u8",
-                    Body=playlist_content.encode("utf-8"),
+                    Key=f"{hls_final_prefix}/master.m3u8",
+                    Body="\n".join(master_lines).encode("utf-8"),
                     ContentType="application/x-mpegURL"
                 )
 
-            # ── Step 8: Build and upload master.m3u8 ─────────────────────────
-            bandwidth_map = {
-                "1080p": {"bandwidth": 4540800, "resolution": "1920x1080"},
-                "720p":  {"bandwidth": 2890800, "resolution": "1280x720"},
-                "480p":  {"bandwidth": 1205600, "resolution": "854x480"},
-            }
-            codecs_str = "avc1.640028,mp4a.40.2" if has_audio else "avc1.640028"
-            master_lines = ["#EXTM3U", "#EXT-X-VERSION:3"]
-            for r in resolutions:
-                qname = r["name"]
-                bw = bandwidth_map.get(qname, {}).get("bandwidth", 1000000)
-                res = bandwidth_map.get(qname, {}).get("resolution", "")
-                master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw},RESOLUTION={res},CODECS=\"{codecs_str}\"")
-                master_lines.append(f"{qname}/playlist.m3u8")
-                master_lines.append("")
+                # ── Step 9: Upload poster frame ──────────────────────────────────
+                poster_url = None
+                if poster_path.exists():
+                    b2_client.upload_file(
+                        str(poster_path), bucket_name, f"{hls_final_prefix}/poster.jpg",
+                        ExtraArgs={"ContentType": "image/jpeg"}
+                    )
+                    poster_url = f"https://{media_domain}/{hls_final_prefix}/poster.jpg"
 
-            b2_client.put_object(
-                Bucket=bucket_name,
-                Key=f"{hls_final_prefix}/master.m3u8",
-                Body="\n".join(master_lines).encode("utf-8"),
-                ContentType="application/x-mpegURL"
-            )
+                hls_master_url = f"https://{media_domain}/{hls_final_prefix}/master.m3u8"
 
-            # ── Step 9: Upload poster frame ──────────────────────────────────
-            poster_url = None
-            if poster_path.exists():
-                b2_client.upload_file(
-                    str(poster_path), bucket_name, f"{hls_final_prefix}/poster.jpg",
-                    ExtraArgs={"ContentType": "image/jpeg"}
-                )
-                poster_url = f"https://{media_domain}/{hls_final_prefix}/poster.jpg"
+                # ── Step 10: Update Supabase success ─────────────────────────────
+                update_data = {"url": hls_master_url, "resource_type": "video", "media_type": "video"}
+                if poster_url:
+                    update_data["thumbnail_url"] = poster_url
+                supabase.table("photos").update(update_data).eq("id", photo_id).execute()
 
-            hls_master_url = f"https://{media_domain}/{hls_final_prefix}/master.m3u8"
-
-            # ── Step 10: Clean up temp chunks ────────────────────────────────
-            try:
-                for key in chunk_b2_keys:
-                    b2_client.delete_object(Bucket=bucket_name, Key=key)
-            except Exception:
-                pass
-
-            # ── Step 11: Update Supabase success ─────────────────────────────
-            update_data = {"url": hls_master_url, "resource_type": "video", "media_type": "video"}
-            if poster_url:
-                update_data["thumbnail_url"] = poster_url
-            supabase.table("photos").update(update_data).eq("id", photo_id).execute()
-
-            duration_total = time.time() - start_time
-            print(f"[ParallelTranscode] Success for {photo_id} in {duration_total:.1f}s")
-            return {
-                "status": "success",
-                "photo_id": photo_id,
-                "hls_url": hls_master_url,
-                "poster_url": poster_url,
-                "duration_seconds": duration_total,
-            }
+                duration_total = time.time() - start_time
+                print(f"[ParallelTranscode] Success for {photo_id} in {duration_total:.1f}s")
+                return {
+                    "status": "success",
+                    "photo_id": photo_id,
+                    "hls_url": hls_master_url,
+                    "poster_url": poster_url,
+                    "duration_seconds": duration_total,
+                }
+            finally:
+                # ── Step 11: Clean up temp chunks (ALWAYS executed even if errors occur) ──
+                if 'chunk_b2_keys' in locals() and chunk_b2_keys:
+                    print(f"[ParallelTranscode] Cleaning up {len(chunk_b2_keys)} temporary B2 chunks for job {job_id}...")
+                    for key in chunk_b2_keys:
+                        try:
+                            b2_client.delete_object(Bucket=bucket_name, Key=key)
+                        except Exception as del_err:
+                            print(f"[ParallelTranscode] Warning: Could not delete temp chunk key {key}: {del_err}")
 
     except Exception as primary_err:
         # Tier 2: Automatic Fallback to Single-Pass Sequential Engine
