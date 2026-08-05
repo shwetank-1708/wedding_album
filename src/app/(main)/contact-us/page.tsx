@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { getApiUrl } from "@/lib/apiBase";
 
 export default function ContactUs() {
     const [form, setForm] = useState({
@@ -27,7 +28,7 @@ export default function ContactUs() {
         setSubmitSuccess("");
 
         try {
-            const response = await fetch("/api/contact-messages", {
+            const response = await fetch(getApiUrl("/api/contact-messages"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...form, source: "web" }),
@@ -53,7 +54,7 @@ export default function ContactUs() {
                 <div className="text-center mb-16 space-y-4">
                     <h1 className="text-4xl md:text-5xl font-serif text-[var(--site-text)]">Get in Touch</h1>
                     <p className="text-[var(--site-subtle)] text-lg max-w-2xl mx-auto font-light">
-                        We'd love to hear about your story. Send us a message and let's start planning something beautiful.
+                        We&apos;d love to hear about your story. Send us a message and let&apos;s start planning something beautiful.
                     </p>
                 </div>
 

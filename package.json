@@ -18,7 +18,10 @@
     "mobile:install": "npm install --prefix apps/mobile",
     "dashboard": "npm --prefix apps/analytics-dashboard run dev",
     "dashboard:build": "npm --prefix apps/analytics-dashboard run build",
-    "dashboard:preview": "npm --prefix apps/analytics-dashboard run preview"
+    "dashboard:preview": "npm --prefix apps/analytics-dashboard run preview",
+    "backend": "npm --prefix apps/backend run dev",
+    "backend:build": "npm --prefix apps/backend run build",
+    "backend:start": "npm --prefix apps/backend run start:tsx"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
