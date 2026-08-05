@@ -1000,12 +1000,13 @@ def run_parallel_transcode(request: dict) -> dict:
     image=image,
     cpu=1.0,
     memory=2048,
-    timeout=300,
+    timeout=600,
     secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
 )
 @modal.fastapi_endpoint(method="POST")
 def process_video_transcode_standard(request: dict):
-    return run_transcode(request)
+    """Parallel chunk transcode coordinator for standard files (<100MB)."""
+    return run_parallel_transcode(request)
 
 
 @app.function(
