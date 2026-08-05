@@ -640,7 +640,7 @@ def run_transcode(request: dict):
     image=image,
     cpu=1.0,
     memory=2048,
-    timeout=300,
+    timeout=600,
     secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
 )
 def transcode_chunk(chunk_info: dict) -> dict:
@@ -854,13 +854,18 @@ def run_parallel_transcode(request: dict) -> dict:
         actual_num_chunks = len(chunk_files)
         print(f"[ParallelTranscode] Produced {actual_num_chunks} chunk files.")
 
-        # ── Step 5: Upload raw chunks to B2 temp storage ────────────────────
+        # ── Step 5: Upload raw chunks to B2 temp storage (in parallel) ────────
         chunk_tmp_prefix = f"tmp/chunks/{job_id}"
-        chunk_b2_keys = []
-        for chunk_file in chunk_files:
-            b2_key = f"{chunk_tmp_prefix}/{chunk_file.name}"
-            b2_client.upload_file(str(chunk_file), bucket_name, b2_key)
-            chunk_b2_keys.append(b2_key)
+        chunk_b2_keys = [f"{chunk_tmp_prefix}/{cf.name}" for cf in chunk_files]
+
+        print(f"[ParallelTranscode] Uploading {actual_num_chunks} raw chunk files to B2 in parallel...")
+        from concurrent.futures import ThreadPoolExecutor
+        def upload_single_chunk(cf, key):
+            b2_client.upload_file(str(cf), bucket_name, key)
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            list(executor.map(upload_single_chunk, chunk_files, chunk_b2_keys))
+        print(f"[ParallelTranscode] Finished uploading all raw chunks to B2 in parallel.")
 
         # ── Step 6: Fan out — workers transcode & upload segments directly ─────
         chunk_inputs = [
