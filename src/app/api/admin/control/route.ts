@@ -288,6 +288,67 @@ async function inspectBackblazeOrphans(supabaseAdmin: ReturnType<typeof getAdmin
   };
 }
 
+async function deleteB2Prefix(auth: BackblazeAuth, bucketId: string, prefix: string) {
+  try {
+    let startFileName: string | undefined = undefined;
+    let totalDeleted = 0;
+    while (true) {
+      const listResponse: Response = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_file_names`, {
+        method: "POST",
+        headers: {
+          Authorization: auth.authorizationToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bucketId,
+          prefix,
+          maxFileCount: 1000,
+          ...(startFileName ? { startFileName } : {}),
+        }),
+      });
+
+      if (!listResponse.ok) break;
+
+      const listData: any = await listResponse.json();
+      const files: Array<{ fileName: string; fileId?: string }> = listData.files || [];
+      if (files.length === 0) break;
+
+      const chunkSize = 10;
+      for (let i = 0; i < files.length; i += chunkSize) {
+        const chunk = files.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (file) => {
+            if (file.fileId && file.fileName) {
+              const deleteResponse = await fetch(`${auth.apiUrl}/b2api/v3/b2_delete_file_version`, {
+                method: "POST",
+                headers: {
+                  Authorization: auth.authorizationToken,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  fileName: file.fileName,
+                  fileId: file.fileId,
+                }),
+              });
+              if (deleteResponse.ok) totalDeleted++;
+            }
+          })
+        );
+      }
+
+      if (listData.nextFileName) {
+        startFileName = listData.nextFileName;
+      } else {
+        break;
+      }
+    }
+    return totalDeleted > 0;
+  } catch (error) {
+    console.warn(`[admin/control] Could not delete B2 prefix ${prefix}:`, error);
+    return false;
+  }
+}
+
 async function deleteB2File(auth: BackblazeAuth, bucketId: string, key: string) {
   try {
     const listResponse = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_file_names`, {
@@ -813,6 +874,7 @@ async function resetUserData(
         deleteB2File(auth, bucketId, photo.storage_key),
         deleteB2File(auth, bucketId, `${photo.storage_key}-thumbnail.webp`),
         deleteB2File(auth, bucketId, `${photo.storage_key}-preview.webp`),
+        deleteB2Prefix(auth, bucketId, `hls/${photo.storage_key}/`),
       ]);
     }
   }
@@ -956,6 +1018,7 @@ async function deleteEventTree(
         deleteB2File(auth, bucketId, photo.storage_key),
         deleteB2File(auth, bucketId, `${photo.storage_key}-thumbnail.webp`),
         deleteB2File(auth, bucketId, `${photo.storage_key}-preview.webp`),
+        deleteB2Prefix(auth, bucketId, `hls/${photo.storage_key}/`),
       ]);
     }
   }

@@ -40,6 +40,71 @@ async function verifySupabaseUser(accessToken: string) {
   return user?.id ? { id: user.id } : null;
 }
 
+async function deleteB2Prefix(auth: BackblazeAuth, bucketId: string, prefix: string) {
+  try {
+    let startFileName: string | undefined = undefined;
+    let totalDeleted = 0;
+    while (true) {
+      const listResponse: Response = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_file_names`, {
+        method: "POST",
+        headers: {
+          Authorization: auth.authorizationToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bucketId,
+          prefix,
+          maxFileCount: 1000,
+          ...(startFileName ? { startFileName } : {}),
+        }),
+      });
+
+      if (!listResponse.ok) {
+        console.error(`[B2DeletePrefix] Failed to list prefix ${prefix}: ${listResponse.status}`);
+        break;
+      }
+
+      const listData: any = await listResponse.json();
+      const files: Array<{ fileName: string; fileId?: string }> = listData.files || [];
+      if (files.length === 0) break;
+
+      const chunkSize = 10;
+      for (let i = 0; i < files.length; i += chunkSize) {
+        const chunk = files.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (file) => {
+            if (file.fileId && file.fileName) {
+              const deleteResponse = await fetch(`${auth.apiUrl}/b2api/v3/b2_delete_file_version`, {
+                method: "POST",
+                headers: {
+                  Authorization: auth.authorizationToken,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  fileName: file.fileName,
+                  fileId: file.fileId,
+                }),
+              });
+              if (deleteResponse.ok) totalDeleted++;
+            }
+          })
+        );
+      }
+
+      if (listData.nextFileName) {
+        startFileName = listData.nextFileName;
+      } else {
+        break;
+      }
+    }
+    console.log(`[B2DeletePrefix] Successfully deleted ${totalDeleted} files under prefix: ${prefix}`);
+    return true;
+  } catch (err) {
+    console.error(`[B2DeletePrefix] Error deleting prefix ${prefix}:`, err);
+    return false;
+  }
+}
+
 async function deleteB2File(auth: BackblazeAuth, bucketId: string, key: string) {
   try {
     // 1. Get file ID by listing
@@ -181,12 +246,14 @@ export async function POST(request: NextRequest) {
       const originalKey = storageKey;
       const thumbnailKey = `${storageKey}-thumbnail.webp`;
       const previewKey = `${storageKey}-preview.webp`;
+      const hlsPrefix = `hls/${storageKey}/`;
 
       console.log(`[MediaDelete] Deleting B2 assets for storage key: ${storageKey}`);
       await Promise.all([
         deleteB2File(auth, bucketId, originalKey),
         deleteB2File(auth, bucketId, thumbnailKey),
-        deleteB2File(auth, bucketId, previewKey)
+        deleteB2File(auth, bucketId, previewKey),
+        deleteB2Prefix(auth, bucketId, hlsPrefix),
       ]);
     }
 
