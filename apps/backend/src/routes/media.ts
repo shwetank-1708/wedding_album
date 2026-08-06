@@ -71,6 +71,24 @@ function jsonError(response: Response, status: number, error: string) {
   response.status(status).json({ success: false, error });
 }
 
+function getErrorMessage(error: unknown, fallback = "Media request failed") {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const value = error as {
+      message?: unknown;
+      error?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [value.message, value.error, value.details, value.hint, value.code]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    if (parts.length > 0) return parts.join(" | ");
+  }
+  return fallback;
+}
+
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -1001,7 +1019,6 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
     .update({
       url,
       thumbnail_url: thumbnailUrl,
-      preview_url: previewUrl,
       width: rotatedMetadata.width || null,
       height: rotatedMetadata.height || null,
       size: rotatedBuffer.length,
@@ -1026,5 +1043,5 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
 mediaRouter.use((error: unknown, _request: Request, response: Response, next: NextFunction) => {
   void next;
   console.error("[MediaRouter] Error:", error);
-  jsonError(response, 500, error instanceof Error ? error.message : "Media request failed");
+  jsonError(response, 500, getErrorMessage(error));
 });
