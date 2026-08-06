@@ -940,8 +940,18 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
   const isAuthorized = event?.created_by === user.id || savedPhoto.user_id === user.id || profile?.role === "admin" || profile?.role === "super_admin";
   if (!isAuthorized) return jsonError(response, 403, "Forbidden: You do not have permission to rotate this photo");
 
+  console.log("[MediaRotate] Starting", {
+    photoId,
+    angle,
+    storageKey: savedPhoto.storage_key,
+    mediaType: savedPhoto.media_type,
+  });
+
+  console.log("[MediaRotate] Downloading original image");
   const downloadResponse = await fetchB2WithRetries(savedPhoto.url, {}, "Download original image for rotation", B2_DOWNLOAD_RETRY_DELAYS_MS);
   const originalBytes = Buffer.from(await downloadResponse.arrayBuffer());
+
+  console.log("[MediaRotate] Processing image", { bytes: originalBytes.length });
   const rotated = await sharp(originalBytes).rotate(angle).toBuffer({ resolveWithObject: true });
   const rotatedBuffer = rotated.data;
   const rotatedMetadata = rotated.info;
@@ -950,7 +960,7 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
     .webp({ quality: 75 })
     .toBuffer();
   const previewBuffer = await sharp(rotatedBuffer)
-    .resize({ width: 3000, fit: "inside", withoutEnlargement: true })
+    .resize({ width: 900, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 75 })
     .toBuffer();
 
@@ -971,12 +981,21 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
     listExactFileVersions(backblazeAuth, bucketId, previewKey),
   ]);
 
-  await uploadBufferToB2(backblazeAuth, bucketId, rotatedBuffer, storageKey, contentType);
-  await uploadBufferToB2(backblazeAuth, bucketId, thumbnailBuffer, thumbnailKey, "image/webp");
-  await uploadBufferToB2(backblazeAuth, bucketId, previewBuffer, previewKey, "image/webp");
+  console.log("[MediaRotate] Uploading rotated variants", {
+    originalBytes: rotatedBuffer.length,
+    thumbnailBytes: thumbnailBuffer.length,
+    previewBytes: previewBuffer.length,
+  });
+  await Promise.all([
+    uploadBufferToB2(backblazeAuth, bucketId, rotatedBuffer, storageKey, contentType),
+    uploadBufferToB2(backblazeAuth, bucketId, thumbnailBuffer, thumbnailKey, "image/webp"),
+    uploadBufferToB2(backblazeAuth, bucketId, previewBuffer, previewKey, "image/webp"),
+  ]);
 
+  console.log("[MediaRotate] Removing old B2 versions", { count: oldVersions.flat().length });
   await Promise.all(oldVersions.flat().map((file) => deleteB2FileVersion(backblazeAuth, file)));
 
+  console.log("[MediaRotate] Updating photo record");
   const { error: updateError } = await supabaseAdmin
     .from("photos")
     .update({
@@ -989,6 +1008,8 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
     })
     .eq("id", photoId);
   if (updateError) throw updateError;
+
+  console.log("[MediaRotate] Completed", { photoId, width: rotatedMetadata.width, height: rotatedMetadata.height });
 
   response.json({
     success: true,
