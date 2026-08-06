@@ -13,7 +13,9 @@ export function getSupabasePublicClient() {
 }
 
 export function getSupabaseAdminClient() {
-  if (!supabaseUrl || !supabaseServiceRoleKey) return null;
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error("Supabase admin environment variables are not configured");
+  }
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {

@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { formatEventDate } from "./utils";
 import { sendPushNotification } from "./pushNotifications";
+import { getApiUrl } from "./apiBase";
 
 // Memory caches to optimize lookups
 const eventCache: Record<string, Event> = {};
@@ -2241,7 +2242,7 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
             throw new Error("Authentication required");
         }
 
-        const response = await fetch("/api/media/delete", {
+        const response = await fetch(getApiUrl("/api/media/delete"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -2281,7 +2282,7 @@ export async function rotatePhoto(
             throw new Error("Authentication required");
         }
 
-        const response = await fetch("/api/media/rotate", {
+        const response = await fetch(getApiUrl("/api/media/rotate"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

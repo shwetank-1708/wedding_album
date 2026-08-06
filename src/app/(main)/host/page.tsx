@@ -87,6 +87,7 @@ import {
 	} from "@/lib/database";
 import { uploadEventImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/apiBase";
 import { Tooltip } from "@/components/Tooltip";
 import { navigateWithModifierClick } from "@/lib/navigation";
 import { formatStorageSize, getPlanDetails, getUsagePercent } from "@/lib/planLimits";
@@ -914,7 +915,7 @@ function DashboardContent() {
 
         const checkStatus = async () => {
             try {
-                const res = await fetch(`/api/media/indexing-status?eventId=${selectedEventId}`);
+                const res = await fetch(getApiUrl(`/api/media/indexing-status?eventId=${selectedEventId}`));
                 if (res.ok) {
                     const data = await res.json();
                     setIndexingStatus(data);
@@ -2022,7 +2023,7 @@ function DashboardContent() {
                     if (session.data.session?.access_token) {
                         headers["Authorization"] = `Bearer ${session.data.session.access_token}`;
                     }
-                    let res = await fetch("/api/media/save-photo-batch", {
+                    let res = await fetch(getApiUrl("/api/media/save-photo-batch"), {
                         method: "POST",
                         headers,
                         body: JSON.stringify({
@@ -2042,7 +2043,7 @@ function DashboardContent() {
                         const { data: refreshed } = await supabase.auth.refreshSession();
                         if (refreshed.session?.access_token) {
                             headers["Authorization"] = `Bearer ${refreshed.session.access_token}`;
-                            res = await fetch("/api/media/save-photo-batch", {
+                            res = await fetch(getApiUrl("/api/media/save-photo-batch"), {
                                 method: "POST",
                                 headers,
                                 body: JSON.stringify({
@@ -2193,7 +2194,7 @@ function DashboardContent() {
             const photoUploads = uploadResults.filter(item => item.photo.mediaType === "photo" && item.photo.resourceType === "image");
             if (photoUploads.length > 0) {
                 console.log(`[Dashboard] Drained upload queue. Triggering immediate face indexing...`);
-                fetch('/api/media/trigger-modal-batch?immediate=true', { method: 'POST' }).catch(err => {
+                fetch(getApiUrl('/api/media/trigger-modal-batch?immediate=true'), { method: 'POST' }).catch(err => {
                     console.warn("[Dashboard] Immediate face indexing trigger failed:", err);
                 });
             }

@@ -39,6 +39,7 @@ import {
     updateUserProfileImage,
 } from "@/lib/database";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/apiBase";
 import { getPlanDetails } from "@/lib/planLimits";
 import { getSubscriptionStatus } from "@/lib/subscriptionStatus";
 import { cn } from "@/lib/utils";
@@ -333,7 +334,7 @@ export default function ProfilePage() {
                 return;
             }
 
-            const response = await fetch("/api/media/profile-image", {
+            const response = await fetch(getApiUrl("/api/media/profile-image"), {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${accessToken}`,

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/apiBase";
 
 /**
  * Computes the SHA-1 hash of a Blob using the browser's SubtleCrypto API.
@@ -177,7 +178,7 @@ async function uploadLargeFileInChunks(
         console.log(`[Storage] Resuming upload: ${doneCount}/${totalChunks} chunks already done.`);
     } else {
         // Fresh start — initiate a new B2 large-file session
-        const initiateRes = await fetch("/api/media/upload/chunk/initiate", {
+        const initiateRes = await fetch(getApiUrl("/api/media/upload/chunk/initiate"), {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -244,7 +245,7 @@ async function uploadLargeFileInChunks(
         for (let attempt = 1; attempt <= MAX_CHUNK_RETRIES; attempt++) {
             try {
                 // Fresh upload URL per attempt (URLs are single-use)
-                const partUrlRes = await fetch("/api/media/upload/chunk/part-url", {
+                const partUrlRes = await fetch(getApiUrl("/api/media/upload/chunk/part-url"), {
                     method: "POST",
                     headers,
                     body: JSON.stringify({ fileId }),
@@ -344,7 +345,7 @@ async function uploadLargeFileInChunks(
     if (freshToken) saveHeaders["Authorization"] = `Bearer ${freshToken}`;
     else if (headers["Authorization"]) saveHeaders["Authorization"] = headers["Authorization"];
 
-    const completeRes = await fetch("/api/media/upload/chunk/complete", {
+    const completeRes = await fetch(getApiUrl("/api/media/upload/chunk/complete"), {
         method: "POST",
         headers: saveHeaders,
         body: JSON.stringify({
@@ -405,7 +406,7 @@ export async function uploadEventImage(
         }
 
         // 1. Get B2 upload URL and token from Railway
-        const getUrlResponse = await fetch("/api/media/get-upload-url", {
+        const getUrlResponse = await fetch(getApiUrl("/api/media/get-upload-url"), {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -458,7 +459,7 @@ export async function uploadEventImage(
         } catch (fetchErr) {
             console.warn(`[Storage] Direct B2 upload failed for ${file.name}. Requesting fresh upload URL and retrying...`, fetchErr);
             
-            const retryUrlResponse = await fetch("/api/media/get-upload-url", {
+            const retryUrlResponse = await fetch(getApiUrl("/api/media/get-upload-url"), {
                 method: "POST",
                 headers,
                 body: JSON.stringify({
@@ -524,7 +525,7 @@ export async function uploadEventImage(
                 saveHeaders["Authorization"] = headers["Authorization"];
             }
 
-            let saveResponse = await fetch("/api/media/save-photo", {
+            let saveResponse = await fetch(getApiUrl("/api/media/save-photo"), {
                 method: "POST",
                 headers: saveHeaders,
                 body: JSON.stringify({
@@ -542,7 +543,7 @@ export async function uploadEventImage(
                 const { data: refreshedAuth } = await supabase.auth.refreshSession();
                 if (refreshedAuth.session?.access_token) {
                     saveHeaders["Authorization"] = `Bearer ${refreshedAuth.session.access_token}`;
-                    saveResponse = await fetch("/api/media/save-photo", {
+                    saveResponse = await fetch(getApiUrl("/api/media/save-photo"), {
                         method: "POST",
                         headers: saveHeaders,
                         body: JSON.stringify({
