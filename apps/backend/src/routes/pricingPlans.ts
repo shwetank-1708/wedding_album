@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { defaultPricingPlans, type PricingPlan } from "../../../../src/lib/pricingPlans.ts";
+import { defaultPricingPlans, type PricingPlan } from "../pricingPlans.js";
 import { getSupabasePublicClient } from "../supabase.js";
 
 type PricingPlanRow = {
