@@ -57,6 +57,26 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_SESSION_TIMEOUT_MS = 10_000;
+
+function getSessionWithTimeout() {
+    return new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error("Authentication session timed out"));
+        }, AUTH_SESSION_TIMEOUT_MS);
+
+        supabase.auth.getSession().then(
+            (result) => {
+                clearTimeout(timeout);
+                resolve(result);
+            },
+            (error) => {
+                clearTimeout(timeout);
+                reject(error);
+            }
+        );
+    });
+}
 
 function normalizeUsername(value: string) {
     return value.toLowerCase().replace(/[^a-z0-9_.]/g, "_");
@@ -137,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUserData = useRef<AppUser | null>(null);
 
     const applyPendingPlanChangeIfDue = useCallback(async () => {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await getSessionWithTimeout();
         const accessToken = data.session?.access_token;
         if (!accessToken) return;
 
@@ -218,11 +238,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const loadSession = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await getSessionWithTimeout();
 
                 if (session?.user) {
                     if (needsEmailVerification(session.user)) {
-                        await supabase.auth.signOut();
+                        currentUserId.current = null;
+                        currentUserData.current = null;
+                        setUser(null);
+                        localStorage.removeItem("wedding_guest_user");
+                        setTimeout(() => {
+                            void supabase.auth.signOut().catch((error) => {
+                                console.error("[Auth] Deferred sign out failed:", error);
+                            });
+                        }, 0);
                         return;
                     }
                     const fallbackName =
@@ -275,7 +303,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 if (session?.user) {
                     if (needsEmailVerification(session.user)) {
-                        await supabase.auth.signOut();
+                        currentUserId.current = null;
+                        currentUserData.current = null;
+                        setUser(null);
+                        localStorage.removeItem("wedding_guest_user");
+                        setTimeout(() => {
+                            void supabase.auth.signOut().catch((error) => {
+                                console.error("[Auth] Deferred sign out failed:", error);
+                            });
+                        }, 0);
                         return;
                     }
                     const fallbackName =
