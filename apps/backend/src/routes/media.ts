@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 import sharp from "sharp";
+import { verifyInternalJob, verifySupabaseUser as verifyRequestUser } from "../auth.js";
 import { supabaseAnonKey, supabaseUrl } from "../config.js";
 import { getSupabaseAdminClient } from "../supabase.js";
 import {
@@ -750,6 +751,10 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
 }));
 
 mediaRouter.post("/process-thumbnail", asyncRoute(async (request, response) => {
+  if (!verifyInternalJob(request)) {
+    return jsonError(response, 401, "Invalid background job authorization");
+  }
+
   const storageKey = String(request.body?.storageKey || "");
   if (!storageKey) return jsonError(response, 400, "Missing storageKey");
 
@@ -815,7 +820,23 @@ mediaRouter.post("/process-thumbnail", asyncRoute(async (request, response) => {
 
 mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) => {
   const eventId = String(request.body?.eventId || request.query.eventId || "");
+  if (!eventId) return jsonError(response, 400, "Missing eventId");
+
   const supabaseAdmin = getSupabaseAdminClient();
+  if (!verifyInternalJob(request)) {
+    const verified = await verifyRequestUser(request);
+    if (!verified) return jsonError(response, 401, "Authorization required");
+
+    const [{ data: event, error: eventError }, { data: profile, error: profileError }] = await Promise.all([
+      supabaseAdmin.from("events").select("created_by").eq("id", eventId).maybeSingle(),
+      supabaseAdmin.from("profiles").select("role").eq("id", verified.user.id).maybeSingle(),
+    ]);
+    if (eventError || profileError) throw eventError || profileError;
+
+    const isAuthorized = event?.created_by === verified.user.id || profile?.role === "admin" || profile?.role === "super_admin";
+    if (!isAuthorized) return jsonError(response, 403, "Not authorized to index this event");
+  }
+
   let query = supabaseAdmin
     .from("photos")
     .select("id, storage_key, event_id, preview_url, thumbnail_url, url")
@@ -823,7 +844,7 @@ mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) =>
     .eq("face_indexed", false)
     .not("thumbnail_url", "is", null)
     .limit(100);
-  if (eventId) query = query.eq("event_id", eventId);
+  query = query.eq("event_id", eventId);
 
   const { data: photos, error } = await query;
   if (error) throw error;

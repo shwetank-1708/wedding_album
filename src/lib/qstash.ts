@@ -17,6 +17,21 @@ interface QStashPublishOptions {
   origin?: string;
 }
 
+function getInternalJobForwardHeaders() {
+  const secret = (
+    process.env.INTERNAL_JOB_SECRET ||
+    process.env.CRON_SECRET ||
+    process.env.QSTASH_TOKEN ||
+    ""
+  ).trim();
+
+  if (!secret) {
+    throw new Error("INTERNAL_JOB_SECRET, CRON_SECRET, or QSTASH_TOKEN must be configured");
+  }
+
+  return { "Upstash-Forward-Authorization": `Bearer ${secret}` };
+}
+
 export async function publishModalBatchTask(photos: { id: string; storage_key: string; event_id: string; url: string }[]): Promise<boolean> {
   const qstashToken = process.env.QSTASH_TOKEN;
   if (!qstashToken) {
@@ -87,6 +102,7 @@ export async function publishResizeTask(options: QStashPublishOptions): Promise<
       "Authorization": `Bearer ${qstashToken}`,
       "Content-Type": "application/json",
       "Upstash-Timeout": "120s",
+      ...getInternalJobForwardHeaders(),
     };
 
     const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
@@ -123,10 +139,11 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
     origin.includes('192.168.') || 
     origin.startsWith('http://10.')
   );
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/+$/, "");
   
   const siteUrl = (!origin || isLocalOrigin)
     ? (process.env.NEXT_PUBLIC_SITE_URL || railwayUrl || `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000'}`)
-    : origin;
+    : (apiUrl || origin);
     
   const targetUrl = `${siteUrl}/api/media/trigger-modal-batch`;
 
@@ -137,7 +154,8 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
       "Authorization": `Bearer ${qstashToken}`,
       "Content-Type": "application/json",
       "Upstash-Delay": "2m",
-      "Upstash-Deduplication-Id": `modal-batch-trigger-${eventId}`
+      "Upstash-Deduplication-Id": `modal-batch-trigger-${eventId}`,
+      ...getInternalJobForwardHeaders(),
     };
 
     const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
@@ -229,4 +247,3 @@ export async function publishVideoTranscodeTask(payload: { id: string; storage_k
     return false;
   }
 }
-

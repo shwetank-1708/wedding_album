@@ -2194,9 +2194,20 @@ function DashboardContent() {
             const photoUploads = uploadResults.filter(item => item.photo.mediaType === "photo" && item.photo.resourceType === "image");
             if (photoUploads.length > 0) {
                 console.log(`[Dashboard] Drained upload queue. Triggering immediate face indexing...`);
-                fetch(getApiUrl('/api/media/trigger-modal-batch?immediate=true'), { method: 'POST' }).catch(err => {
-                    console.warn("[Dashboard] Immediate face indexing trigger failed:", err);
-                });
+                const { data: sessionData } = await supabase.auth.getSession();
+                const accessToken = sessionData.session?.access_token;
+                if (accessToken) {
+                    fetch(getApiUrl('/api/media/trigger-modal-batch?immediate=true'), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({ eventId: selectedEventId }),
+                    }).catch(err => {
+                        console.warn("[Dashboard] Immediate face indexing trigger failed:", err);
+                    });
+                }
             }
 
             // Auto-update cover if it's currently a placeholder or if it's the first upload

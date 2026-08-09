@@ -1532,7 +1532,7 @@ export default function EventDetailScreen() {
         if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
       } catch (e) {}
 
-      return 'http://localhost:3000';
+      return 'http://localhost:8080';
     };
 
     const checkStatus = async () => {

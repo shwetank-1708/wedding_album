@@ -980,7 +980,7 @@ export async function saveFaceToIndex(face: FaceRecord) {
             return false;
         }
 
-        const response = await fetch("/api/find-you/index-face", {
+        const response = await fetch(getApiUrl("/api/find-you/index-face"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

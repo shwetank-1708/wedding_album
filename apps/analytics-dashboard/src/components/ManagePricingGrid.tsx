@@ -201,7 +201,7 @@ function getApiBaseUrl() {
   return (
     env.VITE_API_BASE_URL ||
     env.VITE_NEXT_PUBLIC_SITE_URL ||
-    'http://localhost:3000'
+    'http://localhost:8080'
   ).replace(/\/$/, '');
 }
 

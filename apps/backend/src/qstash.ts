@@ -12,6 +12,23 @@ type QStashPublishOptions = {
   origin?: string;
 };
 
+function getInternalJobSecret() {
+  return (
+    process.env.INTERNAL_JOB_SECRET ||
+    process.env.CRON_SECRET ||
+    process.env.QSTASH_TOKEN ||
+    ""
+  ).trim();
+}
+
+function getInternalJobForwardHeaders() {
+  const secret = getInternalJobSecret();
+  if (!secret) {
+    throw new Error("INTERNAL_JOB_SECRET, CRON_SECRET, or QSTASH_TOKEN must be configured");
+  }
+  return { "Upstash-Forward-Authorization": `Bearer ${secret}` };
+}
+
 function getBackendBaseUrl(origin?: string) {
   const explicitApiUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.API_BASE_URL || "")
     .trim()
@@ -40,7 +57,10 @@ export async function publishModalBatchTask(
     return false;
   }
 
-  const targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-media-batch.modal.run";
+  const targetUrl = (
+    process.env.MODAL_MEDIA_BATCH_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-process-media-batch.modal.run"
+  ).trim();
   console.log(`[QStash] Publishing batch media task for ${photos.length} photos to Modal`);
 
   try {
@@ -85,6 +105,7 @@ export async function publishResizeTask(options: QStashPublishOptions): Promise<
         Authorization: `Bearer ${qstashToken}`,
         "Content-Type": "application/json",
         "Upstash-Timeout": "120s",
+        ...getInternalJobForwardHeaders(),
       },
       body: JSON.stringify({ storageKey: options.storageKey }),
     });
@@ -121,6 +142,7 @@ export async function publishDelayedModalTrigger(eventId: string, origin?: strin
         "Content-Type": "application/json",
         "Upstash-Delay": "2m",
         "Upstash-Deduplication-Id": `modal-batch-trigger-${eventId}`,
+        ...getInternalJobForwardHeaders(),
       },
       body: JSON.stringify({ eventId }),
     });
@@ -144,13 +166,22 @@ export async function publishVideoTranscodeTask(
   fileSize?: number,
 ): Promise<boolean> {
   const qstashToken = process.env.QSTASH_TOKEN;
-  let targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run";
+  let targetUrl = (
+    process.env.MODAL_VIDEO_SMALL_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run"
+  ).trim();
 
   if (fileSize) {
     if (fileSize > 1024 * 1024 * 1024) {
-      targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-1aa355.modal.run";
+      targetUrl = (
+        process.env.MODAL_VIDEO_LARGE_URL ||
+        "https://shwetank-sarthak--wedding-media-engine-process-video-tra-1aa355.modal.run"
+      ).trim();
     } else if (fileSize > 100 * 1024 * 1024) {
-      targetUrl = "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run";
+      targetUrl = (
+        process.env.MODAL_VIDEO_MEDIUM_URL ||
+        "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run"
+      ).trim();
     }
   }
 

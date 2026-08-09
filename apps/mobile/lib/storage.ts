@@ -39,7 +39,7 @@ export function getEndpointsForPath(path: string) {
         endpoints.push(`http://10.0.2.2:3000${path}`);
     }
 
-    endpoints.push(`http://localhost:3000${path}`);
+    endpoints.push(`http://localhost:8080${path}`);
 
     return Array.from(new Set(endpoints));
 }

@@ -32,16 +32,16 @@ export interface AdminActionResult {
   deletedBytes?: number;
 }
 
-function getApiBaseUrl() {
+export function getApiBaseUrl() {
   const env = (import.meta as any).env;
   return (
     env.VITE_API_BASE_URL ||
     env.VITE_NEXT_PUBLIC_SITE_URL ||
-    'http://localhost:3000'
+    'http://localhost:8080'
   ).replace(/\/$/, '');
 }
 
-async function getAccessToken(forceRefresh = false) {
+export async function getAccessToken(forceRefresh = false) {
   const sessionResult = forceRefresh
     ? await supabase.auth.refreshSession()
     : await supabase.auth.getSession();

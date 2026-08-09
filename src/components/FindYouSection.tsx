@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
 import { LightboxTheme } from "@/components/ui/Lightbox";
+import { getApiUrl } from "@/lib/apiBase";
 import { Camera, FolderOpen, Loader2, Search, Sparkles } from "lucide-react";
 
 interface FindYouSectionProps {
@@ -50,7 +51,7 @@ export function FindYouSection({ eventId, legacyId, parentId, eventSlug, lightbo
                 if (subEventIds && subEventIds.length > 0) eventIds.push(...subEventIds);
                 if (legacyId) eventIds.push(legacyId);
 
-                const response = await fetch("/api/find-you", {
+                const response = await fetch(getApiUrl("/api/find-you"), {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

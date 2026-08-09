@@ -20,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { runAdminAction, type AdminActionResult } from '../lib/adminApi';
+import { getAccessToken, getApiBaseUrl, runAdminAction, type AdminActionResult } from '../lib/adminApi';
 import { supabase } from '../lib/supabase';
 
 interface Props {
@@ -226,12 +226,18 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     const fetchBilling = async () => {
       setLoadingBilling(true);
       try {
-        const origin = window.location.origin;
-        const apiBase = origin.includes('5173') ? 'http://localhost:3000' : '';
+        const apiBase = getApiBaseUrl();
+        const token = await getAccessToken();
+        if (!token) {
+          throw new Error('Please sign in again to load infrastructure data.');
+        }
+        const requestOptions = {
+          headers: { Authorization: `Bearer ${token}` },
+        };
         
         // Fetch Supabase billing — isolated so failure doesn't block other fetches
         try {
-          const res = await fetch(`${apiBase}/api/admin/supabase-billing`);
+          const res = await fetch(`${apiBase}/api/admin/supabase-billing`, requestOptions);
           if (res.ok) {
             const data = await res.json();
             if (data?.billing_tier?.id) {
@@ -242,12 +248,12 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
             }
           }
         } catch (err) {
-          console.warn('[InfraCost] Supabase billing API unavailable (is Next.js running?):', err);
+          console.warn('[InfraCost] Supabase billing API unavailable:', err);
         }
 
         // Fetch Cloudflare billing — isolated so failure doesn't block other fetches
         try {
-          const cfRes = await fetch(`${apiBase}/api/admin/cloudflare-billing`);
+          const cfRes = await fetch(`${apiBase}/api/admin/cloudflare-billing`, requestOptions);
           if (cfRes.ok) {
             const cfData = await cfRes.json();
             if (cfData.zonePlan) {
@@ -269,7 +275,7 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
 
         // Fetch Backblaze B2 bucket usage — isolated so failure doesn't block other fetches
         try {
-          const b2Res = await fetch(`${apiBase}/api/admin/backblaze-usage`);
+          const b2Res = await fetch(`${apiBase}/api/admin/backblaze-usage`, requestOptions);
           const b2Data = await b2Res.json().catch(() => null);
           if (b2Res.ok && b2Data) {
             setLiveB2Usage(b2Data);
@@ -287,85 +293,29 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
           console.warn('[InfraCost] Backblaze usage API unavailable:', err);
         }
 
-        // Fetch Railway billing — calls Railway GraphQL API directly (no Next.js needed)
+        // Railway credentials remain server-side; the dashboard only calls the authenticated backend.
         try {
-          const railwayToken = import.meta.env.VITE_RAILWAY_API_TOKEN;
-          const railwayProjectId = import.meta.env.VITE_RAILWAY_PROJECT_ID;
-
-          if (railwayToken && railwayProjectId) {
-            // Use Vite proxy /railway-gql → https://backboard.railway.app/graphql/v2 (avoids CORS)
-            const RAILWAY_GQL = '/railway-gql';
-
-            // Get project name
-            let projectName = 'divine-optimism';
-            try {
-              const nameRes = await fetch(RAILWAY_GQL, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${railwayToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: `{ project(id: "${railwayProjectId}") { name } }` }),
-              });
-              if (nameRes.ok) {
-                const nameData = await nameRes.json();
-                projectName = nameData.data?.project?.name || projectName;
-              }
-            } catch (_) {}
-
-            // Get usage metrics
-            const usageRes = await fetch(RAILWAY_GQL, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${railwayToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                query: `{
-                  usage(
-                    projectId: "${railwayProjectId}",
-                    measurements: [CPU_USAGE, MEMORY_USAGE_GB, NETWORK_TX_GB],
-                    startDate: "${dateRange.start.toISOString()}",
-                    endDate: "${dateRange.end.toISOString()}"
-                  ) { measurement value }
-                }`,
-              }),
-            });
-
-            if (usageRes.ok) {
-              const usageData = await usageRes.json();
-              const items: { measurement: string; value: number }[] = usageData.data?.usage || [];
-
-              let cpuVcpuMin = 0, memGbMin = 0, networkTxGb = 0;
-              for (const item of items) {
-                const v = Number(item.value) || 0;
-                if (item.measurement === 'CPU_USAGE')       cpuVcpuMin  = v;
-                if (item.measurement === 'MEMORY_USAGE_GB') memGbMin    = v;
-                if (item.measurement === 'NETWORK_TX_GB')   networkTxGb = v;
-              }
-
-              // Convert minutes to seconds (as Railway API aggregation values are in vCPU-minutes and GB-minutes)
-              const cpuVcpuSec = cpuVcpuMin * 60;
-              const memGbSec = memGbMin * 60;
-
-              const cpuDollars     = cpuVcpuSec  * 0.00000772;
-              const memoryDollars  = memGbSec    * 0.00000386;
-              const networkDollars = networkTxGb * 0.05;
-              const totalEstimatedDollars = cpuDollars + memoryDollars + networkDollars;
-
-              setLiveRailwayData({
-                projectName,
-                cpuDollars,
-                memoryDollars,
-                networkDollars,
-                totalEstimatedDollars,
-                invoiceDollars: null,
-              });
-            }
+          const params = new URLSearchParams({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+          });
+          const railwayRes = await fetch(
+            `${apiBase}/api/admin/railway-billing?${params.toString()}`,
+            requestOptions,
+          );
+          const railwayData = await railwayRes.json().catch(() => null);
+          if (railwayRes.ok && railwayData) {
+            setLiveRailwayData(railwayData);
           } else {
             setLiveRailwayData({
               projectName: 'EveBash',
               cpuDollars: 0, memoryDollars: 0, networkDollars: 0,
               totalEstimatedDollars: 0, invoiceDollars: null,
-              error: 'VITE_RAILWAY_API_TOKEN or VITE_RAILWAY_PROJECT_ID not set in dashboard .env',
+              error: railwayData?.error || `Railway billing API returned status ${railwayRes.status}`,
             });
           }
         } catch (err) {
-          console.warn('[InfraCost] Railway direct API call failed:', err);
+          console.warn('[InfraCost] Railway billing API unavailable:', err);
         }
       } catch (err: any) {
         console.error('Failed to fetch live billing data:', err);

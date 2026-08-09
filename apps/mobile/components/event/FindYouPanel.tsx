@@ -129,18 +129,18 @@ export function FindYouPanel({
           const hostUri = Constants?.expoConfig?.hostUri || Constants?.manifest2?.extra?.expoGo?.developer?.hostUri;
           const devHost = typeof hostUri === 'string' ? hostUri.split(':')[0] : '';
           if (devHost) {
-            return `http://${devHost}:3000`;
+            return `http://${devHost}:8080`;
           }
         } catch (e) {}
 
         try {
           const { Platform } = require('react-native');
           if (Platform.OS === 'android') {
-            return 'http://10.0.2.2:3000';
+            return 'http://10.0.2.2:8080';
           }
         } catch (e) {}
 
-        return 'http://localhost:3000';
+        return 'http://localhost:8080';
       };
 
       const appUrl = getApiBaseUrl();
