@@ -60,14 +60,23 @@ export async function getAccessToken(forceRefresh = false) {
 }
 
 async function postAdminAction(action: AdminAction, payload: Record<string, unknown>, token: string) {
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/control`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ action, payload }),
-  });
+  const apiBaseUrl = getApiBaseUrl();
+  let response: Response;
+
+  try {
+    response = await fetch(`${apiBaseUrl}/api/admin/control`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, payload }),
+    });
+  } catch {
+    throw new Error(
+      `Unable to reach the backend API at ${apiBaseUrl}. Check VITE_API_BASE_URL and the backend service.`
+    );
+  }
 
   const result = await response.json().catch(() => ({}));
   return { response, result };

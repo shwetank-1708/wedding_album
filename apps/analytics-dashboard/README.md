@@ -1,5 +1,17 @@
 # React + TypeScript + Vite
 
+## Environment
+
+The analytics dashboard requires these local environment variables:
+
+```dotenv
+VITE_API_BASE_URL=https://api-staging.evebash.com
+VITE_SUPABASE_URL=<supabase-project-url>
+VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+```
+
+Restart the Vite development server after changing environment variables.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
