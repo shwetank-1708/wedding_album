@@ -388,6 +388,7 @@ export function Lightbox({
                             >
                                 {isVideo ? (
                                     <HLSVideoPlayer
+                                        mediaId={photo.id}
                                         src={photo.src}
                                         poster={photo.thumbnailUrl}
                                         className="max-h-[60vh] w-[95vw] max-w-5xl shadow-2xl pointer-events-auto md:max-h-[85vh]"

@@ -78,6 +78,7 @@ export const PageFlipPage = memo(function PageFlipPage({
           )}
           <HLSVideoPlayer
             ref={videoRef}
+            mediaId={item.id}
             src={item.previewUrl}
             poster={item.thumbnailUrl}
             controls={isActive && !isTurning}

@@ -2,9 +2,11 @@
 
 import React, { useEffect, useRef, useState, useCallback, forwardRef } from "react";
 import { Loader2, Film, AlertCircle, Settings, Check } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface HLSVideoPlayerProps {
   src: string;
+  mediaId?: string;
   poster?: string;
   className?: string;
   autoPlay?: boolean;
@@ -31,6 +33,7 @@ type PlayerState = "loading" | "processing" | "playing" | "error";
 export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>((
   {
     src,
+    mediaId,
     poster,
     className = "",
     autoPlay = false,
@@ -70,6 +73,46 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
   useEffect(() => {
     setActiveSrc(src);
   }, [src]);
+
+  useEffect(() => {
+    if (!mediaId || !activeSrc || !isRawVideoUrl(activeSrc)) return;
+
+    let cancelled = false;
+    let requestInFlight = false;
+
+    const refreshProcessedUrl = async () => {
+      if (cancelled || requestInFlight) return;
+      requestInFlight = true;
+
+      try {
+        const { data, error } = await supabase
+          .from("photos")
+          .select("url")
+          .eq("id", mediaId)
+          .maybeSingle();
+
+        if (error) {
+          console.warn("[HLSVideoPlayer] Unable to refresh processed video URL", error);
+          return;
+        }
+
+        const processedUrl = typeof data?.url === "string" ? data.url : "";
+        if (!cancelled && processedUrl && !isRawVideoUrl(processedUrl)) {
+          setActiveSrc(processedUrl);
+        }
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    void refreshProcessedUrl();
+    const intervalId = window.setInterval(refreshProcessedUrl, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeSrc, mediaId]);
 
   const startPlayback = useCallback((url: string) => {
     const video = localVideoRef.current;
