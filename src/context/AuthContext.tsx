@@ -25,13 +25,13 @@ type AppUser = {
     delegatedBy?: string;
     username?: string;
     isPrivate?: boolean;
-    createdAt?: any;
+    createdAt?: unknown;
     location?: string;
     gender?: string;
     relationshipStatus?: string;
     persona?: string | string[];
     discoverable?: boolean;
-    notificationPreferences?: any;
+    notificationPreferences?: Record<string, unknown>;
     birthday?: string;
     anniversaryDate?: string;
     subscriptionDuration?: string;
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const accessToken = data.session?.access_token;
         if (!accessToken) return;
 
-        await fetch(getApiUrl("/api/subscription/apply-pending"), {
+        await fetch(getApiUrl("/api/v1/subscriptions/apply-pending"), {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${accessToken}`,

@@ -1,5 +1,8 @@
 import cors from "cors";
 import express from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import { pinoHttp } from "pino-http";
 import { PORT, corsOrigins } from "./config.js";
 import { adminRouter } from "./routes/admin.js";
 import { contactMessagesRouter } from "./routes/contactMessages.js";
@@ -13,6 +16,8 @@ const app = express();
 
 app.disable("x-powered-by");
 
+app.use(helmet());
+app.use(pinoHttp());
 app.use(
   cors({
     origin(origin, callback) {
@@ -27,6 +32,14 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 
+const contactMessagesLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many contact requests. Please try again later." },
+});
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
@@ -37,11 +50,14 @@ app.get("/health", (_request, response) => {
 
 app.use("/api/admin/control", adminRouter);
 app.use("/api/admin", infrastructureRouter);
-app.use("/api/contact-messages", contactMessagesRouter);
+app.use("/api/contact-messages", contactMessagesLimiter, contactMessagesRouter);
+app.use("/api/v1/contact-messages", contactMessagesLimiter, contactMessagesRouter);
 app.use("/api/find-you", findYouRouter);
 app.use("/api/media", mediaRouter);
 app.use("/api/pricing-plans", pricingPlansRouter);
+app.use("/api/v1/pricing-plans", pricingPlansRouter);
 app.use("/api/subscription", subscriptionRouter);
+app.use("/api/v1/subscriptions", subscriptionRouter);
 
 app.use((_request, response) => {
   response.status(404).json({ success: false, error: "Route not found." });

@@ -66,7 +66,7 @@ subscriptionRouter.post("/apply-pending", async (request, response) => {
     if (updateError) throw updateError;
     response.json({ success: true, applied: true });
   } catch (error) {
-    console.error("[BackendSubscription] Pending-plan activation failed:", error);
+    request.log.error({ error }, "[BackendSubscription] Pending-plan activation failed");
     response.status(500).json({ error: error instanceof Error ? error.message : "Unable to activate pending plan." });
   }
 });
@@ -116,7 +116,7 @@ subscriptionRouter.post("/apply-due", async (request, response) => {
       failures,
     });
   } catch (error) {
-    console.error("[BackendSubscriptionCron] Due-plan activation failed:", error);
+    request.log.error({ error }, "[BackendSubscriptionCron] Due-plan activation failed");
     response.status(500).json({ error: error instanceof Error ? error.message : "Unable to apply due plans." });
   }
 });

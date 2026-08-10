@@ -28,7 +28,7 @@ export default function ContactUs() {
         setSubmitSuccess("");
 
         try {
-            const response = await fetch(getApiUrl("/api/contact-messages"), {
+            const response = await fetch(getApiUrl("/api/v1/contact-messages"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...form, source: "web" }),

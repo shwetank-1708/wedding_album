@@ -242,7 +242,7 @@ export const ManagePricingGrid: React.FC = () => {
       setStatus('loading');
       setMessage('');
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/pricing-plans`, { cache: 'no-store' });
+        const response = await fetch(`${getApiBaseUrl()}/api/v1/pricing-plans`, { cache: 'no-store' });
         const result = await response.json().catch(() => ({}));
         const nextPlans = Array.isArray(result.plans)
           ? result.plans.map((plan: Partial<PlanDraft>, index: number) => normalizePlan(plan, index))

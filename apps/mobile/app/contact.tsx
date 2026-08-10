@@ -31,7 +31,7 @@ export default function ContactUsScreen() {
     setSubmitSuccess('');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/contact-messages`, {
+      const response = await fetch(`${apiBaseUrl}/api/v1/contact-messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

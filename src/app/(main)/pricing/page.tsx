@@ -291,7 +291,7 @@ export default function Pricing() {
 
         async function loadPricingPlans() {
             try {
-                const response = await fetch(getApiUrl("/api/pricing-plans"), { cache: "no-store" });
+                const response = await fetch(getApiUrl("/api/v1/pricing-plans"), { cache: "no-store" });
                 const result = await response.json().catch(() => ({}));
                 if (!isMounted) return;
                 if (result.source !== "supabase" || !Array.isArray(result.plans)) {

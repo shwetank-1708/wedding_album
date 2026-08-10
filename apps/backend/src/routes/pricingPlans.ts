@@ -53,33 +53,45 @@ function mapPricingRow(row: PricingPlanRow): PricingPlan {
 
 export const pricingPlansRouter = Router();
 
-pricingPlansRouter.get("/", async (_request, response) => {
-  const supabase = getSupabasePublicClient();
-  if (!supabase) {
+pricingPlansRouter.get("/", async (request, response) => {
+  try {
+    const supabase = getSupabasePublicClient();
+    if (!supabase) {
+      return response.json({
+        plans: defaultPricingPlans,
+        source: "default",
+        error: "Supabase public credentials are not configured.",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("pricing_plans")
+      .select(
+        "id, name, storage_gb, storage_label, events, image_upload, video_upload, video_limit_mb, monthly_actual_price, monthly_price, three_month_actual_price, three_month_price, six_month_actual_price, six_month_price, discounted_yearly_price, yearly_price, active, display_order",
+      )
+      .order("display_order", { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      if (error) {
+        request.log.warn({ error }, "[PricingPlans] Falling back to default pricing plans");
+      }
+      return response.json({
+        plans: defaultPricingPlans,
+        source: "default",
+        error: error?.message || "No pricing plans found.",
+      });
+    }
+
+    return response.json({
+      plans: data.map((row) => mapPricingRow(row as PricingPlanRow)),
+      source: "supabase",
+    });
+  } catch (error) {
+    request.log.error({ error }, "[PricingPlans] Request failed");
     return response.json({
       plans: defaultPricingPlans,
       source: "default",
-      error: "Supabase public credentials are not configured.",
+      error: "Unable to load pricing plans.",
     });
   }
-
-  const { data, error } = await supabase
-    .from("pricing_plans")
-    .select(
-      "id, name, storage_gb, storage_label, events, image_upload, video_upload, video_limit_mb, monthly_actual_price, monthly_price, three_month_actual_price, three_month_price, six_month_actual_price, six_month_price, discounted_yearly_price, yearly_price, active, display_order",
-    )
-    .order("display_order", { ascending: true });
-
-  if (error || !data || data.length === 0) {
-    return response.json({
-      plans: defaultPricingPlans,
-      source: "default",
-      error: error?.message || "No pricing plans found.",
-    });
-  }
-
-  return response.json({
-    plans: data.map((row) => mapPricingRow(row as PricingPlanRow)),
-    source: "supabase",
-  });
 });
