@@ -196,13 +196,7 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
   useEffect(() => {
     if (!activeSrc) return;
 
-    if (isRawVideoUrl(activeSrc)) {
-      // Show "Processing" — wait for the parent to pass an updated HLS src
-      setState("processing");
-      return;
-    }
-
-    // HLS or direct MP4 — start playback
+    // Start playback immediately (HLS or native raw video fallback)
     startPlayback(activeSrc);
 
     return () => {
