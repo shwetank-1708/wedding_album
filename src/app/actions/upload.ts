@@ -21,16 +21,6 @@ function sanitizeSegment(value: string) {
         .slice(0, 100);
 }
 
-function parseBase64DataUrl(base64File: string, fallbackContentType?: string) {
-    const match = base64File.match(/^data:([^;]+);base64,(.+)$/);
-    const contentType = match?.[1] || fallbackContentType || "application/octet-stream";
-    const payload = match?.[2] || base64File;
-    return {
-        contentType,
-        bytes: Buffer.from(payload, "base64"),
-    };
-}
-
 function getExtension(fileName: string, contentType: string) {
     const fromName = fileName.split(".").pop();
     if (fromName && fromName !== fileName) return fromName.toLowerCase();
@@ -50,80 +40,6 @@ function buildStorageKey(folder: string, options: Required<Pick<BackblazeUploadO
     const finalName = safeFileName.includes(".") ? safeFileName : `${safeFileName}.${extension}`;
 
     return `${cleanFolder || "uploads"}/${mediaFolder}/${Date.now()}-${randomUUID()}-${finalName}`;
-}
-
-export async function uploadToBackblaze(base64File: string, folder: string, options: BackblazeUploadOptions = {}) {
-    try {
-        const resourceType = options.resourceType || (options.contentType?.startsWith("video/") ? "video" : "image");
-        const { contentType, bytes } = parseBase64DataUrl(base64File, options.contentType);
-        const storageKey = buildStorageKey(folder, { ...options, resourceType }, contentType);
-
-        console.log(`[Server Action] Requesting presigned upload URL from Railway API for: ${storageKey}`);
-
-        const apiBaseUrl = getBackendApiUrl();
-        if (!apiBaseUrl) {
-            throw new Error("NEXT_PUBLIC_API_URL is not configured.");
-        }
-
-        const presignedResponse = await fetch(`${apiBaseUrl}/api/v1/media/get-upload-url`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                fileName: options.fileName || storageKey,
-                fileSize: bytes.length,
-                resourceType,
-            }),
-            cache: "no-store",
-        });
-
-        if (!presignedResponse.ok) {
-            const errPayload = await presignedResponse.json().catch(() => ({}));
-            throw new Error(errPayload.error || "Failed to fetch presigned upload URL from Railway.");
-        }
-
-        const presignedData = await presignedResponse.json();
-
-        const uploadResponse = await fetch(presignedData.uploadUrl, {
-            method: "POST",
-            headers: {
-                Authorization: presignedData.authorizationToken,
-                "Content-Type": contentType,
-                "X-Bz-File-Name": encodeURIComponent(storageKey),
-                "X-Bz-Content-Sha1": "do_not_verify",
-                "Content-Length": String(bytes.length),
-            },
-            body: bytes as unknown as BodyInit,
-        });
-
-        const uploadResult = await uploadResponse.json().catch(() => ({}));
-        if (!uploadResponse.ok) {
-            throw new Error(uploadResult.message || `Backblaze upload failed with ${uploadResponse.status}`);
-        }
-
-        const mediaDomain = (process.env.MEDIA_DOMAIN || process.env.NEXT_PUBLIC_MEDIA_DOMAIN || "media.evebash.com")
-            .replace(/^https?:\/\//, "")
-            .replace(/\/+$/, "");
-        const url = `https://${mediaDomain}/${storageKey}`;
-
-        return {
-            success: true,
-            url,
-            public_id: storageKey,
-            storageKey,
-            fileId: uploadResult.fileId,
-            width: undefined,
-            height: undefined,
-            bytes: uploadResult.contentLength || bytes.length,
-            format: getExtension(options.fileName || storageKey, contentType),
-            resourceType,
-        };
-    } catch (error: unknown) {
-        console.error("[Server Action] Backblaze upload error:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Backblaze upload failed",
-        };
-    }
 }
 
 export async function getPresignedUploadUrl(
@@ -170,6 +86,7 @@ export async function getPresignedUploadUrl(
             authToken: data.authorizationToken,
             storageKey,
             finalUrl: `https://${mediaDomain}/${storageKey}`,
+            url: `https://${mediaDomain}/${storageKey}`,
         };
     } catch (error: unknown) {
         console.error("[Server Action] getPresignedUploadUrl error:", error);
@@ -178,4 +95,19 @@ export async function getPresignedUploadUrl(
             error: error instanceof Error ? error.message : "Failed to generate upload URL",
         };
     }
+}
+
+export async function uploadToBackblaze(_base64File: string, folder: string, options: BackblazeUploadOptions = {}) {
+    const res = await getPresignedUploadUrl(folder, options.fileName || "upload.jpg", options.contentType || "image/jpeg", options.resourceType || "image");
+    if (!res.success) {
+        return { success: false as const, error: res.error, url: "", finalUrl: "" };
+    }
+    return {
+        success: true as const,
+        url: res.finalUrl,
+        finalUrl: res.finalUrl,
+        uploadUrl: res.uploadUrl,
+        authToken: res.authToken,
+        storageKey: res.storageKey,
+    };
 }
