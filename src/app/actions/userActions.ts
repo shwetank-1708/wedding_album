@@ -1,61 +1,40 @@
 "use server";
 
 import { uploadToBackblaze } from "./upload";
-import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase Admin Client using service role key
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-);
+function getBackendApiUrl() {
+    return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
+}
 
 /**
- * Server Action to delete a user's account from Supabase Auth and their profile from Database.
- * This can ONLY be called securely from the server.
+ * Server Action to delete a user's account by requesting Railway backend admin control.
  */
 export async function deleteUserCompletely(uid: string, requesterEmail: string) {
     try {
         console.log(`[Server Action] Request to delete user: ${uid} by ${requesterEmail}`);
 
-        // 1. Security Check: Only specific Super Admins are allowed to trigger this
-        const superAdmins = [
-            "shwetank.chauhan17@gmail.com",
-            "shwetank.chauhan3@gmail.com",
-            "code4sarthak@gmail.com"
-        ];
-
-        if (!superAdmins.includes(requesterEmail)) {
-            console.error(`[Security] Unauthorized delete attempt by: ${requesterEmail}`);
-            return { success: false, error: "Unauthorized access. Only Super Admins can delete accounts." };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: "NEXT_PUBLIC_API_URL is not configured." };
         }
 
-        // 2. Delete from Supabase Authentication
-        console.log(`[Server Action] Deleting Supabase Auth user: ${uid}...`);
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(uid);
-        if (authError) {
-            console.error("[Server Action] Supabase Auth user deletion warning/error:", authError.message);
-        } else {
-            console.log(`[Server Action] Supabase Auth user deleted successfully.`);
-        }
+        const response = await fetch(`${apiBaseUrl}/api/admin/control`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                action: "delete_user",
+                uid,
+                requesterEmail,
+            }),
+            cache: "no-store",
+        });
 
-        // 3. Delete from Database Profile Table
-        console.log(`[Server Action] Deleting profile for UID: ${uid}...`);
-        const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .delete()
-            .eq('id', uid);
-
-        if (profileError) {
-            console.error(`[Server Action] Failed to delete profile record:`, profileError);
-            throw profileError;
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: payload.error || "Failed to delete user." };
         }
-        console.log(`[Server Action] Database profile deleted successfully.`);
 
         return { success: true };
     } catch (error: any) {
@@ -65,67 +44,39 @@ export async function deleteUserCompletely(uid: string, requesterEmail: string) 
 }
 
 /**
- * Server Action to find all users in Supabase Auth and ensure they have a profile in Database.
+ * Server Action to sync all users by requesting Railway backend admin control.
  */
 export async function syncAllAuthUsers(requesterEmail: string) {
     try {
         console.log(`[Server Action] Request to sync all users by: ${requesterEmail}`);
 
-        // 1. Security Check
-        const superAdmins = [
-            "shwetank.chauhan17@gmail.com",
-            "shwetank.chauhan3@gmail.com",
-            "code4sarthak@gmail.com"
-        ];
-
-        if (!superAdmins.includes(requesterEmail)) {
-            return { success: false, error: "Unauthorized." };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: "NEXT_PUBLIC_API_URL is not configured." };
         }
 
-        // 2. List all users from Supabase Auth
-        console.log(`[Server Action] Fetching users list from Auth...`);
-        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-        if (listError) throw listError;
+        const response = await fetch(`${apiBaseUrl}/api/admin/control`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                action: "sync_all_auth_users",
+                requesterEmail,
+            }),
+            cache: "no-store",
+        });
 
-        console.log(`[Server Action] Found ${users.length} users in Auth.`);
-        let syncCount = 0;
-
-        // 3. Bulk process profiles
-        for (const authUser of users) {
-            const { data: existing, error: fetchError } = await supabaseAdmin
-                .from('profiles')
-                .select('id')
-                .eq('id', authUser.id)
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error(`[Server Action] Error fetching profile for ${authUser.id}:`, fetchError);
-                continue;
-            }
-
-            if (!existing) {
-                console.log(`[Server Action] Creating missing profile for: ${authUser.email}`);
-                const name = authUser.user_metadata?.name || authUser.email?.split("@")[0] || "Wedding User";
-                const { error: insertError } = await supabaseAdmin
-                    .from('profiles')
-                    .insert({
-                        id: authUser.id,
-                        name,
-                        email: authUser.email || null,
-                        role: "user", // Default for bulk sync
-                        role_type: "primary",
-                        created_at: new Date().toISOString()
-                    });
-
-                if (insertError) {
-                    console.error(`[Server Action] Insert profile failed for ${authUser.id}:`, insertError);
-                } else {
-                    syncCount++;
-                }
-            }
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: payload.error || "Failed to sync users." };
         }
 
-        return { success: true, count: users.length, synced: syncCount };
+        return {
+            success: true,
+            count: payload.data?.count || 0,
+            synced: payload.data?.synced || 0,
+        };
     } catch (error: any) {
         console.error("[Server Action] Error syncing all users:", error);
         return { success: false, error: error.message || "Sync failed." };
@@ -134,7 +85,6 @@ export async function syncAllAuthUsers(requesterEmail: string) {
 
 /**
  * Server Action to securely upload a base64 encoded profile image to Backblaze.
- * Returns the secure URL of the uploaded image.
  */
 export async function uploadProfileImageToBackblaze(base64Image: string, uid: string) {
     try {
