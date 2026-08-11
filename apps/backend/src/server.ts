@@ -11,6 +11,7 @@ import { infrastructureRouter } from "./routes/infrastructure.js";
 import { mediaRouter } from "./routes/media.js";
 import { pricingPlansRouter } from "./routes/pricingPlans.js";
 import { subscriptionRouter } from "./routes/subscription.js";
+import { paymentsRouter } from "./routes/payments.js";
 
 const app = express();
 
@@ -59,6 +60,10 @@ app.use("/api/pricing-plans", pricingPlansRouter);
 app.use("/api/v1/pricing-plans", pricingPlansRouter);
 app.use("/api/subscription", subscriptionRouter);
 app.use("/api/v1/subscriptions", subscriptionRouter);
+app.use("/api/v1/payments", paymentsRouter);
+app.use("/api/payments", paymentsRouter);
+app.use("/api/create-order", paymentsRouter);
+app.use("/api/verify-payment", paymentsRouter);
 
 app.use((_request, response) => {
   response.status(404).json({ success: false, error: "Route not found." });

@@ -1,46 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedBackblazeAuth, cancelLargeFile } from "@/lib/backblaze";
 
 export const runtime = "nodejs";
 
-function jsonResponse(body: unknown, status = 200) {
-  return NextResponse.json(body, {
-    status,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    },
-  });
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, { status, headers: corsHeaders });
+}
+
+function getBackendApiUrl() {
+  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 }
 
 export async function OPTIONS() {
-  return new Response(null, {
+  return new NextResponse(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    },
+    headers: corsHeaders,
   });
 }
 
 export async function POST(request: NextRequest) {
+  const apiBaseUrl = getBackendApiUrl();
+  if (!apiBaseUrl) {
+    return jsonResponse({ error: "Backend API URL is not configured." }, 503);
+  }
+
   try {
-    const body = await request.json().catch(() => ({}));
-    const fileId = String(body.fileId || "");
+    const backendResponse = await fetch(`${apiBaseUrl}/api/v1/media/upload/chunk/abort`, {
+      method: "POST",
+      headers: {
+        "Content-Type": request.headers.get("content-type") || "application/json",
+        "Authorization": request.headers.get("authorization") || "",
+        "User-Agent": request.headers.get("user-agent") || "",
+        "X-Forwarded-For": request.headers.get("x-forwarded-for") || "",
+      },
+      body: await request.text(),
+      cache: "no-store",
+    });
 
-    if (!fileId.trim()) {
-      return jsonResponse({ error: "Missing fileId" }, 400);
-    }
+    const payload = await backendResponse.json().catch(() => ({
+      error: "Unexpected backend response.",
+    }));
 
-    console.log(`[AbortChunkedUpload] Cancelling B2 large file for id ${fileId}...`);
-    const backblazeAuth = await getCachedBackblazeAuth();
-    await cancelLargeFile(backblazeAuth, fileId);
-
-    return jsonResponse({ success: true });
-  } catch (error: unknown) {
-    console.error("[AbortChunkedUpload] Error:", error);
-    return jsonResponse({ error: error instanceof Error ? error.message : "Failed to cancel large file" }, 500);
+    return jsonResponse(payload, backendResponse.status);
+  } catch (error) {
+    console.error("[AbortProxy] Backend request failed:", error);
+    return jsonResponse({ error: "Unable to reach backend API." }, 502);
   }
 }
+

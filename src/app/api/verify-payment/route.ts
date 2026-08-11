@@ -1,243 +1,55 @@
-import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import Razorpay from "razorpay";
-import { getPlanDetails } from "@/lib/planLimits";
-import { normalizeBillingDuration, type RazorpayBillingDuration } from "@/lib/razorpayPricing";
 
 export const runtime = "nodejs";
 
-type VerifyPaymentBody = {
-    razorpay_order_id?: unknown;
-    razorpay_payment_id?: unknown;
-    razorpay_signature?: unknown;
-    planId?: unknown;
-    duration?: unknown;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-const DURATION_TO_MONTHS: Record<RazorpayBillingDuration, number> = {
-    monthly: 1,
-    threeMonths: 3,
-    sixMonths: 6,
-    yearly: 12,
-};
-
-const DURATION_TO_PROFILE_VALUE: Record<RazorpayBillingDuration, string> = {
-    monthly: "monthly",
-    threeMonths: "quarterly",
-    sixMonths: "half_yearly",
-    yearly: "yearly",
-};
-
-function getSupabaseAdminClient() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceRoleKey) return null;
-
-    return createClient(url, serviceRoleKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    });
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, { status, headers: corsHeaders });
 }
 
-function toDateOnly(date: Date) {
-    return date.toISOString().slice(0, 10);
+function getBackendApiUrl() {
+  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 }
 
-function addMonths(date: Date, months: number) {
-    const nextDate = new Date(date);
-    nextDate.setMonth(nextDate.getMonth() + months);
-    return nextDate;
-}
-
-function addDays(date: Date, days: number) {
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + days);
-    return nextDate;
-}
-
-function parseDateOnly(value?: string | null) {
-    if (!value) return null;
-    const date = new Date(`${value}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isCurrentPlanActive(planEndDate?: string | null) {
-    const endDate = parseDateOnly(planEndDate);
-    if (!endDate) return false;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return endDate >= today;
-}
-
-function safeCompare(left: string, right: string) {
-    const leftBuffer = Buffer.from(left);
-    const rightBuffer = Buffer.from(right);
-    if (leftBuffer.length !== rightBuffer.length) return false;
-    return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
 }
 
 export async function POST(request: NextRequest) {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (!keyId || !keySecret) {
-        return NextResponse.json({ error: "Razorpay credentials are not configured." }, { status: 500 });
-    }
+  const apiBaseUrl = getBackendApiUrl();
+  if (!apiBaseUrl) {
+    return jsonResponse({ error: "Backend API URL is not configured." }, 503);
+  }
 
-    const supabaseAdmin = getSupabaseAdminClient();
-    if (!supabaseAdmin) {
-        return NextResponse.json({ error: "Supabase admin configuration is missing." }, { status: 500 });
-    }
-
-    let body: VerifyPaymentBody;
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-    }
-
-    const orderId = typeof body.razorpay_order_id === "string" ? body.razorpay_order_id : "";
-    const paymentId = typeof body.razorpay_payment_id === "string" ? body.razorpay_payment_id : "";
-    const signature = typeof body.razorpay_signature === "string" ? body.razorpay_signature : "";
-    const requestedPlanId = typeof body.planId === "string" ? body.planId.trim() : "";
-    const requestedDuration = normalizeBillingDuration(body.duration);
-
-    if (!orderId || !paymentId || !signature) {
-        return NextResponse.json({ error: "Payment id, order id, and signature are required." }, { status: 400 });
-    }
-
-    const authorization = request.headers.get("authorization") || "";
-    const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length).trim() : "";
-    if (!token) {
-        return NextResponse.json({ error: "You must be signed in to activate a plan." }, { status: 401 });
-    }
-
-    const {
-        data: { user },
-        error: userError,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (userError || !user) {
-        return NextResponse.json({ error: "Your session could not be verified." }, { status: 401 });
-    }
-
-    const generatedSignature = crypto
-        .createHmac("sha256", keySecret)
-        .update(`${orderId}|${paymentId}`)
-        .digest("hex");
-
-    if (!safeCompare(generatedSignature, signature)) {
-        return NextResponse.json({ success: false, error: "Invalid payment signature." }, { status: 400 });
-    }
-
-    const razorpay = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret,
+  try {
+    const backendResponse = await fetch(`${apiBaseUrl}/api/v1/payments/verify-payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": request.headers.get("content-type") || "application/json",
+        "Authorization": request.headers.get("authorization") || "",
+        "User-Agent": request.headers.get("user-agent") || "",
+        "X-Forwarded-For": request.headers.get("x-forwarded-for") || "",
+      },
+      body: await request.text(),
+      cache: "no-store",
     });
 
-    const order = await razorpay.orders.fetch(orderId);
-    const notes = order.notes || {};
-    const planId = typeof notes.planId === "string" ? notes.planId : requestedPlanId;
-    const duration = normalizeBillingDuration(notes.duration || requestedDuration);
+    const payload = await backendResponse.json().catch(() => ({
+      error: "Unexpected backend response.",
+    }));
 
-    if (!planId || !duration) {
-        return NextResponse.json({ error: "Payment order does not include plan details." }, { status: 400 });
-    }
-
-    if (requestedPlanId && requestedPlanId !== planId) {
-        return NextResponse.json({ error: "Payment plan mismatch." }, { status: 400 });
-    }
-
-    if (requestedDuration && requestedDuration !== duration) {
-        return NextResponse.json({ error: "Payment duration mismatch." }, { status: 400 });
-    }
-
-    const today = new Date();
-    const planStartDate = toDateOnly(today);
-    const planEndDate = toDateOnly(addMonths(today, DURATION_TO_MONTHS[duration]));
-    const subscriptionDuration = DURATION_TO_PROFILE_VALUE[duration];
-
-    const { data: currentProfile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .select("role, subscription_duration, plan_start_date, plan_end_date")
-        .eq("id", user.id)
-        .maybeSingle();
-
-    if (profileError) {
-        return NextResponse.json({ error: profileError.message || "Could not load your current plan." }, { status: 500 });
-    }
-
-    const currentRole = typeof currentProfile?.role === "string" && currentProfile.role ? currentProfile.role : "free";
-    const currentPlan = getPlanDetails(currentRole);
-    const selectedPlan = getPlanDetails(planId);
-    const isDowngrade =
-        currentRole.toLowerCase() !== "admin" &&
-        isCurrentPlanActive(currentProfile?.plan_end_date) &&
-        selectedPlan.storageBytes < currentPlan.storageBytes;
-
-    if (isDowngrade) {
-        const currentEndDate = parseDateOnly(currentProfile?.plan_end_date) || today;
-        const pendingStartDate = addDays(currentEndDate, 1);
-        const pendingPlanStartDate = toDateOnly(pendingStartDate);
-        const pendingPlanEndDate = toDateOnly(addMonths(pendingStartDate, DURATION_TO_MONTHS[duration]));
-
-        const { error: scheduleError } = await supabaseAdmin
-            .from("profiles")
-            .update({
-                pending_plan_role: planId,
-                pending_subscription_duration: subscriptionDuration,
-                pending_plan_start_date: pendingPlanStartDate,
-                pending_plan_end_date: pendingPlanEndDate,
-            })
-            .eq("id", user.id);
-
-        if (scheduleError) {
-            return NextResponse.json({ error: scheduleError.message || "Payment verified, but downgrade scheduling failed." }, { status: 500 });
-        }
-
-        return NextResponse.json({
-            success: true,
-            change_type: "downgrade_scheduled",
-            payment_id: paymentId,
-            order_id: orderId,
-            plan_id: currentRole,
-            pending_plan_role: planId,
-            pending_subscription_duration: subscriptionDuration,
-            pending_plan_start_date: pendingPlanStartDate,
-            pending_plan_end_date: pendingPlanEndDate,
-        });
-    }
-
-    const { error: updateError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-            role: planId,
-            role_type: "primary",
-            subscription_duration: subscriptionDuration,
-            plan_start_date: planStartDate,
-            plan_end_date: planEndDate,
-            pending_plan_role: null,
-            pending_subscription_duration: null,
-            pending_plan_start_date: null,
-            pending_plan_end_date: null,
-        })
-        .eq("id", user.id);
-
-    if (updateError) {
-        return NextResponse.json({ error: updateError.message || "Payment verified, but plan activation failed." }, { status: 500 });
-    }
-
-    return NextResponse.json({
-        success: true,
-        change_type: "immediate",
-        payment_id: paymentId,
-        order_id: orderId,
-        plan_id: planId,
-        subscription_duration: subscriptionDuration,
-        plan_start_date: planStartDate,
-        plan_end_date: planEndDate,
-    });
+    return jsonResponse(payload, backendResponse.status);
+  } catch (error) {
+    console.error("[VerifyPaymentProxy] Backend request failed:", error);
+    return jsonResponse({ error: "Unable to reach backend API." }, 502);
+  }
 }
+

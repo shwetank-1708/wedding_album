@@ -1,307 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedBackblazeAuth, BackblazeAuth } from "@/lib/backblaze";
-import { createClient } from "@supabase/supabase-js";
-import sharp from "sharp";
 
 export const runtime = "nodejs";
-// Allow long execution for large images
-export const maxDuration = 120;
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`${name} is not configured`);
-  }
-  return value;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, { status, headers: corsHeaders });
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const B2_DOWNLOAD_RETRY_DELAYS_MS = [1500, 3000, 6000, 10000, 15000, 20000];
-const B2_UPLOAD_RETRY_DELAYS_MS = [1000, 2500, 5000, 10000];
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+function getBackendApiUrl() {
+  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 }
 
-function isRetryableB2Status(status: number) {
-  return status === 404 || status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
-}
-
-async function fetchB2WithRetries(
-  url: string,
-  init: RequestInit,
-  label: string,
-  retryDelaysMs: number[],
-) {
-  const maxAttempts = retryDelaysMs.length + 1;
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const response = await fetch(url, init);
-      if (response.ok) {
-        if (attempt > 1) {
-          console.log(`[Process Thumbnail] ${label} succeeded on attempt ${attempt}/${maxAttempts}`);
-        }
-        return response;
-      }
-
-      const message = `${label} failed with ${response.status} ${response.statusText}`;
-      lastError = new Error(message);
-
-      if (!isRetryableB2Status(response.status) || attempt === maxAttempts) {
-        throw lastError;
-      }
-
-      const delayMs = retryDelaysMs[attempt - 1];
-      console.warn(`[Process Thumbnail] ${message}. Retrying in ${delayMs}ms (${attempt}/${maxAttempts})`);
-      await sleep(delayMs);
-    } catch (error) {
-      lastError = error;
-
-      if (attempt === maxAttempts) {
-        break;
-      }
-
-      const delayMs = retryDelaysMs[attempt - 1];
-      console.warn(
-        `[Process Thumbnail] ${label} network error: ${getErrorMessage(error)}. Retrying in ${delayMs}ms (${attempt}/${maxAttempts})`,
-      );
-      await sleep(delayMs);
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(`${label} failed after ${maxAttempts} attempts`);
-}
-
-// Global in-memory semaphore to limit concurrent image processing (Sharp resizing).
-// Setting limit to 3 keeps Railway CPU cool, prevents OOM spikes, and provides smooth, sequential execution.
-let activeResizes = 0;
-const MAX_CONCURRENT_RESIZES = 3;
-const queue: (() => void)[] = [];
-
-async function acquireLock() {
-  if (activeResizes < MAX_CONCURRENT_RESIZES) {
-    activeResizes++;
-    return;
-  }
-  return new Promise<void>((resolve) => {
-    queue.push(resolve);
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
   });
 }
 
-function releaseLock() {
-  activeResizes--;
-  const next = queue.shift();
-  if (next) {
-    activeResizes++;
-    next();
-  }
-}
-
-// Ensure QStash signature verification for security in production
 export async function POST(request: NextRequest) {
-  let hasLock = false;
-  let currentStorageKey = "unknown";
-  
+  const apiBaseUrl = getBackendApiUrl();
+  if (!apiBaseUrl) {
+    return jsonResponse({ error: "Backend API URL is not configured." }, 503);
+  }
+
   try {
-    const body = await request.json().catch(() => ({}));
-    const { storageKey } = body;
-    currentStorageKey = storageKey || "unknown";
+    const backendResponse = await fetch(`${apiBaseUrl}/api/v1/media/process-thumbnail`, {
+      method: "POST",
+      headers: {
+        "Content-Type": request.headers.get("content-type") || "application/json",
+        "Authorization": request.headers.get("authorization") || "",
+        "User-Agent": request.headers.get("user-agent") || "",
+        "X-Forwarded-For": request.headers.get("x-forwarded-for") || "",
+      },
+      body: await request.text(),
+      cache: "no-store",
+    });
 
-    if (!storageKey) {
-      return NextResponse.json({ error: "Missing storageKey" }, { status: 400 });
-    }
+    const payload = await backendResponse.json().catch(() => ({
+      error: "Unexpected backend response.",
+    }));
 
-    console.log(`[Process Thumbnail] Queued background job for: ${storageKey} (Queue size: ${queue.length}, Active: ${activeResizes})`);
-    
-    // Acquire lock (blocks if activeResizes >= 3)
-    await acquireLock();
-    hasLock = true;
-    console.log(`[Process Thumbnail] Acquired lock for: ${storageKey} (Active: ${activeResizes})`);
-
-    const supabaseAdmin = createClient(
-      requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
-    const backblazeAuth = await getCachedBackblazeAuth();
-    const bucketId = requireEnv("B2_BUCKET_ID");
-    const mediaDomain = requireEnv("MEDIA_DOMAIN").replace(/^https?:\/\//, "").replace(/\/+$/, "");
-
-    // 1. Download the original high-res image from B2
-    const encodedStorageKey = storageKey.split('/').map(encodeURIComponent).join('/');
-    const downloadUrl = `${backblazeAuth.downloadUrl}/file/${requireEnv("B2_BUCKET_NAME")}/${encodedStorageKey}`;
-    console.log(`[Process Thumbnail] Downloading from B2: ${downloadUrl}`);
-    
-    const downloadResponse = await fetchB2WithRetries(
-      downloadUrl,
-      { headers: { Authorization: backblazeAuth.authorizationToken } },
-      `B2 original download for ${storageKey}`,
-      B2_DOWNLOAD_RETRY_DELAYS_MS,
-    );
-
-    const arrayBuffer = await downloadResponse.arrayBuffer();
-    const bufferBytes = Buffer.from(arrayBuffer);
-
-    console.log(`[Process Thumbnail] Successfully downloaded ${bufferBytes.length} bytes for ${storageKey}. Starting sharp processing...`);
-
-    // 2. Extract original dimensions for the DB (using .rotate() first to apply EXIF orientation swap)
-    const metadata = await sharp(bufferBytes).rotate().metadata();
-    const originalWidth = metadata.width || 0;
-    const originalHeight = metadata.height || 0;
-
-    // 3. Generate Thumbnail and Preview buffers
-    const thumbnailBuffer = await sharp(bufferBytes)
-      .rotate()
-      .resize({ width: 400, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-
-    const previewBuffer = await sharp(bufferBytes)
-      .rotate()
-      .resize({ width: 3000, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-
-    // 4. Upload BOTH thumbnail and preview to B2 atomically.
-    // If either upload fails, we throw an error → QStash will automatically retry the whole job.
-    // We never update the DB unless both files are safely in B2.
-    const thumbnailKey = `${storageKey}-thumbnail.webp`;
-    const previewKey = `${storageKey}-preview.webp`;
-    const thumbnailUrl = `https://${mediaDomain}/${thumbnailKey}`;
-    const previewUrl = `https://${mediaDomain}/${previewKey}`;
-
-    async function uploadBufferToB2(buffer: Buffer, key: string, contentType: string) {
-      const maxAttempts = B2_UPLOAD_RETRY_DELAYS_MS.length + 1;
-      let lastError: unknown;
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          // Re-fetch upload URL on every attempt because B2 upload URLs can expire or become unusable.
-          const uploadUrlResponse = await fetchB2WithRetries(
-            `${backblazeAuth.apiUrl}/b2api/v3/b2_get_upload_url`,
-            {
-              method: "POST",
-              headers: { Authorization: backblazeAuth.authorizationToken },
-              body: JSON.stringify({ bucketId }),
-            },
-            `B2 upload URL request for ${key}`,
-            B2_UPLOAD_RETRY_DELAYS_MS.slice(0, 2),
-          );
-          const uploadUrlData = await uploadUrlResponse.json();
-
-          const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
-            method: "POST",
-            headers: {
-              Authorization: uploadUrlData.authorizationToken,
-              "Content-Type": contentType,
-              "X-Bz-File-Name": encodeURIComponent(key),
-              "X-Bz-Content-Sha1": "do_not_verify",
-              "Content-Length": String(buffer.length),
-            },
-            body: buffer as unknown as BodyInit,
-          });
-
-          if (uploadResponse.ok) {
-            if (attempt > 1) {
-              console.log(`[Process Thumbnail] B2 upload succeeded for ${key} on attempt ${attempt}/${maxAttempts}`);
-            }
-            return (await uploadResponse.json()).fileId;
-          }
-
-          const message = `B2 upload failed for ${key}: ${uploadResponse.status} ${uploadResponse.statusText}`;
-          lastError = new Error(message);
-
-          if (!isRetryableB2Status(uploadResponse.status) || attempt === maxAttempts) {
-            throw lastError;
-          }
-
-          const delayMs = B2_UPLOAD_RETRY_DELAYS_MS[attempt - 1];
-          console.warn(`[Process Thumbnail] ${message}. Retrying in ${delayMs}ms (${attempt}/${maxAttempts})`);
-          await sleep(delayMs);
-        } catch (error) {
-          lastError = error;
-
-          if (attempt === maxAttempts) {
-            break;
-          }
-
-          const delayMs = B2_UPLOAD_RETRY_DELAYS_MS[attempt - 1];
-          console.warn(
-            `[Process Thumbnail] B2 upload network error for ${key}: ${getErrorMessage(error)}. Retrying in ${delayMs}ms (${attempt}/${maxAttempts})`,
-          );
-          await sleep(delayMs);
-        }
-      }
-
-      throw lastError instanceof Error ? lastError : new Error(`B2 upload failed for key ${key}`);
-    }
-
-    console.log(`[Process Thumbnail] Uploading thumbnail to B2...`);
-    await uploadBufferToB2(thumbnailBuffer, thumbnailKey, "image/webp");
-
-    console.log(`[Process Thumbnail] Uploading preview to B2...`);
-    try {
-      await uploadBufferToB2(previewBuffer, previewKey, "image/webp");
-    } catch (previewErr) {
-      // Preview upload failed — do NOT save anything to DB.
-      // Return 500 so QStash retries the entire job (thumbnail will just be overwritten on retry).
-      console.error(`[Process Thumbnail] Preview upload failed for ${storageKey}. Aborting DB update. QStash will retry.`, previewErr);
-      throw previewErr;
-    }
-
-    // Both uploads succeeded — now it is safe to update the DB.
-    // 5. Update Database Record with both URLs
-    let updated = false;
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      const { data, error: dbError } = await supabaseAdmin
-        .from("photos")
-        .update({ 
-          thumbnail_url: thumbnailUrl,
-          width: originalWidth,
-          height: originalHeight
-        })
-        .eq("storage_key", storageKey)
-        .select();
-
-      if (dbError) throw dbError;
-
-      if (data && data.length > 0) {
-        console.log(`[Process Thumbnail] Successfully updated database record in attempt ${attempt}`);
-        updated = true;
-        break;
-      }
-      if (attempt < 4) {
-        console.log(`[Process Thumbnail] Row not found yet, sleeping 2 seconds...`);
-        await sleep(2000);
-      }
-    }
-
-    if (!updated) {
-      console.warn(`[Process Thumbnail] Database row not found matching storage_key "${storageKey}".`);
-      return NextResponse.json({ error: "Database row not found" }, { status: 404 });
-    }
-
-    console.log(`[Process Thumbnail] Job finished successfully for ${storageKey}`);
-    return NextResponse.json({ success: true, thumbnailUrl, previewUrl });
-
-  } catch (error: unknown) {
-    console.error("[Process Thumbnail] Failed:", error);
-    const errMessage = error instanceof Error ? error.message : "Processing failed";
-    // Returning 500 causes QStash to automatically retry this job
-    return NextResponse.json({ error: errMessage }, { status: 500 });
-  } finally {
-    if (hasLock) {
-      releaseLock();
-      console.log(`[Process Thumbnail] Released lock for: ${currentStorageKey} (Active: ${activeResizes})`);
-    }
+    return jsonResponse(payload, backendResponse.status);
+  } catch (error) {
+    console.error("[ProcessThumbnailProxy] Backend request failed:", error);
+    return jsonResponse({ error: "Unable to reach backend API." }, 502);
   }
 }

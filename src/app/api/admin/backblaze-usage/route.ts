@@ -1,118 +1,52 @@
-import { getCachedBackblazeAuth } from '@/lib/backblaze';
+import { NextRequest, NextResponse } from "next/server";
 
-type B2File = {
-  fileName?: string;
-  contentLength?: number;
-  size?: number;
+export const runtime = "nodejs";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
 };
 
-function corsHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, { status, headers: corsHeaders });
 }
 
-async function readBackblazeError(response: Response) {
-  try {
-    const payload = await response.json();
-    return {
-      code: payload?.code,
-      message: payload?.message || payload?.error || `Backblaze API returned status ${response.status}`,
-    };
-  } catch {
-    const text = await response.text().catch(() => '');
-    return {
-      code: undefined,
-      message: text || `Backblaze API returned status ${response.status}`,
-    };
-  }
-}
-
-export async function GET() {
-  const bucketId = process.env.B2_BUCKET_ID?.trim();
-  const bucketName = process.env.B2_BUCKET_NAME?.trim() || 'EveBash';
-
-  if (!bucketId) {
-    return new Response(
-      JSON.stringify({ error: 'B2_BUCKET_ID environment variable is not configured on the server.' }),
-      { status: 500, headers: corsHeaders() }
-    );
-  }
-
-  try {
-    const auth = await getCachedBackblazeAuth();
-    let startFileName: string | undefined;
-    let totalBytes = 0;
-    let fileCount = 0;
-
-    do {
-      const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_file_names`, {
-        method: 'POST',
-        headers: {
-          Authorization: auth.authorizationToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bucketId,
-          maxFileCount: 10000,
-          ...(startFileName ? { startFileName } : {}),
-        }),
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
-        const backblazeError = await readBackblazeError(response);
-        return new Response(
-          JSON.stringify({
-            error: backblazeError.message,
-            code: backblazeError.code,
-            bucketId,
-            bucketName,
-          }),
-          { status: response.status, headers: corsHeaders() }
-        );
-      }
-
-      const data = await response.json();
-      const files: B2File[] = Array.isArray(data.files) ? data.files : [];
-
-      for (const file of files) {
-        totalBytes += Number(file.contentLength ?? file.size ?? 0) || 0;
-        fileCount += 1;
-      }
-
-      startFileName = data.nextFileName || undefined;
-    } while (startFileName);
-
-    return new Response(
-      JSON.stringify({
-        bucketId,
-        bucketName,
-        fileCount,
-        totalBytes,
-        totalGb: totalBytes / (1024 * 1024 * 1024),
-        timestamp: new Date().toISOString(),
-      }),
-      { status: 200, headers: corsHeaders() }
-    );
-  } catch (error: any) {
-    return new Response(
-      JSON.stringify({
-        error: error?.message || 'Failed to fetch Backblaze bucket usage.',
-        bucketId,
-        bucketName,
-      }),
-      { status: 500, headers: corsHeaders() }
-    );
-  }
+function getBackendApiUrl() {
+  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 }
 
 export async function OPTIONS() {
-  return new Response(null, {
+  return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders(),
+    headers: corsHeaders,
   });
+}
+
+export async function GET(request: NextRequest) {
+  const apiBaseUrl = getBackendApiUrl();
+  if (!apiBaseUrl) {
+    return jsonResponse({ error: "Backend API URL is not configured." }, 503);
+  }
+
+  try {
+    const backendResponse = await fetch(`${apiBaseUrl}/api/admin/backblaze-usage`, {
+      method: "GET",
+      headers: {
+        "Authorization": request.headers.get("authorization") || "",
+        "User-Agent": request.headers.get("user-agent") || "",
+        "X-Forwarded-For": request.headers.get("x-forwarded-for") || "",
+      },
+      cache: "no-store",
+    });
+
+    const payload = await backendResponse.json().catch(() => ({
+      error: "Unexpected backend response.",
+    }));
+
+    return jsonResponse(payload, backendResponse.status);
+  } catch (error) {
+    console.error("[BackblazeUsageProxy] Backend request failed:", error);
+    return jsonResponse({ error: "Unable to reach backend API." }, 502);
+  }
 }
