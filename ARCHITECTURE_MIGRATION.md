@@ -9,13 +9,14 @@ Target: Vercel handles presentation/frontend. Railway handles the main business 
 | Contact messages | `/api/v1/contact-messages` | Compatibility proxy only | Web/mobile use v1 route |
 | Pricing plans read | `/api/v1/pricing-plans` | Compatibility proxy only | Web/dashboard use v1 route |
 | Apply pending subscription | `/api/v1/subscriptions/apply-pending` | Compatibility proxy only | Web auth uses v1 route |
+| Media indexing status | `/api/v1/media/indexing-status` | Compatibility proxy only | Web/mobile use v1 route |
 
 ## Remaining Next.js Backend Areas
 
 | Area | Current Next route group | Target owner |
 | --- | --- | --- |
 | Payments | `/api/create-order`, `/api/verify-payment` | Railway |
-| Media uploads | `/api/media/*` | Railway orchestration, Backblaze direct upload |
+| Media uploads/management | `/api/media/*` except indexing status | Railway orchestration, Backblaze direct upload |
 | Media jobs | `/api/media/process-thumbnail`, `/api/media/trigger-modal-batch`, `/api/debug/video-trigger` | Railway + QStash + Modal |
 | Find You | `/api/find-you*` | Railway + Modal |
 | Subscription changes | `/api/subscription/*` | Partially migrated to Railway |

@@ -1,83 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-// Force dynamic execution since we fetch real-time DB counts
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase configuration env variables.");
+function getBackendApiUrl() {
+  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
 }
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-
 export async function GET(request: NextRequest) {
+  const apiBaseUrl = getBackendApiUrl();
+  if (!apiBaseUrl) {
+    return NextResponse.json({ error: "Backend API URL is not configured." }, { status: 503 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const eventId = searchParams.get("eventId") || "";
+
   try {
-    const { searchParams } = new URL(request.url);
-    const eventId = searchParams.get("eventId");
+    const backendResponse = await fetch(
+      `${apiBaseUrl}/api/v1/media/indexing-status?${new URLSearchParams({ eventId }).toString()}`,
+      { cache: "no-store" },
+    );
+    const payload = await backendResponse.json().catch(() => ({
+      error: "Unexpected backend response.",
+    }));
 
-    if (!eventId) {
-      return NextResponse.json({ error: "Missing eventId parameter" }, { status: 400 });
-    }
-
-    // 1. Get total number of photos for the event
-    const { count: totalPhotos, error: totalErr } = await supabaseAdmin
-      .from("photos")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId)
-      .eq("media_type", "photo");
-
-    if (totalErr) throw totalErr;
-
-    // 2. Get count of photos that are fully indexed
-    const { count: indexedPhotos, error: indexedErr } = await supabaseAdmin
-      .from("photos")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId)
-      .eq("media_type", "photo")
-      .eq("face_indexed", true);
-
-    // 3. Get count of photos with faces vs without faces
-    let photosWithFaces = 0;
-    const { data: photoIds } = await supabaseAdmin
-      .from("photos")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("media_type", "photo");
-
-    if (photoIds && photoIds.length > 0) {
-      const ids = photoIds.map(p => p.id);
-      const { data: eventFaces } = await supabaseAdmin
-        .from("faces")
-        .select("image_id")
-        .in("image_id", ids);
-
-      if (eventFaces) {
-        photosWithFaces = new Set(eventFaces.map(f => f.image_id)).size;
-      }
-    }
-
-    const total = totalPhotos || 0;
-    const indexed = indexedPhotos || 0;
-    const photosWithoutFaces = Math.max(0, indexed - photosWithFaces);
-    const pending = Math.max(0, total - indexed);
-    const percentComplete = total > 0 ? Math.round((indexed / total) * 100) : 0;
-    const status = (total > 0 && pending === 0) ? "complete" : "processing";
-
-    return NextResponse.json({
-      total,
-      indexed,
-      photosWithFaces,
-      photosWithoutFaces,
-      pending,
-      percentComplete,
-      status
-    });
-
-  } catch (err: any) {
-    console.error("[IndexingStatus API] Error fetching progress:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(payload, { status: backendResponse.status });
+  } catch (error) {
+    console.error("[MediaIndexingStatusProxy] Backend request failed:", error);
+    return NextResponse.json({ error: "Unable to reach backend API." }, { status: 502 });
   }
 }

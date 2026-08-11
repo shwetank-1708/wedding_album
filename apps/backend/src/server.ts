@@ -54,6 +54,7 @@ app.use("/api/contact-messages", contactMessagesLimiter, contactMessagesRouter);
 app.use("/api/v1/contact-messages", contactMessagesLimiter, contactMessagesRouter);
 app.use("/api/find-you", findYouRouter);
 app.use("/api/media", mediaRouter);
+app.use("/api/v1/media", mediaRouter);
 app.use("/api/pricing-plans", pricingPlansRouter);
 app.use("/api/v1/pricing-plans", pricingPlansRouter);
 app.use("/api/subscription", subscriptionRouter);

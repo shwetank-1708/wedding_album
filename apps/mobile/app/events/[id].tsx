@@ -1542,7 +1542,7 @@ export default function EventDetailScreen() {
           ? (selectedAdminGallery ? selectedAdminGallery.id : id)
           : (activeSubEvent ? activeSubEvent.id : id);
 
-        const res = await fetch(`${baseUrl}/api/media/indexing-status?eventId=${eventIdToQuery}`);
+        const res = await fetch(`${baseUrl}/api/v1/media/indexing-status?eventId=${eventIdToQuery}`);
         if (res.ok) {
           const data = await res.json();
           setMobileIndexingStatus(data);

@@ -868,14 +868,40 @@ mediaRouter.get("/indexing-status", asyncRoute(async (request, response) => {
   if (!eventId) return jsonError(response, 400, "Missing eventId");
 
   const supabaseAdmin = getSupabaseAdminClient();
-  const [{ count: total, error: totalError }, { count: indexed, error: indexedError }, { count: ready, error: readyError }] = await Promise.all([
+  const [{ count: totalPhotos, error: totalError }, { count: indexedPhotos, error: indexedError }, { data: photoIds, error: photoIdsError }] = await Promise.all([
     supabaseAdmin.from("photos").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("media_type", "photo"),
     supabaseAdmin.from("photos").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("media_type", "photo").eq("face_indexed", true),
-    supabaseAdmin.from("photos").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("media_type", "photo").not("thumbnail_url", "is", null),
+    supabaseAdmin.from("photos").select("id").eq("event_id", eventId).eq("media_type", "photo"),
   ]);
-  if (totalError || indexedError || readyError) throw totalError || indexedError || readyError;
+  if (totalError || indexedError || photoIdsError) throw totalError || indexedError || photoIdsError;
 
-  response.json({ total: total || 0, indexed: indexed || 0, ready: ready || 0 });
+  let photosWithFaces = 0;
+  if (photoIds && photoIds.length > 0) {
+    const ids = photoIds.map((photo) => photo.id);
+    const { data: eventFaces, error: facesError } = await supabaseAdmin
+      .from("faces")
+      .select("image_id")
+      .in("image_id", ids);
+    if (facesError) throw facesError;
+    photosWithFaces = eventFaces ? new Set(eventFaces.map((face) => face.image_id)).size : 0;
+  }
+
+  const total = totalPhotos || 0;
+  const indexed = indexedPhotos || 0;
+  const photosWithoutFaces = Math.max(0, indexed - photosWithFaces);
+  const pending = Math.max(0, total - indexed);
+  const percentComplete = total > 0 ? Math.round((indexed / total) * 100) : 0;
+  const status = total > 0 && pending === 0 ? "complete" : "processing";
+
+  response.json({
+    total,
+    indexed,
+    photosWithFaces,
+    photosWithoutFaces,
+    pending,
+    percentComplete,
+    status,
+  });
 }));
 
 mediaRouter.post("/delete", asyncRoute(async (request, response) => {

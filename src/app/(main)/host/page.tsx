@@ -915,7 +915,7 @@ function DashboardContent() {
 
         const checkStatus = async () => {
             try {
-                const res = await fetch(getApiUrl(`/api/media/indexing-status?eventId=${selectedEventId}`));
+                const res = await fetch(getApiUrl(`/api/v1/media/indexing-status?eventId=${selectedEventId}`));
                 if (res.ok) {
                     const data = await res.json();
                     setIndexingStatus(data);
