@@ -1,1 +1,3 @@
-export { OPTIONS, POST, runtime } from "../../contact-messages/route";
+export const runtime = "nodejs";
+
+export { OPTIONS, POST } from "../../contact-messages/route";

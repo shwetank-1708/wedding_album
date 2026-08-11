@@ -1,1 +1,3 @@
-export { GET, OPTIONS, runtime } from "../../pricing-plans/route";
+export const runtime = "nodejs";
+
+export { GET, OPTIONS } from "../../pricing-plans/route";
