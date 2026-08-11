@@ -1087,8 +1087,35 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
   });
 }));
 
+mediaRouter.get("/all-photos", asyncRoute(async (_request, response) => {
+  const supabaseAdmin = getSupabaseAdminClient();
+
+  const { data, error } = await supabaseAdmin
+    .from("photos")
+    .select("id,event_id,url,width,height,media_type,resource_type")
+    .neq("media_type", "video")
+    .neq("resource_type", "video")
+    .order("uploaded_at", { ascending: false });
+
+  if (error) throw error;
+
+  const photos = (data || [])
+    .filter((photo: any) => Boolean(photo.url))
+    .map((photo: any) => ({
+      id: photo.id,
+      src: photo.url,
+      eventId: photo.event_id,
+      width: photo.width || 800,
+      height: photo.height || 600,
+    }));
+
+  response.json({ success: true, photos });
+}));
+
+
 mediaRouter.use((error: unknown, _request: Request, response: Response, next: NextFunction) => {
   void next;
   console.error("[MediaRouter] Error:", error);
   jsonError(response, 500, getErrorMessage(error));
 });
+

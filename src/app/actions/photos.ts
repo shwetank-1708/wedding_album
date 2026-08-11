@@ -1,6 +1,8 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
+function getBackendApiUrl() {
+    return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
+}
 
 export interface SimplePhoto {
     id: string;
@@ -11,25 +13,28 @@ export interface SimplePhoto {
 }
 
 export async function getAllPhotos(): Promise<SimplePhoto[]> {
-    const { data, error } = await supabase
-        .from("photos")
-        .select("id,event_id,url,width,height,media_type,resource_type")
-        .neq("media_type", "video")
-        .neq("resource_type", "video")
-        .order("uploaded_at", { ascending: false });
+    try {
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            console.error("[Photos] NEXT_PUBLIC_API_URL is not configured.");
+            return [];
+        }
 
-    if (error) {
-        console.error("[Photos] Failed to fetch photos:", error);
+        const response = await fetch(`${apiBaseUrl}/api/v1/media/all-photos`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            console.error(`[Photos] Backend returned status ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        return data.photos || [];
+    } catch (error) {
+        console.error("[Photos] Failed to fetch photos from backend:", error);
         return [];
     }
-
-    return (data || [])
-        .filter((photo) => !!photo.url)
-        .map((photo) => ({
-            id: photo.id,
-            src: photo.url,
-            eventId: photo.event_id,
-            width: photo.width || 800,
-            height: photo.height || 600,
-        }));
 }

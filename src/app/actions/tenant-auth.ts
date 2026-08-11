@@ -1,13 +1,8 @@
 "use server";
 
-import { 
-    getAllowedUser, 
-    logGuestLogin, 
-    requestAccess, 
-    getPendingRequests, 
-    addAllowedUser, 
-    denyRequest 
-} from "@/lib/database";
+function getBackendApiUrl() {
+    return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
+}
 
 export interface LoginResult {
     success: boolean;
@@ -22,40 +17,24 @@ export interface LoginResult {
 
 export async function checkAndLogGuest(name: string, phone: string, slug: string): Promise<LoginResult> {
     try {
-        console.log(`[ServerAction] Checking access for ${phone} on ${slug}`);
-
-        const allowedData = await getAllowedUser(phone);
-
-        if (allowedData) {
-            console.log(`[ServerAction] User found in allowed_users:`, allowedData);
-
-            // Log approved login
-            await logGuestLogin(
-                name || allowedData.name || "Guest", 
-                phone, 
-                slug, 
-                undefined, 
-                slug, 
-                undefined, 
-                'approved'
-            );
-
-            return {
-                success: true,
-                status: 'allowed',
-                user: {
-                    name: allowedData.name || name,
-                    phone: phone,
-                    role: allowedData.role || 'guest'
-                }
-            };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, status: 'denied', error: 'NEXT_PUBLIC_API_URL is not configured.' };
         }
 
-        return {
-            success: false,
-            status: 'needs_request'
-        };
+        const response = await fetch(`${apiBaseUrl}/api/v1/tenant-auth/check-and-log`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone, slug }),
+            cache: "no-store",
+        });
 
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, status: 'denied', error: data.error || 'Access check failed' };
+        }
+
+        return data;
     } catch (error: any) {
         console.error("[ServerAction] Error in checkAndLogGuest:", error);
         return {
@@ -68,7 +47,23 @@ export async function checkAndLogGuest(name: string, phone: string, slug: string
 
 export async function requestGuestAccessAction(name: string, phone: string) {
     try {
-        await requestAccess(name, phone);
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: 'NEXT_PUBLIC_API_URL is not configured.' };
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/v1/tenant-auth/request-access`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || 'Failed to request access' };
+        }
+
         return { success: true };
     } catch (error: any) {
         console.error("[ServerAction] Error in requestGuestAccess:", error);
@@ -78,8 +73,23 @@ export async function requestGuestAccessAction(name: string, phone: string) {
 
 export async function getPendingRequestsAction() {
     try {
-        const requests = await getPendingRequests();
-        return { success: true, data: requests };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: 'NEXT_PUBLIC_API_URL is not configured.', data: [] };
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/v1/tenant-auth/pending-requests`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || 'Failed to get requests', data: [] };
+        }
+
+        return { success: true, data: data.data || [] };
     } catch (error: any) {
         console.error("[ServerAction] Error getting requests:", error);
         return { success: false, error: error.message, data: [] };
@@ -88,11 +98,22 @@ export async function getPendingRequestsAction() {
 
 export async function approveRequestAction(name: string, phone: string) {
     try {
-        // 1. Add to allowed_users
-        await addAllowedUser(name, phone, "guest");
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: 'NEXT_PUBLIC_API_URL is not configured.' };
+        }
 
-        // 2. Remove from pending_requests
-        await denyRequest(phone);
+        const response = await fetch(`${apiBaseUrl}/api/v1/tenant-auth/approve-request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || 'Failed to approve request' };
+        }
 
         return { success: true };
     } catch (error: any) {
@@ -103,7 +124,23 @@ export async function approveRequestAction(name: string, phone: string) {
 
 export async function denyRequestAction(phone: string) {
     try {
-        await denyRequest(phone);
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: 'NEXT_PUBLIC_API_URL is not configured.' };
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/v1/tenant-auth/deny-request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || 'Failed to deny request' };
+        }
+
         return { success: true };
     } catch (error: any) {
         console.error("[ServerAction] Error denying request:", error);

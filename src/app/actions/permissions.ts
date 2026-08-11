@@ -1,84 +1,13 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
-import { updateGuestStatus, deleteGuest, updateGuestPermissions } from "@/lib/database";
-
-const SUPER_ADMIN_EMAILS = [
-    "shwetank.chauhan17@gmail.com",
-    "shwetank.chauhan3@gmail.com",
-    "code4sarthak@gmail.com",
-];
+function getBackendApiUrl() {
+    return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
+}
 
 type Requester = {
     uid?: string | null;
     email?: string | null;
 };
-
-async function canManageGuestLog(logId: string, requester: Requester) {
-    if (!requester.uid && !requester.email) return false;
-    if (requester.email && SUPER_ADMIN_EMAILS.includes(requester.email)) {
-        return true;
-    }
-
-    const { data: log, error } = await supabase
-        .from('guests')
-        .select('parent_event_owner_id, event_id, parent_event_id')
-        .eq('id', logId)
-        .maybeSingle();
-
-    if (error || !log) return false;
-
-    let ownerId = log.parent_event_owner_id;
-    const linkedEventIds = [log.parent_event_id, log.event_id].filter(Boolean) as string[];
-
-    if (!ownerId && linkedEventIds.length > 0) {
-        const { data: ownerEvent } = await supabase
-            .from('events')
-            .select('created_by')
-            .in('id', linkedEventIds)
-            .limit(1)
-            .maybeSingle();
-
-        ownerId = ownerEvent?.created_by;
-    }
-
-    if (!ownerId && linkedEventIds.length === 0) return false;
-
-    if (ownerId === requester.uid || ownerId === requester.email) {
-        return true;
-    }
-
-    if (requester.uid) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, delegated_by, role_type')
-            .eq('id', requester.uid)
-            .maybeSingle();
-
-        if (profile) {
-            const isGlobalAdmin = profile.role === "admin" && !profile.delegated_by;
-            const isDelegatedPrimary = !!ownerId && profile.delegated_by === ownerId && profile.role_type === "primary";
-
-            if (isGlobalAdmin || isDelegatedPrimary) {
-                return true;
-            }
-        }
-
-        if (linkedEventIds.length > 0) {
-            const { data: assignedEvents } = await supabase
-                .from('profile_assigned_events')
-                .select('event_id')
-                .eq('profile_id', requester.uid)
-                .in('event_id', linkedEventIds);
-
-            if ((assignedEvents || []).length > 0) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
 
 export async function updateGuestStatusAction(
     logId: string,
@@ -86,13 +15,23 @@ export async function updateGuestStatusAction(
     requester: Requester
 ) {
     try {
-        const allowed = await canManageGuestLog(logId, requester);
-        if (!allowed) {
-            return { success: false, error: "You do not have permission to update this guest." };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: "NEXT_PUBLIC_API_URL is not configured." };
         }
 
-        const success = await updateGuestStatus(logId, status);
-        if (!success) throw new Error("Failed to update status in database");
+        const response = await fetch(`${apiBaseUrl}/api/v1/permissions/update-guest-status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logId, status, requester }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || "Failed to update guest status." };
+        }
+
         return { success: true };
     } catch (error: unknown) {
         console.error("[Permissions] Failed to update guest status:", error);
@@ -102,13 +41,23 @@ export async function updateGuestStatusAction(
 
 export async function deleteGuestAction(logId: string, requester: Requester) {
     try {
-        const allowed = await canManageGuestLog(logId, requester);
-        if (!allowed) {
-            return { success: false, error: "You do not have permission to remove this guest." };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: "NEXT_PUBLIC_API_URL is not configured." };
         }
 
-        const success = await deleteGuest(logId);
-        if (!success) throw new Error("Failed to delete guest from database");
+        const response = await fetch(`${apiBaseUrl}/api/v1/permissions/delete-guest`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logId, requester }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || "Failed to delete guest." };
+        }
+
         return { success: true };
     } catch (error: unknown) {
         console.error("[Permissions] Failed to delete guest:", error);
@@ -122,13 +71,23 @@ export async function updateGuestPermissionsAction(
     requester: Requester
 ) {
     try {
-        const allowed = await canManageGuestLog(logId, requester);
-        if (!allowed) {
-            return { success: false, error: "You do not have permission to update this guest." };
+        const apiBaseUrl = getBackendApiUrl();
+        if (!apiBaseUrl) {
+            return { success: false, error: "NEXT_PUBLIC_API_URL is not configured." };
         }
 
-        const success = await updateGuestPermissions(logId, permissions);
-        if (!success) throw new Error("Failed to update permissions in database");
+        const response = await fetch(`${apiBaseUrl}/api/v1/permissions/update-guest-permissions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logId, permissions, requester }),
+            cache: "no-store",
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            return { success: false, error: data.error || "Failed to update permissions." };
+        }
+
         return { success: true };
     } catch (error: unknown) {
         console.error("[Permissions] Failed to update guest permissions:", error);

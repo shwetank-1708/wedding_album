@@ -12,6 +12,8 @@ import { mediaRouter } from "./routes/media.js";
 import { pricingPlansRouter } from "./routes/pricingPlans.js";
 import { subscriptionRouter } from "./routes/subscription.js";
 import { paymentsRouter } from "./routes/payments.js";
+import { tenantAuthRouter } from "./routes/tenantAuth.js";
+import { permissionsRouter } from "./routes/permissions.js";
 
 const app = express();
 
@@ -64,6 +66,9 @@ app.use("/api/v1/payments", paymentsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/create-order", paymentsRouter);
 app.use("/api/verify-payment", paymentsRouter);
+app.use("/api/v1/tenant-auth", tenantAuthRouter);
+app.use("/api/v1/permissions", permissionsRouter);
+
 
 app.use((_request, response) => {
   response.status(404).json({ success: false, error: "Route not found." });
