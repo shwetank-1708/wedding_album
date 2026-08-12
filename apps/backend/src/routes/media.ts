@@ -665,9 +665,7 @@ mediaRouter.post("/save-photo", asyncRoute(async (request, response) => {
   if (isVideo) {
     background("SavePhotoVideo", () => publishVideoTranscodeTask({ id: photoId, storage_key: storageKey, event_id: eventId, url }, fileSize));
   } else {
-    background("SavePhotoModalTrigger", async () => {
-      await publishDelayedModalTrigger(eventId, getRequestOrigin(request));
-    });
+    background("SavePhotoModalTrigger", () => publishModalBatchTask([{ id: photoId, storage_key: storageKey, event_id: eventId, url }]));
   }
 
   response.json({ success: true, url, photoId });
@@ -710,10 +708,8 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
     background("SavePhotoBatchVideo", () => publishVideoTranscodeTask(video, video.fileSize));
   }
 
-  if (imagePayloads.length > 0 && firstEventId) {
-    background("SavePhotoBatchModalTrigger", async () => {
-      await publishDelayedModalTrigger(firstEventId, getRequestOrigin(request));
-    });
+  if (imagePayloads.length > 0) {
+    background("SavePhotoBatchModalTrigger", () => publishModalBatchTask(imagePayloads));
   }
 
   if (firstEventId) {
