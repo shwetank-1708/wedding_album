@@ -19,7 +19,6 @@ import {
 import {
   publishDelayedModalTrigger,
   publishModalBatchTask,
-  publishResizeTask,
   publishVideoTranscodeTask,
 } from "../qstash.js";
 
@@ -57,10 +56,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const B2_DOWNLOAD_RETRY_DELAYS_MS = [1500, 3000, 6000, 10000, 15000, 20000];
 const B2_UPLOAD_RETRY_DELAYS_MS = [1000, 2500, 5000, 10000];
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv"]);
-
-let activeResizes = 0;
-const MAX_CONCURRENT_RESIZES = 3;
-const resizeQueue: (() => void)[] = [];
 
 function asyncRoute(handler: AsyncRoute) {
   return (request: Request, response: Response, next: NextFunction) => {
@@ -486,23 +481,6 @@ async function uploadBufferToB2(auth: BackblazeAuth, bucketId: string, buffer: B
   throw lastError instanceof Error ? lastError : new Error(`B2 upload failed for ${key}`);
 }
 
-async function acquireResizeLock() {
-  if (activeResizes < MAX_CONCURRENT_RESIZES) {
-    activeResizes++;
-    return;
-  }
-  await new Promise<void>((resolve) => resizeQueue.push(resolve));
-}
-
-function releaseResizeLock() {
-  activeResizes--;
-  const next = resizeQueue.shift();
-  if (next) {
-    activeResizes++;
-    next();
-  }
-}
-
 function getB2KeyFromUrl(url: string) {
   const mediaDomain = getMediaDomain();
   const prefix = `https://${mediaDomain}/`;
@@ -687,8 +665,8 @@ mediaRouter.post("/save-photo", asyncRoute(async (request, response) => {
   if (isVideo) {
     background("SavePhotoVideo", () => publishVideoTranscodeTask({ id: photoId, storage_key: storageKey, event_id: eventId, url }, fileSize));
   } else {
-    background("SavePhotoResize", async () => {
-      await publishResizeTask({ storageKey, origin: getRequestOrigin(request) });
+    background("SavePhotoModalTrigger", async () => {
+      await publishDelayedModalTrigger(eventId, getRequestOrigin(request));
     });
   }
 
@@ -732,12 +710,9 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
     background("SavePhotoBatchVideo", () => publishVideoTranscodeTask(video, video.fileSize));
   }
 
-  if (imagePayloads.length > 0) {
-    background("SavePhotoBatchResize", async () => {
-      for (const photo of imagePayloads) {
-        await publishResizeTask({ storageKey: photo.storage_key, origin: getRequestOrigin(request) });
-      }
-      if (firstEventId) await publishDelayedModalTrigger(firstEventId, getRequestOrigin(request));
+  if (imagePayloads.length > 0 && firstEventId) {
+    background("SavePhotoBatchModalTrigger", async () => {
+      await publishDelayedModalTrigger(firstEventId, getRequestOrigin(request));
     });
   }
 
@@ -751,71 +726,16 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
 }));
 
 mediaRouter.post("/process-thumbnail", asyncRoute(async (request, response) => {
-  if (!verifyInternalJob(request)) {
-    return jsonError(response, 401, "Invalid background job authorization");
-  }
-
   const storageKey = String(request.body?.storageKey || "");
-  if (!storageKey) return jsonError(response, 400, "Missing storageKey");
+  const eventId = String(request.body?.eventId || "");
 
-  let locked = false;
-  try {
-    await acquireResizeLock();
-    locked = true;
-
-    const supabaseAdmin = getSupabaseAdminClient();
-    const backblazeAuth = await getCachedBackblazeAuth();
-    const bucketId = requireEnv("B2_BUCKET_ID");
-    const bucketName = requireEnv("B2_BUCKET_NAME");
-    const mediaDomain = getMediaDomain();
-    const encodedStorageKey = storageKey.split("/").map(encodeURIComponent).join("/");
-    const downloadUrl = `${backblazeAuth.downloadUrl}/file/${bucketName}/${encodedStorageKey}`;
-    const downloadResponse = await fetchB2WithRetries(
-      downloadUrl,
-      { headers: { Authorization: backblazeAuth.authorizationToken } },
-      `B2 original download for ${storageKey}`,
-      B2_DOWNLOAD_RETRY_DELAYS_MS,
-    );
-
-    const bufferBytes = Buffer.from(await downloadResponse.arrayBuffer());
-    const metadata = await sharp(bufferBytes).rotate().metadata();
-    const thumbnailBuffer = await sharp(bufferBytes)
-      .rotate()
-      .resize({ width: 400, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-    const previewBuffer = await sharp(bufferBytes)
-      .rotate()
-      .resize({ width: 3000, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-
-    const thumbnailKey = `${storageKey}-thumbnail.webp`;
-    const previewKey = `${storageKey}-preview.webp`;
-    await uploadBufferToB2(backblazeAuth, bucketId, thumbnailBuffer, thumbnailKey, "image/webp");
-    await uploadBufferToB2(backblazeAuth, bucketId, previewBuffer, previewKey, "image/webp");
-
-    const thumbnailUrl = `https://${mediaDomain}/${thumbnailKey}`;
-    const previewUrl = `https://${mediaDomain}/${previewKey}`;
-    const { data, error: updateError } = await supabaseAdmin
-      .from("photos")
-      .update({
-        thumbnail_url: thumbnailUrl,
-        preview_url: previewUrl,
-        width: metadata.width || null,
-        height: metadata.height || null,
-      })
-      .eq("storage_key", storageKey)
-      .select("id")
-      .maybeSingle();
-
-    if (updateError) throw updateError;
-    if (!data) return jsonError(response, 404, "Photo row not found for thumbnail update");
-
-    response.json({ success: true, thumbnailUrl, previewUrl });
-  } finally {
-    if (locked) releaseResizeLock();
+  if (eventId) {
+    background("ProcessThumbnailModalTrigger", async () => {
+      await publishDelayedModalTrigger(eventId, getRequestOrigin(request));
+    });
   }
+
+  response.json({ success: true, status: "offloaded_to_modal", storageKey });
 }));
 
 mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) => {
@@ -842,7 +762,6 @@ mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) =>
     .select("id, storage_key, event_id, preview_url, thumbnail_url, url")
     .eq("media_type", "photo")
     .eq("face_indexed", false)
-    .not("thumbnail_url", "is", null)
     .limit(100);
   query = query.eq("event_id", eventId);
 

@@ -113,13 +113,15 @@ def process_media_batch(request: dict):
 )
 def process_single_photo(photo_data: dict):
     import time
-    start_time = time.time()
-
+    import io
+    import os
     import boto3
-    from PIL import Image
-    from supabase import create_client, Client
     import numpy as np
     import cv2
+    from PIL import Image, ImageOps
+    from supabase import create_client, Client
+
+    start_time = time.time()
 
     # ── 1. Init Supabase and B2 ──────────────────────────────────────────
     supabase: Client = create_client(
@@ -144,33 +146,73 @@ def process_single_photo(photo_data: dict):
         return {"error": "no object key", "id": photo_id}
 
     try:
-        # ── 2. Download preview WebP from B2 ────────────────────────────
-        preview_key = f"{object_key}-preview.webp"
-
+        # ── 2. Download original photo from B2 (Single Download) ────────────
+        print(f"[{photo_id}] Downloading original photo from B2: {object_key}")
         try:
-            print(f"[{photo_id}] Downloading preview: {preview_key}")
-            response = b2_client.get_object(Bucket=bucket_name, Key=preview_key)
+            response = b2_client.get_object(Bucket=bucket_name, Key=object_key)
             image_bytes = response['Body'].read()
-            nparr = np.frombuffer(image_bytes, np.uint8)
-            img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img_bgr is None:
-                raise ValueError("cv2 failed to decode preview WebP image bytes")
-            h, w, _ = img_bgr.shape
-            print(f"[{photo_id}] Preview loaded: {w}×{h}px")
-        except Exception as e:
-            print(f"[{photo_id}] Preview not found ({e}). Marking failed.")
-            try:
-                b2_client.delete_object(Bucket=bucket_name, Key=object_key)
-            except Exception:
-                pass
+        except Exception as dl_err:
+            print(f"[{photo_id}] Failed to download original photo ({dl_err}). Marking failed.")
             try:
                 supabase.table("photos").update({"status": "failed"}).eq("id", photo_id).execute()
             except Exception:
                 pass
-            return {"status": "error", "photo_id": photo_id, "error": "Preview missing."}
+            return {"status": "error", "photo_id": photo_id, "error": f"Download failed: {dl_err}"}
 
-        # ── 3. Face Detection & Alignment & Encoding — AuraFace ─────────
-        # Retrieve the global in-memory indexing model instance
+        # ── 3. Image Decoding & EXIF Orientation ───────────────────────────
+        try:
+            pil_img = Image.open(io.BytesIO(image_bytes))
+            try:
+                pil_img = ImageOps.exif_transpose(pil_img)
+            except Exception:
+                pass
+            if pil_img.mode != "RGB":
+                pil_img = pil_img.convert("RGB")
+            orig_w, orig_h = pil_img.size
+            print(f"[{photo_id}] Original image loaded: {orig_w}×{orig_h}px")
+        except Exception as decode_err:
+            print(f"[{photo_id}] PIL failed to decode image: {decode_err}")
+            return {"status": "error", "photo_id": photo_id, "error": str(decode_err)}
+
+        # ── 4. Resizing & Thumbnail WebP Generation ────────────────────────
+        # Generate 1080p Preview WebP
+        preview_img = pil_img.copy()
+        preview_img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+        preview_buf = io.BytesIO()
+        preview_img.save(preview_buf, format="WEBP", quality=75)
+        preview_bytes = preview_buf.getvalue()
+
+        # Generate 480p Thumbnail WebP
+        thumb_img = pil_img.copy()
+        thumb_img.thumbnail((480, 480), Image.Resampling.LANCZOS)
+        thumb_buf = io.BytesIO()
+        thumb_img.save(thumb_buf, format="WEBP", quality=75)
+        thumb_bytes = thumb_buf.getvalue()
+
+        # Upload WebP variants directly to Backblaze B2
+        preview_key = f"{object_key}-preview.webp"
+        thumb_key   = f"{object_key}-thumbnail.webp"
+
+        b2_client.put_object(Bucket=bucket_name, Key=preview_key, Body=preview_bytes, ContentType="image/webp")
+        b2_client.put_object(Bucket=bucket_name, Key=thumb_key, Body=thumb_bytes, ContentType="image/webp")
+        print(f"[{photo_id}] Uploaded WebP variants to B2: {preview_key}, {thumb_key}")
+
+        # Construct public media URLs
+        media_domain = (
+            os.environ.get("MEDIA_DOMAIN")
+            or os.environ.get("CLOUDFLARE_DOMAIN")
+            or os.environ.get("NEXT_PUBLIC_MEDIA_DOMAIN")
+            or "media.evebash.com"
+        ).strip().replace("https://", "").replace("http://", "").rstrip("/")
+
+        preview_url = f"https://{media_domain}/{preview_key}"
+        thumbnail_url = f"https://{media_domain}/{thumb_key}"
+
+        # ── 5. Face Detection & AuraFace Vector Extraction ─────────────────
+        img_rgb = np.array(pil_img)
+        img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+        h, w, _ = img_bgr.shape
+
         face_analysis = get_indexing_model()
         faces = face_analysis.get(img_bgr)
         print(f"[{photo_id}] AuraFace detector found {len(faces)} face(s).")
@@ -181,14 +223,14 @@ def process_single_photo(photo_data: dict):
             if embedding is not None:
                 face_encodings.append(embedding)
 
-        # ── 4. Save face embeddings to Supabase ─────────────────────────
+        # ── 6. Save face records to Supabase ──────────────────────────────
         if face_encodings:
             face_records = []
             for encoding in face_encodings:
                 face_records.append({
                     "event_id":  event_id,
                     "image_id":  photo_id,
-                    "image_url": original_url,
+                    "image_url": preview_url or original_url,
                     "width":     w,
                     "height":    h,
                     "descriptor": encoding.tolist()
@@ -196,11 +238,24 @@ def process_single_photo(photo_data: dict):
             supabase.table("faces").insert(face_records).execute()
             print(f"[{photo_id}] Saved {len(face_records)} face record(s) to Supabase.")
 
-        # ── 5. Mark face_indexed status ──────────────────────────────────
-        supabase.table("photos").update({"face_indexed": True}).eq("id", photo_id).execute()
-        print(f"[{photo_id}] Marked face_indexed=True ({len(face_encodings)} face(s) found).")
+        # ── 7. Update photo row in Supabase ────────────────────────────────
+        update_data = {
+            "thumbnail_url": thumbnail_url,
+            "preview_url": preview_url,
+            "width": orig_w,
+            "height": orig_h,
+            "face_indexed": True,
+            "status": "processed"
+        }
+        try:
+            supabase.table("photos").update(update_data).eq("id", photo_id).execute()
+        except Exception:
+            update_data.pop("status", None)
+            supabase.table("photos").update(update_data).eq("id", photo_id).execute()
 
-        # ── 6. Log infrastructure cost ───────────────────────────────────
+        print(f"[{photo_id}] Updated photos table: face_indexed=True, thumbnails saved.")
+
+        # ── 8. Log infrastructure cost ───────────────────────────────────
         duration = time.time() - start_time
         cpu_cores = 1.0
         memory_gb = 1.0
@@ -223,7 +278,7 @@ def process_single_photo(photo_data: dict):
         return {"status": "success", "photo_id": photo_id, "faces": len(face_encodings)}
 
     except Exception as e:
-        print(f"[{photo_id}] Error: {e}")
+        print(f"[{photo_id}] Error in process_single_photo: {e}")
         return {"status": "error", "photo_id": photo_id, "error": str(e)}
 
 

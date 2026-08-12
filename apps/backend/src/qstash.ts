@@ -88,15 +88,20 @@ export async function publishModalBatchTask(
   }
 }
 
-export async function publishResizeTask(options: QStashPublishOptions): Promise<boolean> {
+export async function publishInternalJob(
+  endpoint: string,
+  payload: Record<string, unknown>,
+  origin?: string,
+): Promise<boolean> {
   const qstashToken = process.env.QSTASH_TOKEN;
   if (!qstashToken) {
-    console.warn("[QStash] QSTASH_TOKEN is not configured. Background resizing will not run.");
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Internal job will not run.");
     return false;
   }
 
-  const targetUrl = `${getBackendBaseUrl(options.origin)}/api/media/process-thumbnail`;
-  console.log(`[QStash] Publishing resize task for ${options.storageKey} to target: ${targetUrl}`);
+  const cleanEndpoint = endpoint.replace(/^\/+/, "");
+  const targetUrl = `${getBackendBaseUrl(origin)}/api/jobs/${cleanEndpoint}`;
+  console.log(`[QStash] Publishing internal job to target: ${targetUrl}`);
 
   try {
     const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
@@ -107,19 +112,19 @@ export async function publishResizeTask(options: QStashPublishOptions): Promise<
         "Upstash-Timeout": "120s",
         ...getInternalJobForwardHeaders(),
       },
-      body: JSON.stringify({ storageKey: options.storageKey }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`QStash publish failed with status ${response.status}: ${errorText}`);
+      throw new Error(`QStash publishInternalJob failed with status ${response.status}: ${errorText}`);
     }
 
     const result = await response.json();
-    console.log(`[QStash] Successfully published resize task. Message ID: ${result.messageId}`);
+    console.log(`[QStash] Successfully published internal job. Message ID: ${result.messageId}`);
     return true;
   } catch (error) {
-    console.error("[QStash] Error publishing resize task:", error);
+    console.error("[QStash] Error publishing internal job:", error);
     return false;
   }
 }
