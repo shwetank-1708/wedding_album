@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { getPendingRequestsAction, approveRequestAction, denyRequestAction } from "@/app/actions/tenant-auth";
+import { getApiUrl } from "@/lib/apiBase";
 import { motion } from "framer-motion";
 
 export default function TenantAdminDashboard() {
@@ -41,26 +41,52 @@ export default function TenantAdminDashboard() {
 
     const fetchRequests = async () => {
         setLoadingReqs(true);
-        const result = await getPendingRequestsAction();
-        if (result.success) {
-            setRequests(result.data);
-        } else {
-            console.error("Failed to fetch requests:", result.error);
+        try {
+            const url = getApiUrl("/api/v1/tenant-auth/pending-requests");
+            const res = await fetch(url);
+            const result = await res.json().catch(() => ({}));
+            if (res.ok && result.success) {
+                setRequests(result.data || []);
+            } else {
+                console.error("Failed to fetch requests:", result.error);
+            }
+        } catch (err) {
+            console.error("Failed to fetch requests:", err);
         }
         setLoadingReqs(false);
     };
 
     const handleApprove = async (req: any) => {
-        const result = await approveRequestAction(req.name, req.phone);
-        if (result.success) {
-            fetchRequests();
+        try {
+            const url = getApiUrl("/api/v1/tenant-auth/approve-request");
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: req.name, phone: req.phone }),
+            });
+            const result = await res.json().catch(() => ({}));
+            if (res.ok && result.success) {
+                fetchRequests();
+            }
+        } catch (err) {
+            console.error("Failed to approve request:", err);
         }
     };
 
     const handleDeny = async (req: any) => {
-        const result = await denyRequestAction(req.phone);
-        if (result.success) {
-            fetchRequests();
+        try {
+            const url = getApiUrl("/api/v1/tenant-auth/deny-request");
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: req.phone }),
+            });
+            const result = await res.json().catch(() => ({}));
+            if (res.ok && result.success) {
+                fetchRequests();
+            }
+        } catch (err) {
+            console.error("Failed to deny request:", err);
         }
     };
 

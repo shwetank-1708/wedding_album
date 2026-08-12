@@ -94,7 +94,6 @@ import { formatStorageSize, getPlanDetails, getUsagePercent } from "@/lib/planLi
 import { getSubscriptionStatus } from "@/lib/subscriptionStatus";
 import { getWebLightboxTheme } from "@/lib/webTemplateTheme";
 import { v4 as uuidv4 } from "uuid";
-import { deleteGuestAction, updateGuestPermissionsAction, updateGuestStatusAction } from "@/app/actions/permissions";
 
 
 import { Lightbox } from "@/components/ui/Lightbox";
@@ -1662,6 +1661,51 @@ function DashboardContent() {
             setStatus("error");
         }
         setTimeout(() => setStatus("idle"), 3000);
+    };
+
+    const updateGuestStatusAction = async (logId: string, status: string, requester: any) => {
+        try {
+            const url = getApiUrl("/api/v1/permissions/update-guest-status");
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logId, status, requester }),
+            });
+            const data = await res.json().catch(() => ({}));
+            return res.ok && data.success ? { success: true } : { success: false, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    };
+
+    const deleteGuestAction = async (logId: string, requester: any) => {
+        try {
+            const url = getApiUrl("/api/v1/permissions/delete-guest");
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logId, requester }),
+            });
+            const data = await res.json().catch(() => ({}));
+            return res.ok && data.success ? { success: true } : { success: false, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    };
+
+    const updateGuestPermissionsAction = async (logId: string, permissions: any, requester: any) => {
+        try {
+            const url = getApiUrl("/api/v1/permissions/update-guest-permissions");
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logId, permissions, requester }),
+            });
+            const data = await res.json().catch(() => ({}));
+            return res.ok && data.success ? { success: true } : { success: false, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
     };
 
     const handleGuestStatusUpdate = async (logId: string, nextStatus: "approved" | "rejected") => {

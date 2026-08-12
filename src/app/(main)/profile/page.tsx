@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { uploadProfileImageToBackblaze } from "@/app/actions/userActions";
 import {
     getApprovedSharedEventsForUser,
     getUserEventCount,
@@ -292,26 +291,44 @@ export default function ProfilePage() {
         setUploading(true);
         setSaveError("");
         try {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const result = await uploadProfileImageToBackblaze(reader.result as string, user.uid);
-                if (result.success && result.url) {
-                    await updateUserProfileImage(user.uid, result.url);
-                    setProfileImage(result.url);
-                    setSaveMessage("Profile photo updated.");
-                    window.setTimeout(() => setSaveMessage(""), 2500);
-                } else {
-                    setSaveError("Failed to upload profile photo.");
-                }
-                setUploading(false);
-            };
-            reader.onerror = () => {
-                setSaveError("Failed to read selected image.");
-                setUploading(false);
-            };
-            reader.readAsDataURL(file);
-        } catch {
-            setSaveError("Failed to upload profile photo.");
+            const presignedUrlEndpoint = getApiUrl("/api/v1/media/get-upload-url");
+            const presignedRes = await fetch(presignedUrlEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fileName: `profiles/${user.uid}/profile_pic.jpg`, resourceType: "image" }),
+            });
+            const presignedData = await presignedRes.json().catch(() => ({}));
+
+            if (!presignedRes.ok || !presignedData.uploadUrl) {
+                throw new Error(presignedData.error || "Failed to get upload URL");
+            }
+
+            const uploadRes = await fetch(presignedData.uploadUrl, {
+                method: "POST",
+                headers: {
+                    Authorization: presignedData.authorizationToken,
+                    "Content-Type": file.type || "image/jpeg",
+                    "X-Bz-File-Name": encodeURIComponent(`profiles/${user.uid}/profile_pic.jpg`),
+                    "X-Bz-Content-Sha1": "do_not_verify",
+                },
+                body: file,
+            });
+
+            if (!uploadRes.ok) {
+                throw new Error("Failed to upload image bytes to storage.");
+            }
+
+            const mediaDomain = (process.env.NEXT_PUBLIC_MEDIA_DOMAIN || "media.evebash.com").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+            const publicUrl = `https://${mediaDomain}/profiles/${user.uid}/profile_pic.jpg`;
+
+            await updateUserProfileImage(user.uid, publicUrl);
+            setProfileImage(publicUrl);
+            setSaveMessage("Profile photo updated.");
+            window.setTimeout(() => setSaveMessage(""), 2500);
+            setUploading(false);
+        } catch (err: any) {
+            console.error("Profile image upload failed:", err);
+            setSaveError(err.message || "Failed to upload profile photo.");
             setUploading(false);
         } finally {
             event.target.value = "";
