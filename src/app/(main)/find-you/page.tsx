@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import * as faceapi from "face-api.js";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
-import { getAllFaceEncodings, FaceRecord } from "@/lib/database";
+import { getApiUrl } from "@/lib/apiBase";
 
 export default function FindYouPage() {
     const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -19,22 +19,8 @@ export default function FindYouPage() {
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const loadModels = async () => {
-            try {
-                const MODEL_URL = "/models";
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-                ]);
-                setModelsLoaded(true);
-                setStatusMessage("AI Models Loaded. Ready.");
-            } catch (error) {
-                console.error("Error loading models:", error);
-                setStatusMessage("Error loading AI models. Please check /public/models folder.");
-            }
-        };
-        loadModels();
+        setModelsLoaded(true);
+        setStatusMessage("Ready to search!");
     }, []);
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,76 +28,66 @@ export default function FindYouPage() {
 
         const file = event.target.files[0];
         setUploading(true);
-        setStatusMessage("Analyzing your selfie...");
+        setMatchedPhotos([]);
+        setStatusMessage("Optimizing selfie & searching photos...");
 
-        // Create a local URL for the selfie
         const imageUrl = URL.createObjectURL(file);
         setSelfieUrl(imageUrl);
 
-        try {
-            // 1. Detect face in selfie
-            const selfieImage = await faceapi.fetchImage(imageUrl);
-            const selfieDetection = await faceapi.detectSingleFace(selfieImage, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-
-            if (!selfieDetection) {
-                setStatusMessage("No face detected in selfie. Please try again.");
-                setUploading(false);
-                return;
-            }
-
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64Selfie = reader.result as string;
             setProcessing(true);
-            setStatusMessage("Searching database for matches...");
 
-            // 2. Fetch all indexed faces from Supabase database
-            // This is much faster than processing images
-            const indexedFaces = await getAllFaceEncodings();
+            try {
+                const response = await fetch(getApiUrl("/api/find-you"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        selfieBase64: base64Selfie,
+                        eventIds: [], // Empty array = search all indexed events
+                    }),
+                });
 
-            if (indexedFaces.length === 0) {
-                setStatusMessage("No photos found in database. Please ask Admin to run the Indexer.");
-                setProcessing(false);
-                return;
-            }
-
-            // 3. Match faces
-            const matches: FaceRecord[] = [];
-            const threshold = 0.5; // Stricter threshold
-
-            // Convert selfie descriptor to array if needed, but face-api handles Float32Array
-
-            for (const face of indexedFaces) {
-                // Supabase database stores descriptor as number[]
-                // We need to convert it back to Float32Array for face-api math
-                const storedDescriptor = new Float32Array(face.descriptor);
-
-                const distance = faceapi.euclideanDistance(selfieDetection.descriptor, storedDescriptor);
-
-                if (distance < threshold) {
-                    matches.push(face);
+                if (!response.ok) {
+                    throw new Error(`Failed to search: ${response.status}`);
                 }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    setStatusMessage(data.error || "No face detected in selfie. Please try a clearer picture.");
+                    return;
+                }
+
+                const mediaDomain = process.env.NEXT_PUBLIC_MEDIA_DOMAIN || "media.evebash.com";
+                const matches = (data.matches || []).map((p: any) => {
+                    const storageKey = p.storageKey || p.imageId || p.id;
+                    return {
+                        id: p.id || p.imageId,
+                        src: p.previewUrl || p.thumbnailUrl || p.url || p.imageUrl || `https://${mediaDomain}/${storageKey}-preview.webp`,
+                        width: p.width,
+                        height: p.height,
+                        alt: `Found in ${p.eventId || "event"}`
+                    };
+                });
+
+                setMatchedPhotos(matches);
+
+                if (matches.length === 0) {
+                    setStatusMessage("No matching photos found in database. Try a clearer selfie!");
+                } else {
+                    setStatusMessage(`Found ${matches.length} photo${matches.length === 1 ? "" : "s"} of you! 🎉`);
+                }
+            } catch (error) {
+                console.error("Matching error:", error);
+                setStatusMessage("Something went wrong during matching.");
+            } finally {
+                setUploading(false);
+                setProcessing(false);
             }
-
-            // Deduplicate matches by imageId (if multiple faces in same image match same person - rare but possible)
-            // or just show them. Actually, if I match 2 faces in one group photo, it's the same photo.
-            const uniqueMatches = Array.from(new Map(matches.map(item => [item.imageId, item])).values());
-
-            setMatchedPhotos(uniqueMatches.map(p => ({
-                id: p.imageId,
-                src: p.imageUrl,
-                width: p.width,
-                height: p.height,
-                alt: `Found in ${p.eventId}`,
-                storageKey: p.imageId
-            })));
-
-            setStatusMessage(`Found ${uniqueMatches.length} photos of you!`);
-
-        } catch (error) {
-            console.error("Matching error:", error);
-            setStatusMessage("Something went wrong during matching.");
-        } finally {
-            setUploading(false);
-            setProcessing(false);
-        }
+        };
+        reader.readAsDataURL(file);
     };
 
     return (

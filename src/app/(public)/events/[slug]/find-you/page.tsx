@@ -8,6 +8,7 @@ import { getEventFaceEncodings, getEventById, getSubEvents, FaceRecord, Event } 
 import { useSearchParams } from "next/navigation";
 import { EventNavbar } from "@/components/EventNavbar";
 import { getWebTemplateChrome } from "@/lib/webTemplateTheme";
+import { getApiUrl } from "@/lib/apiBase";
 
 type MatchedPhoto = {
     id: string;
@@ -115,78 +116,77 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
         const file = event.target.files[0];
         setUploading(true);
         setMatchedPhotos([]);
-        setStatusMessage("Analyzing your selfie...");
+        setStatusMessage("Optimizing selfie & searching photos...");
 
-        // Create a local URL for the selfie
         const imageUrl = URL.createObjectURL(file);
         setSelfieUrl(imageUrl);
 
-        try {
-            // 1. Detect face in selfie
-            const selfieImage = await faceapi.fetchImage(imageUrl);
-            const selfieDetection = await faceapi.detectSingleFace(selfieImage, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-
-            if (!selfieDetection) {
-                setStatusMessage("No face detected in selfie. Please try again.");
-                setUploading(false);
-                return;
-            }
-
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64Selfie = reader.result as string;
             setProcessing(true);
-            setStatusMessage("Searching this event's photos for matches...");
 
-            // 2. Fetch face encodings ONLY for this specific event
-            const eventData = await getEventById(slug);
-            const eventIds = [slug];
-            const legacyIds = eventData?.legacyId ? [eventData.legacyId] : [];
-            // Also include parentId so guests see photos from all sub-events of the same wedding
-            if (eventData?.parentId) eventIds.push(eventData.parentId);
-
-            const indexedFaces = await getEventFaceEncodings(eventIds, legacyIds);
-
-            if (indexedFaces.length === 0) {
-                setStatusMessage("No indexed photos found for this event. Please ask the organizer to run the Face Indexer.");
-                setProcessing(false);
-                return;
-            }
-
-            // 3. Match faces
-            const matches: FaceRecord[] = [];
-            const threshold = 0.5;
-
-            for (const face of indexedFaces) {
-                const storedDescriptor = new Float32Array(face.descriptor);
-                const distance = faceapi.euclideanDistance(selfieDetection.descriptor, storedDescriptor);
-
-                if (distance < threshold) {
-                    matches.push(face);
+            try {
+                const eventData = await getEventById(slug);
+                const eventIds = [slug];
+                if (eventData?.id) eventIds.push(eventData.id);
+                if (eventData?.legacyId) eventIds.push(eventData.legacyId);
+                if (eventData?.parentId) eventIds.push(eventData.parentId);
+                if (subEvents && subEvents.length > 0) {
+                    subEvents.forEach(se => {
+                        if (se.id) eventIds.push(se.id);
+                        if (se.legacyId) eventIds.push(se.legacyId);
+                    });
                 }
+
+                const response = await fetch(getApiUrl("/api/find-you"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        selfieBase64: base64Selfie,
+                        eventIds: Array.from(new Set(eventIds)),
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to search: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    setStatusMessage(data.error || "No face detected in selfie. Please try a clearer picture.");
+                    return;
+                }
+
+                const mediaDomain = process.env.NEXT_PUBLIC_MEDIA_DOMAIN || "media.evebash.com";
+                const matches = (data.matches || []).map((p: any) => {
+                    const storageKey = p.storageKey || p.imageId || p.id;
+                    return {
+                        id: p.id || p.imageId,
+                        src: p.previewUrl || p.thumbnailUrl || p.url || p.imageUrl || `https://${mediaDomain}/${storageKey}-preview.webp`,
+                        width: p.width,
+                        height: p.height,
+                        alt: `Found in ${p.eventId || slug}`
+                    };
+                });
+
+                setMatchedPhotos(matches);
+
+                if (matches.length === 0) {
+                    setStatusMessage("No matching photos found in this event. Try a clearer selfie facing forward!");
+                } else {
+                    setStatusMessage(`Found ${matches.length} photo${matches.length === 1 ? "" : "s"} of you! 🎉`);
+                }
+            } catch (error) {
+                console.error("Matching error:", error);
+                setStatusMessage("Something went wrong during matching.");
+            } finally {
+                setUploading(false);
+                setProcessing(false);
             }
-
-            // Deduplicate by imageId
-            const uniqueMatches = Array.from(new Map(matches.map(item => [item.imageId, item])).values());
-
-            setMatchedPhotos(uniqueMatches.map(p => ({
-                id: p.imageId,
-                src: p.imageUrl,
-                width: p.width,
-                height: p.height,
-                alt: `Found in ${p.eventId}`
-            })));
-
-            if (uniqueMatches.length === 0) {
-                setStatusMessage("No matching photos found in this event. Try a clearer selfie!");
-            } else {
-                setStatusMessage(`Found ${uniqueMatches.length} photo${uniqueMatches.length === 1 ? "" : "s"} of you!`);
-            }
-
-        } catch (error) {
-            console.error("Matching error:", error);
-            setStatusMessage("Something went wrong during matching.");
-        } finally {
-            setUploading(false);
-            setProcessing(false);
-        }
+        };
+        reader.readAsDataURL(file);
     };
 
     return (
