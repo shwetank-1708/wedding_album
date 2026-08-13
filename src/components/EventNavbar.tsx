@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronRight, ChevronDown, User, LogOut, Camera, ScanFace } from "lucide-react";
+import { Menu, X, ChevronRight, ChevronDown, User, LogOut, Camera, ScanFace, Download, Loader2 } from "lucide-react";
 import { Event } from "@/lib/database";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +19,9 @@ interface EventNavbarProps {
     activePage?: "gallery" | "find-you" | "event-partners";
     onSelectGallery?: (gallery: Event | null) => void;
     onFindYou?: () => void;
+    onDownloadZip?: () => void;
+    isZipping?: boolean;
+    zipProgress?: number;
     showFavouriteGallery?: boolean;
     favouriteGalleryActive?: boolean;
     onSelectFavouriteGallery?: () => void;
@@ -48,6 +51,9 @@ export function EventNavbar({
     activePage,
     onSelectGallery,
     onFindYou,
+    onDownloadZip,
+    isZipping,
+    zipProgress,
     showFavouriteGallery,
     favouriteGalleryActive,
     onSelectFavouriteGallery,
@@ -356,6 +362,29 @@ export function EventNavbar({
                         )}
 
                         {utilityDesktopLinks.map(renderDesktopNavItem)}
+
+                        {onDownloadZip && (
+                            <button
+                                type="button"
+                                onClick={onDownloadZip}
+                                disabled={isZipping}
+                                className={cn(
+                                    "px-3.5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 border border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400 hover:text-slate-950 disabled:opacity-50"
+                                )}
+                            >
+                                {isZipping ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Zipping {zipProgress}%</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-3.5 h-3.5" />
+                                        <span>Download All</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
 
                         {user?.role === "admin" && renderDesktopNavItem({ name: "Admin", href: `${basePath}/admin`, gallery: null, isGallery: false })}
 

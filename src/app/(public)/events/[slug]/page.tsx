@@ -18,6 +18,7 @@ import { getWebTemplateComponent } from "@/components/templateRegistry";
 import { getWebLightboxTheme, getWebTemplateChrome } from "@/lib/webTemplateTheme";
 import { FindYouSection } from "@/components/FindYouSection";
 import { supabase } from "@/lib/supabase";
+import { downloadGalleryAsZip } from "@/lib/zipDownload";
 
 function EventPageContent() {
     const params = useParams();
@@ -38,6 +39,8 @@ function EventPageContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [isZipping, setIsZipping] = useState(false);
+    const [zipProgress, setZipProgress] = useState(0);
 
     // Pagination State
     const [photoPage, setPhotoPage] = useState(0);
@@ -354,6 +357,22 @@ function EventPageContent() {
     }));
 
     const loadGalleryPhotos = async (gallery: Event, page = 0, append = false) => {
+        if (!gallery.parentId && event) {
+            const eventIds = Array.from(new Set([event.id, ...subEvents.map(s => s.id)].filter(Boolean)));
+            if (eventIds.length > 0) {
+                const favPhotos = await getFavouritePhotosForEvents(eventIds);
+                if (favPhotos.length > 0) {
+                    const transformedFavs = transformPhotos(favPhotos as DatabasePhoto[]);
+                    setPhotos(prev => append ? [...prev, ...transformedFavs] : transformedFavs);
+                    const photoCount = transformedFavs.filter(p => p.mediaType !== "video" && p.resourceType !== "video").length;
+                    const videoCount = transformedFavs.filter(p => p.mediaType === "video" || p.resourceType === "video").length;
+                    setMediaTotals({ photos: photoCount, videos: videoCount });
+                    setHasMorePhotos(false);
+                    return;
+                }
+            }
+        }
+
         const { photos: databasePhotos, hasMore, totalPhotos, totalVideos } = await getEventPhotosPaginated(gallery.id, gallery.legacyId, page, 20);
         const transformedPhotos = transformPhotos(databasePhotos as DatabasePhoto[]);
 
@@ -741,6 +760,34 @@ function EventPageContent() {
     const findYouEventIds = [event.id];
     if (event.parentId) findYouEventIds.push(event.parentId);
 
+    const handleDownloadZip = async () => {
+        if (!photos || photos.length === 0) {
+            alert("No photos or videos to download in this gallery.");
+            return;
+        }
+        setIsZipping(true);
+        setZipProgress(0);
+        try {
+            const title = activeGallery?.title || event?.title || "Gallery";
+            await downloadGalleryAsZip(
+                title,
+                photos.map(p => ({
+                    id: p.id,
+                    url: p.src || p.url,
+                    filename: p.filename,
+                    mediaType: p.mediaType,
+                    resourceType: p.resourceType,
+                })),
+                (percent) => setZipProgress(percent)
+            );
+        } catch (err: any) {
+            alert(err.message || "Failed to generate zip file.");
+        } finally {
+            setIsZipping(false);
+            setZipProgress(0);
+        }
+    };
+
     return (
         <main
             className="event-template-shell min-h-screen relative"
@@ -766,9 +813,9 @@ function EventPageContent() {
                     selectGallery(gallery || parentEvent || null);
                 }}
                 onFindYou={() => router.push(`/events/${navMainId}/find-you${isShared ? "?shared=true" : ""}`)}
-                showFavouriteGallery
-                favouriteGalleryActive={activeVirtualGallery === "favourite"}
-                onSelectFavouriteGallery={selectFavouriteGallery}
+                onDownloadZip={handleDownloadZip}
+                isZipping={isZipping}
+                zipProgress={zipProgress}
                 chromeBackgroundColor={templateChrome.background}
                 chromeTextColor={templateChrome.text}
                 chromeAccentColor={templateChrome.accent}

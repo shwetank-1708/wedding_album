@@ -227,7 +227,7 @@ export function Lightbox({
 
     const handleToggleFavourite = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!onToggleFavourite || isTogglingFavourite || isVideo) return;
+        if (!onToggleFavourite || isTogglingFavourite) return;
 
         setIsTogglingFavourite(true);
         try {
@@ -297,7 +297,7 @@ export function Lightbox({
                         </div>
 
                         <div className="flex items-center space-x-1 pointer-events-auto">
-                            {onToggleFavourite && !isVideo && (
+                            {onToggleFavourite && (
                                 <button
                                     onClick={handleToggleFavourite}
                                     disabled={isTogglingFavourite}

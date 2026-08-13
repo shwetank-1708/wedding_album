@@ -175,10 +175,26 @@ export const HLSVideoPlayer = forwardRef<HTMLVideoElement, HLSVideoPlayerProps>(
         });
 
         hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
-          console.error("[HLSPlayer] Hls.js error:", data);
+          if (!data) return;
           if (data.fatal) {
-            setState("error");
-            setErrorMsg("Failed to load video stream.");
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn("[HLSPlayer] Fatal network error encountered, attempting recovery...");
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn("[HLSPlayer] Fatal media error encountered, attempting recovery...");
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error("[HLSPlayer] Fatal unrecoverable Hls.js error:", data.type, data.details);
+                try {
+                  hls.destroy();
+                } catch {}
+                setState("error");
+                setErrorMsg("Failed to load video stream.");
+                break;
+            }
           }
         });
       });
