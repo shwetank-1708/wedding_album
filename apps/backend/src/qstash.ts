@@ -170,75 +170,11 @@ export async function publishVideoTranscodeTask(
   payload: PhotoPayload,
   fileSize?: number,
 ): Promise<boolean> {
-  const qstashToken = process.env.QSTASH_TOKEN;
-  let targetUrl = (
-    process.env.MODAL_VIDEO_SMALL_URL ||
-    "https://shwetank-sarthak--wedding-media-engine-process-video-tra-78d23c.modal.run"
-  ).trim();
-
-  if (fileSize) {
-    if (fileSize > 1024 * 1024 * 1024) {
-      targetUrl = (
-        process.env.MODAL_VIDEO_LARGE_URL ||
-        "https://shwetank-sarthak--wedding-media-engine-process-video-tra-1aa355.modal.run"
-      ).trim();
-    } else if (fileSize > 100 * 1024 * 1024) {
-      targetUrl = (
-        process.env.MODAL_VIDEO_MEDIUM_URL ||
-        "https://shwetank-sarthak--wedding-media-engine-process-video-tra-e1dce7.modal.run"
-      ).trim();
-    }
-  }
-
-  if (!qstashToken) {
-    console.warn("[QStash] QSTASH_TOKEN is not configured. Falling back to direct Modal invocation...");
-    try {
-      const response = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          photo_id: payload.id,
-          storage_key: payload.storage_key,
-          event_id: payload.event_id,
-          url: payload.url,
-        }),
-      });
-      return response.ok;
-    } catch (directErr) {
-      console.error("[Modal Direct] Failed to directly trigger Modal worker:", directErr);
-      return false;
-    }
-  }
-
-  console.log(`[QStash] Publishing video transcode task for ${payload.storage_key} to Modal target: ${targetUrl}`);
-
-  try {
-    const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${qstashToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        photo_id: payload.id,
-        storage_key: payload.storage_key,
-        event_id: payload.event_id,
-        url: payload.url,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`QStash video publish failed with status ${response.status}: ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log(`[QStash] Successfully published video transcode task. Message ID: ${result.messageId}`);
-    return true;
-  } catch (error) {
-    console.error("[QStash] Error publishing video transcode task:", error);
-    return false;
-  }
+  return publishManifestAssemblyTask({
+    id: payload.id,
+    storage_key: payload.storage_key,
+    event_id: payload.event_id,
+  });
 }
 
 export async function publishVideoChunkTranscodeTask(chunkPayload: {
