@@ -240,3 +240,56 @@ export async function publishVideoTranscodeTask(
     return false;
   }
 }
+
+export async function publishVideoChunkTranscodeTask(chunkPayload: {
+  storage_key: string;
+  event_id: string;
+  part_number: number;
+  total_parts: number;
+  b2_chunk_key?: string;
+}): Promise<boolean> {
+  const qstashToken = process.env.QSTASH_TOKEN;
+  const targetUrl = (
+    process.env.MODAL_FMP4_CHUNK_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-process-fmp4-chun-cf16e5.modal.run"
+  ).trim();
+
+  if (!qstashToken) {
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Directing fMP4 chunk directly to Modal...");
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(chunkPayload),
+      });
+      return response.ok;
+    } catch (directErr) {
+      console.error("[Modal Direct] Failed to trigger fMP4 chunk worker:", directErr);
+      return false;
+    }
+  }
+
+  console.log(`[QStash] Publishing fMP4 chunk transcode task for ${chunkPayload.storage_key} part ${chunkPayload.part_number}/${chunkPayload.total_parts}`);
+
+  try {
+    const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${qstashToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(chunkPayload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`QStash fMP4 chunk publish failed: ${response.status} — ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[QStash] Error publishing fMP4 chunk task:", error);
+    return false;
+  }
+}
+

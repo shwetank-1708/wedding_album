@@ -19,6 +19,7 @@ import {
 import {
   publishDelayedModalTrigger,
   publishModalBatchTask,
+  publishVideoChunkTranscodeTask,
   publishVideoTranscodeTask,
 } from "../qstash.js";
 
@@ -553,6 +554,26 @@ mediaRouter.post("/upload/chunk/part-url", asyncRoute(async (request, response) 
   const backblazeAuth = await getCachedBackblazeAuth();
   const partUrlData = await getUploadPartUrl(backblazeAuth, fileId);
   response.json({ uploadUrl: partUrlData.uploadUrl, authorizationToken: partUrlData.authorizationToken });
+}));
+
+mediaRouter.post("/upload/chunk/complete-part", asyncRoute(async (request, response) => {
+  const storageKey = String(request.body?.storageKey || "");
+  const eventId = String(request.body?.eventId || "");
+  const partNumber = Number(request.body?.partNumber || 1);
+  const totalParts = Number(request.body?.totalParts || 1);
+
+  if (!storageKey || !eventId) return jsonError(response, 400, "Missing storageKey or eventId");
+
+  background("CompleteChunkPartTranscode", () =>
+    publishVideoChunkTranscodeTask({
+      storage_key: storageKey,
+      event_id: eventId,
+      part_number: partNumber,
+      total_parts: totalParts,
+    })
+  );
+
+  response.json({ success: true, partNumber, totalParts });
 }));
 
 mediaRouter.post("/upload/chunk/abort", asyncRoute(async (request, response) => {

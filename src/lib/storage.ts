@@ -295,6 +295,19 @@ async function uploadLargeFileInChunks(
                 if (onProgress) onProgress(Math.min(99, (bytesCompleted / file.size) * 100));
 
                 console.log(`[Storage] ✓ Chunk ${partNumber}/${totalChunks} done (sha1: ${sha1.substring(0, 8)}...)`);
+
+                // Fire-and-forget notification to backend to trigger real-time Modal chunk transcoding
+                fetch(getApiUrl("/api/media/upload/chunk/complete-part"), {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        storageKey,
+                        eventId,
+                        partNumber,
+                        totalParts: totalChunks,
+                    }),
+                }).catch((err) => console.warn(`[Storage] Part complete notification failed (non-critical):`, err));
+
                 return; // success — exit retry loop
 
             } catch (err) {
