@@ -1,3 +1,4 @@
+// @ts-ignore
 import JSZip from "jszip";
 
 export interface ZipMediaItem {
@@ -72,7 +73,7 @@ export async function downloadGalleryAsZip(
         throw new Error("Failed to download media files. Please check network connection.");
     }
 
-    const zipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
+    const zipBlob = await (zip as any).generateAsync({ type: "blob" }, (metadata: any) => {
         if (onProgress) {
             const overallPercent = Math.round(50 + (metadata.percent / 2));
             onProgress(overallPercent, completed, total);

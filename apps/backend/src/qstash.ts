@@ -293,3 +293,49 @@ export async function publishVideoChunkTranscodeTask(chunkPayload: {
   }
 }
 
+export async function publishManifestAssemblyTask(payload: {
+  id: string;
+  storage_key: string;
+  event_id: string;
+}): Promise<boolean> {
+  const qstashToken = process.env.QSTASH_TOKEN;
+  const targetUrl = (
+    process.env.MODAL_FMP4_MANIFEST_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-assemble-fmp4-man-156b2c.modal.run"
+  ).trim();
+
+  if (!qstashToken) {
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Invoking assemble_fmp4_manifest directly...");
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return response.ok;
+    } catch (directErr) {
+      console.error("[Modal Direct] Failed to trigger assemble_fmp4_manifest:", directErr);
+      return false;
+    }
+  }
+
+  console.log(`[QStash] Publishing assemble_fmp4_manifest task for ${payload.storage_key}`);
+
+  try {
+    const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${qstashToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("[QStash] Error publishing assemble_fmp4_manifest task:", error);
+    return false;
+  }
+}
+
+

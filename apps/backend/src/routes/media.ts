@@ -18,6 +18,7 @@ import {
 } from "../backblaze.js";
 import {
   publishDelayedModalTrigger,
+  publishManifestAssemblyTask,
   publishModalBatchTask,
   publishVideoChunkTranscodeTask,
   publishVideoTranscodeTask,
@@ -628,7 +629,7 @@ mediaRouter.post("/upload/chunk/complete", asyncRoute(async (request, response) 
   if (dbError) return jsonError(response, 500, `Upload succeeded to storage but failed to save database record: ${dbError.message}`);
 
   if (isVideo) {
-    background("CompleteChunkedUpload", () => publishVideoTranscodeTask({ id: photoId, storage_key: storageKey, event_id: eventId, url }, fileSize));
+    background("CompleteChunkedUpload", () => publishManifestAssemblyTask({ id: photoId, storage_key: storageKey, event_id: eventId }));
   }
   background("CompleteChunkedUploadNotify", () =>
     sendOwnerUploadNotification(
