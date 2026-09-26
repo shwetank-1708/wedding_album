@@ -24,7 +24,10 @@ import {
   RefreshCw,
   IndianRupee,
   CheckCircle2,
-  ArrowLeftRight
+  ArrowLeftRight,
+  CreditCard,
+  Layers,
+  Percent,
 } from 'lucide-react';
 import { getAccessToken, getApiBaseUrl, runAdminAction, type AdminActionResult } from '../lib/adminApi';
 import { supabase } from '../lib/supabase';
@@ -33,6 +36,9 @@ import { BackblazeLogo, BackblazeIcon } from './BackblazeLogo';
 import { SupabaseLogo } from './SupabaseLogo';
 import { CloudflareLogo } from './CloudflareLogo';
 import { RailwayLogo } from './RailwayLogo';
+import { QStashLogo, QStashIcon } from './QStashLogo';
+import { RazorpayLogo, RazorpayIcon } from './RazorpayLogo';
+import type { PaymentRecord } from './PaymentsGrid';
 import { useCurrency } from '../lib/currency';
 
 interface Props {
@@ -110,7 +116,7 @@ const computeModalLogCostInr = (log: any, usdToInrRate: number): number => {
 };
 
 export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, photos }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'total' | 'supabase' | 'backblaze' | 'cloudflare' | 'modal' | 'railway'>('total');
+  const [activeSubTab, setActiveSubTab] = useState<'total' | 'supabase' | 'backblaze' | 'cloudflare' | 'modal' | 'railway' | 'qstash' | 'razorpay'>('total');
   const [costChartMode, setCostChartMode] = useState<'actual' | 'simulated'>('actual');
   const [modalLogs, setModalLogs] = useState<any[]>([]);
   
@@ -119,6 +125,15 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
   
   // Live API Sync States
   const [liveBillingTier, setLiveBillingTier] = useState<string | null>(null);
+  const [liveSpendCap, setLiveSpendCap] = useState<boolean | null>(null);
+  const [liveSupabaseAddons, setLiveSupabaseAddons] = useState<Array<{ name: string; type: string; variant?: string; price: number; currency: string }>>([]);
+  const [liveSupabaseUsage, setLiveSupabaseUsage] = useState<{
+    dbBytes: number | null;
+    facesTableBytes: number | null;
+    facesCount: number | null;
+    timeframeMau: number | null;
+    totalUsers: number | null;
+  } | null>(null);
   const [loadingBilling, setLoadingBilling] = useState<boolean>(false);
 
   // Cloudflare Live API States
@@ -134,13 +149,66 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
 
   // Railway Live API States
   const [liveRailwayData, setLiveRailwayData] = useState<{
+    configured?: boolean;
     projectName: string;
+    projectId?: string | null;
+    billingPeriod?: { start: string; end: string };
+    cpuVcpuMin?: number;
+    memGbMin?: number;
+    networkTxGb?: number;
+    networkRxGb?: number;
     cpuDollars: number;
     memoryDollars: number;
     networkDollars: number;
     totalEstimatedDollars: number;
     invoiceDollars: number | null;
+    rates?: {
+      cpuPerVcpuSec: number;
+      memPerGbSec: number;
+      networkTxPerGb: number;
+    };
     error?: string;
+  } | null>(null);
+
+  // Upstash QStash Live & Simulation States
+  const [liveQstashData, setLiveQstashData] = useState<{
+    configured?: boolean;
+    tokenConfigured?: boolean;
+    queueName?: string;
+    totalDispatchedMessages?: number;
+    freeTierMonthlyAllowance?: number;
+    billableOverageMessages?: number;
+    ratePer100kUsd?: number;
+    ratePer100kInr?: number;
+    estimatedCostUsd?: number;
+    estimatedCostInr?: number;
+    mediaCount?: number;
+    modalLogsCount?: number;
+  } | null>(null);
+  const [simulatedQstashMessages, setSimulatedQstashMessages] = useState<number>(50000);
+
+  // Razorpay Gateway Live & Simulation States
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState<boolean>(false);
+  const [includeGstInFee, setIncludeGstInFee] = useState<boolean>(true);
+  const [simulatedAnnualRevenueInr, setSimulatedAnnualRevenueInr] = useState<number>(4000000); // ₹40 Lakhs (e.g. 100 photographers @ ₹40k)
+  const [liveRazorpayData, setLiveRazorpayData] = useState<{
+    configured?: boolean;
+    keyIdMasked?: string | null;
+    totalPaymentsCount?: number;
+    onlineCapturedCount?: number;
+    offlinePaymentsCount?: number;
+    failedPaymentsCount?: number;
+    grossOnlineVolumeInr?: number;
+    grossOfflineVolumeInr?: number;
+    totalGrossVolumeInr?: number;
+    baseFeePercent?: number;
+    gstPercent?: number;
+    effectiveFeePercent?: number;
+    baseFeeInr?: number;
+    gstFeeInr?: number;
+    totalFeeInr?: number;
+    netPayoutInr?: number;
   } | null>(null);
 
   // Shared Currency Engine (USD/INR Mode & Live Forex Rate)
@@ -465,7 +533,11 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         };
         
         try {
-          const res = await fetch(`${apiBase}/api/admin/supabase-billing`, requestOptions);
+          const params = new URLSearchParams({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+          });
+          const res = await fetch(`${apiBase}/api/admin/supabase-billing?${params.toString()}`, requestOptions);
           if (res.ok) {
             const data = await res.json();
             if (data?.billing_tier?.id) {
@@ -473,6 +545,15 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               if (data.billing_tier.id === 'pro' || data.billing_tier.id === 'free') {
                 setSupabaseTier(data.billing_tier.id);
               }
+            }
+            if (typeof data?.spend_cap === 'boolean') {
+              setLiveSpendCap(data.spend_cap);
+            }
+            if (Array.isArray(data?.addons)) {
+              setLiveSupabaseAddons(data.addons);
+            }
+            if (data?.usage) {
+              setLiveSupabaseUsage(data.usage);
             }
           }
         } catch (err) {
@@ -533,14 +614,49 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
             setLiveRailwayData(railwayData);
           } else {
             setLiveRailwayData({
+              configured: false,
               projectName: 'EveBash',
               cpuDollars: 0, memoryDollars: 0, networkDollars: 0,
               totalEstimatedDollars: 0, invoiceDollars: null,
               error: railwayData?.error || `Railway billing API returned status ${railwayRes.status}`,
             });
           }
-        } catch (err) {
+        } catch (err: any) {
           console.warn('[InfraCost] Railway billing API unavailable:', err);
+          setLiveRailwayData({
+            configured: false,
+            projectName: 'EveBash',
+            cpuDollars: 0, memoryDollars: 0, networkDollars: 0,
+            totalEstimatedDollars: 0, invoiceDollars: null,
+            error: err?.message || 'Railway billing API unavailable',
+          });
+        }
+        try {
+          const params = new URLSearchParams({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+          });
+          const qstashRes = await fetch(`${apiBase}/api/admin/qstash-usage?${params.toString()}`, requestOptions);
+          if (qstashRes.ok) {
+            const qstashData = await qstashRes.json();
+            setLiveQstashData(qstashData);
+          }
+        } catch (err) {
+          console.warn('[InfraCost] QStash telemetry API unavailable:', err);
+        }
+
+        try {
+          const params = new URLSearchParams({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+          });
+          const rzpRes = await fetch(`${apiBase}/api/admin/razorpay-billing?${params.toString()}`, requestOptions);
+          if (rzpRes.ok) {
+            const rzpData = await rzpRes.json();
+            setLiveRazorpayData(rzpData);
+          }
+        } catch (err) {
+          console.warn('[InfraCost] Razorpay billing API unavailable:', err);
         }
       } catch (err: any) {
         console.error('Failed to fetch live billing data:', err);
@@ -600,6 +716,43 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
       isCancelled = true;
     };
   }, [timeFilter, dateRange.start.toISOString(), dateRange.end.toISOString(), billingRefreshKey]);
+
+  // Fetch real payment records from Supabase for Razorpay calculations
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchPayments = async () => {
+      setLoadingPayments(true);
+      try {
+        let query = supabase.from('payments').select('*');
+        if (timeFilter !== 'all') {
+          query = query
+            .gte('created_at', dateRange.start.toISOString())
+            .lte('created_at', dateRange.end.toISOString());
+        }
+        query = query.order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+        if (error) {
+          console.warn('[InfraCost] Failed to fetch payments:', error);
+          return;
+        }
+        if (data && !isCancelled) {
+          setPayments(data as PaymentRecord[]);
+        }
+      } catch (err) {
+        console.warn('[InfraCost] Failed to fetch payments:', err);
+      } finally {
+        if (!isCancelled) {
+          setLoadingPayments(false);
+        }
+      }
+    };
+
+    fetchPayments();
+    return () => {
+      isCancelled = true;
+    };
+  }, [timeFilter, dateRange.start.toISOString(), dateRange.end.toISOString(), billingRefreshKey]);
   
   // Storage Footprint calculations
   const totalStorage = useMemo(() => {
@@ -616,12 +769,6 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
   
   // Simulated request rate for Cloudflare Workers
   const [simulatedDailyRequests, setSimulatedDailyRequests] = useState<number>(50000);
-
-  // Simulated Railway Usage
-  const [simulatedRailwayRAM, setSimulatedRailwayRAM] = useState<number>(0.5); // GB
-  const [simulatedRailwayCPU, setSimulatedRailwayCPU] = useState<number>(0.05); // vCPU
-  const [simulatedRailwayEgress, setSimulatedRailwayEgress] = useState<number>(5); // GB
-
   // --- Cost Calculations ---
 
   // Database Footprint Stats
@@ -635,24 +782,25 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     return { profilesCount, eventsCount, guestsCount, photosCount, totalRows, estimatedSizeBytes };
   }, [stats, users, events, guests, photos]);
 
+  const actualDbSizeBytes = liveSupabaseUsage?.dbBytes ?? dbStats.estimatedSizeBytes;
+  const isLiveDbSize = liveSupabaseUsage?.dbBytes != null;
+
   // Supabase Table overage calculations
   const supabaseDbCostMonth = useMemo(() => {
-    const dbSizeGB = dbStats.estimatedSizeBytes / (1024 * 1024 * 1024);
+    const dbSizeGB = actualDbSizeBytes / (1024 * 1024 * 1024);
     const limitGB = supabaseTier === 'free' ? 0.5 : 8.0;
     const dbOverageGB = Math.max(0, dbSizeGB - limitGB);
     return dbOverageGB * 0.125;
-  }, [dbStats, supabaseTier]);
-  
-  const supabaseDbCostYear = supabaseDbCostMonth * 12;
+  }, [actualDbSizeBytes, supabaseTier]);
+
+  const actualMAUs = liveSupabaseUsage?.timeframeMau ?? (stats?.mau || users.length);
+  const isLiveMau = liveSupabaseUsage?.timeframeMau != null;
 
   const supabaseMauCostMonth = useMemo(() => {
-    const actualMAUs = stats?.mau || users.length;
     const limitMAUs = supabaseTier === 'free' ? 50000 : 100000;
     const mauOverage = Math.max(0, actualMAUs - limitMAUs);
     return mauOverage * 0.00325;
-  }, [stats, users, supabaseTier]);
-
-  const supabaseMauCostYear = supabaseMauCostMonth * 12;
+  }, [actualMAUs, supabaseTier]);
 
   const supabaseEgressCostMonth = useMemo(() => {
     const limitEgressGB = supabaseTier === 'free' ? 2 : 50;
@@ -661,10 +809,11 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     return egressOverageGB * 0.09;
   }, [supabaseTier]);
 
-  const supabaseEgressCostYear = supabaseEgressCostMonth * 12;
+  const supabaseAddonsCostMonth = useMemo(() => {
+    return liveSupabaseAddons.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+  }, [liveSupabaseAddons]);
 
-  const supabaseComputeCostMonth = supabaseTier === 'pro' ? 25.00 : 0.00;
-  const supabaseComputeCostYear = supabaseComputeCostMonth * 12;
+  const supabaseComputeCostMonth = (supabaseTier === 'pro' ? 25.00 : 0.00) + supabaseAddonsCostMonth;
 
   const supabaseTierCost = supabaseDbCostMonth + supabaseMauCostMonth + supabaseEgressCostMonth + supabaseComputeCostMonth;
 
@@ -969,17 +1118,143 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     };
   }, [modalWorkerBreakdown]);
 
-  // Railway.app actual/simulated costs
+  // Railway.app actual production profile costs for EveBash
   const railwaySecondsPerMonth = 2592000;
-  const railwayRamCostMonth = simulatedRailwayRAM * 0.00000386 * railwaySecondsPerMonth;
-  const railwayCpuCostMonth = simulatedRailwayCPU * 0.00000772 * railwaySecondsPerMonth;
-  const railwayEgressCostMonth = simulatedRailwayEgress * 0.05;
-  const simulatedRailwayCost = railwayRamCostMonth + railwayCpuCostMonth + railwayEgressCostMonth;
+  // EveBash production container: 0.5 GB RAM, 0.05 vCPU average, ~5 GB monthly API egress
+  const evebashProductionRamMonthly = 0.5 * 0.00000386 * railwaySecondsPerMonth; // ~$5.00/mo
+  const evebashProductionCpuMonthly = 0.05 * 0.00000772 * railwaySecondsPerMonth; // ~$1.00/mo
+  const evebashProductionEgressMonthly = 5 * 0.05; // ~$0.25/mo
+  const evebashProductionRailwayMonthlyCost = evebashProductionRamMonthly + evebashProductionCpuMonthly + evebashProductionEgressMonthly; // ~$6.25/mo
 
-  const hasLiveRailway = liveRailwayData && !liveRailwayData.error && liveRailwayData.totalEstimatedDollars > 0;
-  const actualRailwayCost = hasLiveRailway
+  const hasLiveRailway = Boolean(
+    liveRailwayData &&
+    !liveRailwayData.error &&
+    liveRailwayData.configured !== false &&
+    liveRailwayData.totalEstimatedDollars !== undefined &&
+    liveRailwayData.totalEstimatedDollars > 0
+  );
+
+  const actualRailwayCost = hasLiveRailway && liveRailwayData
     ? (liveRailwayData.invoiceDollars ?? liveRailwayData.totalEstimatedDollars)
-    : simulatedRailwayCost;
+    : (evebashProductionRailwayMonthlyCost * timeframeFactor);
+
+  const displayedRailwayCpuDollars = hasLiveRailway && liveRailwayData
+    ? liveRailwayData.cpuDollars
+    : (evebashProductionCpuMonthly * timeframeFactor);
+
+  const displayedRailwayRamDollars = hasLiveRailway && liveRailwayData
+    ? liveRailwayData.memoryDollars
+    : (evebashProductionRamMonthly * timeframeFactor);
+
+  const displayedRailwayEgressDollars = hasLiveRailway && liveRailwayData
+    ? liveRailwayData.networkDollars
+    : (evebashProductionEgressMonthly * timeframeFactor);
+
+  // Photos within active timeframe
+  const timeframePhotos = useMemo(() => {
+    if (timeFilter === 'all') return photos;
+    return photos.filter(p => {
+      if (!p.createdAt) return true;
+      const t = new Date(p.createdAt).getTime();
+      return t >= dateRange.start.getTime() && t <= dateRange.end.getTime();
+    });
+  }, [photos, timeFilter, dateRange]);
+
+  // Upstash QStash Queue Metrics & Cost Calculations
+  // Rate: $1.00 per 100,000 messages (₹100 per 100,000 messages = $0.00001 / msg)
+  // Free tier: 500 messages/day = 15,000 messages/month
+  const actualQstashMessages = useMemo(() => {
+    if (liveQstashData?.totalDispatchedMessages != null && liveQstashData.totalDispatchedMessages > 0) {
+      return liveQstashData.totalDispatchedMessages;
+    }
+    // Each photo triggers upload chunking, thumbnail task & batch dispatch (~1.5 msgs)
+    // Modal batch/video executions add ~0.2 orchestration messages
+    return Math.round(timeframePhotos.length * 1.5 + modalLogs.length * 0.2);
+  }, [liveQstashData, timeframePhotos, modalLogs]);
+
+  const qstashFreeTierAllowance = Math.round(15000 * timeframeFactor);
+  const qstashOverageMessages = Math.max(0, actualQstashMessages - qstashFreeTierAllowance);
+  const actualQstashCostUsd = (qstashOverageMessages / 100000) * 1.00;
+  const actualQstashCostInr = actualQstashCostUsd * usdToInrRate;
+
+  // QStash Simulated
+  const simQstashOverage = Math.max(0, simulatedQstashMessages - 15000);
+  const simulatedQstashCostUsd = ((simQstashOverage / 100000) * 1.00) * timeframeFactor;
+  const simulatedQstashCostInr = simulatedQstashCostUsd * usdToInrRate;
+
+  // QStash Annual Projection
+  const monthlyQstashMessages = Math.round(photos.length * 1.5);
+  const monthlyQstashOverage = Math.max(0, monthlyQstashMessages - 15000);
+  const projectedYearQstashUsd = ((monthlyQstashOverage / 100000) * 1.00) * 12;
+  const projectedYearQstashInr = projectedYearQstashUsd * usdToInrRate;
+
+  // Razorpay Payment Gateway Metrics & Fee Calculations
+  // Standard India Gateway Pricing: 2.0% platform fee + 18% GST on fee = 2.36% effective deduction
+  // Manual / Offline payments: ₹0 / 0% fee
+  const razorpayStats = useMemo(() => {
+    const validPayments = payments.filter(
+      p => p.status === 'captured' || p.status === 'manual_offline'
+    );
+    const onlineCaptured = validPayments.filter(
+      p => p.payment_gateway === 'razorpay' && p.status === 'captured'
+    );
+    const offlinePayments = validPayments.filter(
+      p => p.payment_gateway !== 'razorpay' || p.status === 'manual_offline'
+    );
+    const failedPayments = payments.filter(p => p.status === 'failed');
+
+    const grossOnlineVolumeInr = onlineCaptured.reduce(
+      (sum, p) => sum + (Number(p.amount) || 0),
+      0
+    );
+    const grossOfflineVolumeInr = offlinePayments.reduce(
+      (sum, p) => sum + (Number(p.amount) || 0),
+      0
+    );
+    const totalGrossVolumeInr = grossOnlineVolumeInr + grossOfflineVolumeInr;
+
+    const baseFeePercent = 2.0;
+    const gstPercent = 18.0;
+    const effectiveFeePercent = 2.36;
+
+    const baseFeeInr = grossOnlineVolumeInr * 0.02;
+    const gstFeeInr = baseFeeInr * 0.18;
+    const totalFeeInr = includeGstInFee ? grossOnlineVolumeInr * 0.0236 : baseFeeInr;
+    const totalFeeUsd = totalFeeInr / usdToInrRate;
+    const netPayoutInr = grossOnlineVolumeInr - totalFeeInr;
+
+    return {
+      allPayments: payments,
+      validPayments,
+      onlineCaptured,
+      offlinePayments,
+      failedPayments,
+      grossOnlineVolumeInr,
+      grossOfflineVolumeInr,
+      totalGrossVolumeInr,
+      baseFeePercent,
+      gstPercent,
+      effectiveFeePercent,
+      baseFeeInr,
+      gstFeeInr,
+      totalFeeInr,
+      totalFeeUsd,
+      netPayoutInr,
+    };
+  }, [payments, includeGstInFee, usdToInrRate]);
+
+  const timeframeActualRazorpayCostInr = razorpayStats.totalFeeInr;
+  const timeframeActualRazorpayCostUsd = razorpayStats.totalFeeUsd;
+
+  // Razorpay Simulated
+  const simulatedRazorpayCostInr = simulatedAnnualRevenueInr * (includeGstInFee ? 0.0236 : 0.02) * timeframeFactor;
+  const simulatedRazorpayCostUsd = simulatedRazorpayCostInr / usdToInrRate;
+
+  // Razorpay Annual Projection
+  const projectedYearRazorpayInr = timeFilter === 'all'
+    ? razorpayStats.totalFeeInr
+    : razorpayStats.totalFeeInr * (1 / (timeframeFactor || 1));
+  const projectedYearRazorpayUsd = projectedYearRazorpayInr / usdToInrRate;
 
   // Timeframe-adjusted operational costs (endured for the selected timeframe)
   const timeframeSupabaseCost = supabaseTierCost * timeframeFactor;
@@ -987,17 +1262,47 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
   const timeframeSimulatedB2Cost = simulatedB2Cost * timeframeFactor;
   const timeframeActualCloudflareCost = actualCloudflareCost * timeframeFactor;
   const timeframeSimulatedCloudflareCost = simulatedCloudflareCost * timeframeFactor;
-  const timeframeActualRailwayCost = actualRailwayCost * timeframeFactor;
-  const timeframeSimulatedRailwayCost = simulatedRailwayCost * timeframeFactor;
+  const timeframeActualRailwayCost = actualRailwayCost;
+  const timeframeSimulatedRailwayCost = evebashProductionRailwayMonthlyCost * timeframeFactor;
   const timeframeActualModalCostUsd = actualModalCost;
   const timeframeActualModalCostInr = actualModalCostInfo.inr;
 
-  // Actual & simulated consolidated upkeep for active timeframe
-  const timeframeTotalActualCostUsd = timeframeSupabaseCost + timeframeActualB2Cost + timeframeActualCloudflareCost + timeframeActualRailwayCost + timeframeActualModalCostUsd;
-  const timeframeTotalActualCostInr = (timeframeSupabaseCost + timeframeActualB2Cost + timeframeActualCloudflareCost + timeframeActualRailwayCost) * usdToInrRate + timeframeActualModalCostInr;
+  // Actual & simulated consolidated upkeep for active timeframe (Supabase, B2, CF, Railway, Modal, QStash, Razorpay)
+  const timeframeTotalActualCostUsd =
+    timeframeSupabaseCost +
+    timeframeActualB2Cost +
+    timeframeActualCloudflareCost +
+    timeframeActualRailwayCost +
+    timeframeActualModalCostUsd +
+    actualQstashCostUsd +
+    timeframeActualRazorpayCostUsd;
 
-  const timeframeTotalSimulatedCostUsd = timeframeSupabaseCost + timeframeSimulatedB2Cost + timeframeSimulatedCloudflareCost + timeframeSimulatedRailwayCost + timeframeActualModalCostUsd;
-  const timeframeTotalSimulatedCostInr = (timeframeSupabaseCost + timeframeSimulatedB2Cost + timeframeSimulatedCloudflareCost + timeframeSimulatedRailwayCost) * usdToInrRate + timeframeActualModalCostInr;
+  const timeframeTotalActualCostInr =
+    (timeframeSupabaseCost +
+     timeframeActualB2Cost +
+     timeframeActualCloudflareCost +
+     timeframeActualRailwayCost +
+     actualQstashCostUsd) * usdToInrRate +
+    timeframeActualModalCostInr +
+    timeframeActualRazorpayCostInr;
+
+  const timeframeTotalSimulatedCostUsd =
+    timeframeSupabaseCost +
+    timeframeSimulatedB2Cost +
+    timeframeSimulatedCloudflareCost +
+    timeframeSimulatedRailwayCost +
+    timeframeActualModalCostUsd +
+    simulatedQstashCostUsd +
+    simulatedRazorpayCostUsd;
+
+  const timeframeTotalSimulatedCostInr =
+    (timeframeSupabaseCost +
+     timeframeSimulatedB2Cost +
+     timeframeSimulatedCloudflareCost +
+     timeframeSimulatedRailwayCost +
+     simulatedQstashCostUsd) * usdToInrRate +
+    timeframeActualModalCostInr +
+    simulatedRazorpayCostInr;
 
   // Full-year (12-month) projected annualized estimates
   const nowForProjection = new Date();
@@ -1009,8 +1314,19 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     ? (actualModalCostInfo.usd / daysInRunningYear) * 365
     : (timeFilter === '1d' ? actualModalCostInfo.usd * 365 : (timeFilter === '1w' ? (actualModalCostInfo.usd / 7) * 365 : actualModalCostInfo.usd * 12));
 
-  const projectedYearTotalUsd = (supabaseTierCost * 12) + (actualB2Cost * 12) + (actualCloudflareCost * 12) + (actualRailwayCost * 12) + projectedYearModalUsd;
-  const projectedYearTotalInr = (projectedYearTotalUsd - projectedYearModalUsd) * usdToInrRate + projectedYearModalInr;
+  const projectedYearTotalUsd =
+    (supabaseTierCost * 12) +
+    (actualB2Cost * 12) +
+    (actualCloudflareCost * 12) +
+    (actualRailwayCost * 12) +
+    projectedYearModalUsd +
+    projectedYearQstashUsd +
+    projectedYearRazorpayUsd;
+
+  const projectedYearTotalInr =
+    (projectedYearTotalUsd - projectedYearModalUsd - projectedYearRazorpayUsd) * usdToInrRate +
+    projectedYearModalInr +
+    projectedYearRazorpayInr;
 
   // Media breakdown stats
   const mediaBreakdown = useMemo(() => {
@@ -1198,11 +1514,11 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
             <button
               type="button"
               onClick={() => setBillingRefreshKey(k => k + 1)}
-              disabled={loadingBilling || loadingModalLogs}
+              disabled={loadingBilling || loadingModalLogs || loadingPayments}
               className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 shrink-0"
               title="Refresh Live API Billing Data"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingBilling || loadingModalLogs ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingBilling || loadingModalLogs || loadingPayments ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
           </div>
         </div>
@@ -1246,7 +1562,7 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
   const tabs = [
     {
       id: 'total',
-      label: 'Consolidated Upkeep',
+      label: 'Ledgr',
       type: 'icon',
       icon: DollarSign,
       activeColor: 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 border-indigo-500/40',
@@ -1254,38 +1570,52 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     },
     {
       id: 'supabase',
-      label: 'Supabase DB',
+      label: 'DB',
       type: 'supabase',
       activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 border-emerald-500/40',
       tagColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
     },
     {
       id: 'backblaze',
-      label: 'Backblaze B2',
+      label: 'B2',
       type: 'backblaze',
       activeColor: 'bg-sky-600 text-white shadow-lg shadow-sky-600/20 border-sky-500/40',
       tagColor: 'text-sky-400 bg-sky-500/10 border-sky-500/20'
     },
     {
       id: 'cloudflare',
-      label: 'Cloudflare Edge',
+      label: 'CF',
       type: 'cloudflare',
       activeColor: 'bg-amber-600 text-white shadow-lg shadow-amber-600/20 border-amber-500/40',
       tagColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
     },
     {
       id: 'modal',
-      label: 'Modal.com AI',
+      label: 'Modal',
       type: 'modal',
       activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 border-emerald-500/40',
       tagColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
     },
     {
       id: 'railway',
-      label: 'Railway App',
+      label: 'Railway',
       type: 'railway',
       activeColor: 'bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-600/20 border-fuchsia-500/40',
       tagColor: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20'
+    },
+    {
+      id: 'qstash',
+      label: 'QS',
+      type: 'qstash',
+      activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 border-emerald-500/40',
+      tagColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    },
+    {
+      id: 'razorpay',
+      label: 'RP',
+      type: 'razorpay',
+      activeColor: 'bg-sky-600 text-white shadow-lg shadow-sky-600/20 border-sky-500/40',
+      tagColor: 'text-sky-400 bg-sky-500/10 border-sky-500/20'
     },
   ];
 
@@ -1337,6 +1667,10 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 <ModalLogo className="h-3.5 w-auto shrink-0" />
               ) : tab.type === 'railway' ? (
                 <RailwayLogo className={`h-3.5 w-auto shrink-0 ${isActive ? 'text-white' : 'text-fuchsia-400'}`} />
+              ) : tab.type === 'qstash' ? (
+                <QStashLogo className="h-4 w-auto shrink-0" />
+              ) : tab.type === 'razorpay' ? (
+                <RazorpayLogo className="h-4 w-auto shrink-0" />
               ) : (
                 <DollarSign className="w-4 h-4 shrink-0" />
               )}
@@ -1418,6 +1752,20 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                       Railway + Cloudflare:
                     </span>
                     <span className="font-mono text-slate-200 font-medium">{fmtCost(timeframeActualRailwayCost + timeframeActualCloudflareCost)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1.5 text-slate-400">
+                      <QStashLogo className="h-2.5 w-auto" />
+                      Upstash QStash:
+                    </span>
+                    <span className="font-mono text-slate-200 font-medium">{fmtCost(actualQstashCostUsd)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1.5 text-slate-400">
+                      <RazorpayLogo className="h-2.5 w-auto" />
+                      Razorpay Gateway:
+                    </span>
+                    <span className="font-mono text-slate-200 font-medium">{fmtCost(timeframeActualRazorpayCostUsd)}</span>
                   </div>
                 </div>
               </div>
@@ -1590,6 +1938,8 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               const currentSupabaseCost = timeframeSupabaseCost;
               const currentModalCost = timeframeActualModalCostUsd;
               const currentRailwayCost = costChartMode === 'actual' ? timeframeActualRailwayCost : timeframeSimulatedRailwayCost;
+              const currentQstashCost = costChartMode === 'actual' ? actualQstashCostUsd : simulatedQstashCostUsd;
+              const currentRazorpayCost = costChartMode === 'actual' ? timeframeActualRazorpayCostUsd : simulatedRazorpayCostUsd;
 
               return currentTotal > 0 ? (
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-8 pt-2">
@@ -1610,7 +1960,9 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                           { label: 'Backblaze B2', cost: currentB2Cost, color: '#0ea5e9' },
                           { label: 'Cloudflare Edge', cost: currentCloudflareCost, color: '#f59e0b' },
                           { label: 'Modal.com AI', cost: currentModalCost, color: '#6366f1' },
-                          { label: 'Railway App', cost: currentRailwayCost, color: '#d946ef' },
+                          { label: 'Railway', cost: currentRailwayCost, color: '#d946ef' },
+                          { label: 'Upstash QStash', cost: currentQstashCost, color: '#14b8a6' },
+                          { label: 'Razorpay Gateway', cost: currentRazorpayCost, color: '#0284c7' },
                         ];
                         const circumference = 2 * Math.PI * 70;
                         let accumulatedPercent = 0;
@@ -1757,12 +2109,12 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                       </button>
                     </div>
 
-                    {/* Railway App */}
+                    {/* Railway */}
                     <div className="rounded-2xl border border-fuchsia-500/20 bg-fuchsia-950/10 p-4 transition-all hover:border-fuchsia-500/40">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <RailwayLogo className="h-3 w-auto text-fuchsia-400" />
-                          <p className="text-xs font-bold text-white truncate">Railway App</p>
+                          <p className="text-xs font-bold text-white truncate">Railway</p>
                         </div>
                         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400">
                           {((currentRailwayCost / currentTotal) * 100).toFixed(1)}%
@@ -1779,6 +2131,56 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                         className="text-[10px] text-fuchsia-400 hover:text-fuchsia-300 font-bold mt-2 inline-flex items-center gap-1 cursor-pointer"
                       >
                         Server allocation &rarr;
+                      </button>
+                    </div>
+
+                    {/* Upstash QStash */}
+                    <div className="rounded-2xl border border-teal-500/20 bg-teal-950/10 p-4 transition-all hover:border-teal-500/40">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <QStashLogo className="h-4 w-auto shrink-0" />
+                          <p className="text-xs font-bold text-white truncate">Upstash QStash</p>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                          {((currentQstashCost / currentTotal) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-white mt-2 font-mono">
+                        {fmtCost(currentQstashCost, 2)}
+                      </p>
+                      <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                        {fmtSub(currentQstashCost, `(${actualQstashMessages.toLocaleString()} msgs)`)}
+                      </p>
+                      <button
+                        onClick={() => setActiveSubTab('qstash')}
+                        className="text-[10px] text-teal-400 hover:text-teal-300 font-bold mt-2 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        Queue metrics &rarr;
+                      </button>
+                    </div>
+
+                    {/* Razorpay Gateway */}
+                    <div className="rounded-2xl border border-sky-500/20 bg-sky-950/10 p-4 transition-all hover:border-sky-500/40">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <RazorpayLogo className="h-4 w-auto shrink-0" />
+                          <p className="text-xs font-bold text-white truncate">Razorpay Gateway</p>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                          {((currentRazorpayCost / currentTotal) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-xl font-black text-white mt-2 font-mono">
+                        {fmtCost(currentRazorpayCost, 2)}
+                      </p>
+                      <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                        {fmtSub(currentRazorpayCost, `(${razorpayStats.effectiveFeePercent}% on online)`)}
+                      </p>
+                      <button
+                        onClick={() => setActiveSubTab('razorpay')}
+                        className="text-[10px] text-sky-400 hover:text-sky-300 font-bold mt-2 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        Payment fee ledger &rarr;
                       </button>
                     </div>
                   </div>
@@ -1838,7 +2240,10 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                         <span className="text-slate-300 font-medium">
                           {liveBillingTier ? `Live: ${liveBillingTier.toUpperCase()}` : `Config: ${supabaseTier.toUpperCase()}`} Plan
                         </span>
-                        <span className="block text-[10px] text-slate-500 mt-0.5">{supabaseTier === 'free' ? '500MB DB · 50k MAUs' : '8GB DB · 100k MAUs'}</span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">
+                          {supabaseTier === 'free' ? '500MB DB · 50k MAUs' : '8GB DB · 100k MAUs'}
+                          {liveSupabaseAddons.length > 0 && ` · +${liveSupabaseAddons.length} Add-on${liveSupabaseAddons.length > 1 ? 's' : ''}`}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap">
                         <span className="text-emerald-400 font-bold block">₹{(timeframeSupabaseCost * usdToInrRate).toFixed(2)}</span>
@@ -1851,9 +2256,13 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                         ₹{((supabaseTierCost * 12) * usdToInrRate).toFixed(2)} / yr
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        {liveBillingTier ? (
+                        {isLiveDbSize ? (
                           <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full inline-flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" /> Live Sync
+                            <ShieldCheck className="w-3 h-3" /> Live Engine
+                          </span>
+                        ) : liveBillingTier ? (
+                          <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full inline-flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> Live API
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 text-[9px] font-semibold bg-slate-800 text-slate-400 rounded-full">
@@ -1971,30 +2380,34 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                       </td>
                     </tr>
 
-                    {/* Railway App Row */}
+                    {/* Railway Row */}
                     <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2.5">
                         <div className="p-1.5 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20">
                           <RailwayLogo className="h-3.5 w-auto text-fuchsia-400" />
                         </div>
                         <div>
-                          <span>Railway App Server</span>
+                          <span>Railway Server</span>
                           <span className="block text-[10px] text-slate-500 font-normal">Next.js Edge Runtime Container</span>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="text-slate-300 font-medium">Billed per second (CPU/RAM)</span>
-                        <span className="block text-[10px] text-slate-500 mt-0.5">{simulatedRailwayRAM}GB RAM · {simulatedRailwayCPU}vCPU</span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">
+                          {hasLiveRailway && liveRailwayData?.cpuVcpuMin !== undefined
+                            ? `${liveRailwayData.cpuVcpuMin.toFixed(1)} vCPU-min · ${liveRailwayData.memGbMin?.toFixed(1)} GB-min`
+                            : 'Per-second compute · $0.05/GB egress'}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap">
                         <span className="text-fuchsia-300 font-bold block">₹{(timeframeActualRailwayCost * usdToInrRate).toFixed(2)}</span>
                         <span className="text-[10px] text-slate-500 block">${timeframeActualRailwayCost.toFixed(2)}</span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-400">
-                        ₹{(timeframeSimulatedRailwayCost * usdToInrRate).toFixed(2)}
+                        {hasLiveRailway ? `₹${(timeframeActualRailwayCost * usdToInrRate).toFixed(2)}` : 'Rate Card'}
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-350">
-                        ₹{((actualRailwayCost * 12) * usdToInrRate).toFixed(2)} / yr
+                        {hasLiveRailway ? `₹${((actualRailwayCost * 12) * usdToInrRate).toFixed(2)} / yr` : 'Pay-as-you-go'}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {hasLiveRailway ? (
@@ -2002,8 +2415,90 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                             <ShieldCheck className="w-3 h-3" /> Live GraphQL
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 text-[9px] font-semibold bg-slate-800 text-slate-400 rounded-full">
-                            Simulated
+                          <span className="px-2 py-0.5 text-[9px] font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-full">
+                            Telemetry Pending
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Upstash QStash Row */}
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20">
+                          <QStashLogo className="h-4 w-auto" />
+                        </div>
+                        <div>
+                          <span>Upstash QStash</span>
+                          <span className="block text-[10px] text-slate-500 font-normal">Serverless Queue & Background FIFO</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="text-slate-300 font-medium">15,000 Free msgs/mo (500/day)</span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">
+                          {actualQstashMessages.toLocaleString()} dispatches · ₹100 / 100k msgs ($0.00001/msg)
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap">
+                        <span className="text-teal-300 font-bold block">₹{actualQstashCostInr.toFixed(2)}</span>
+                        <span className="text-[10px] text-slate-500 block">${actualQstashCostUsd.toFixed(4)}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-400">
+                        ₹{simulatedQstashCostInr.toFixed(2)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-350">
+                        ₹{projectedYearQstashInr.toFixed(2)} / yr
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {liveQstashData?.configured ? (
+                          <span className="px-2 py-0.5 text-[9px] font-bold bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-full inline-flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> Live Queue
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-full inline-flex items-center gap-1">
+                            <Activity className="w-3 h-3" /> Auto FIFO
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Razorpay Gateway Row */}
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20">
+                          <RazorpayLogo className="h-4 w-auto" />
+                        </div>
+                        <div>
+                          <span>Razorpay Gateway</span>
+                          <span className="block text-[10px] text-slate-500 font-normal">Online Payment Processing & Settlement</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="text-slate-300 font-medium">
+                          {razorpayStats.effectiveFeePercent}% on Online ({razorpayStats.onlineCaptured.length} paid)
+                        </span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">
+                          2.0% platform fee + 18% GST · ₹0 on manual/offline ({razorpayStats.offlinePayments.length})
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap">
+                        <span className="text-sky-300 font-bold block">₹{timeframeActualRazorpayCostInr.toFixed(2)}</span>
+                        <span className="text-[10px] text-slate-500 block">${timeframeActualRazorpayCostUsd.toFixed(2)}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-400">
+                        ₹{simulatedRazorpayCostInr.toFixed(2)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono tabular-nums whitespace-nowrap text-slate-350">
+                        ₹{projectedYearRazorpayInr.toFixed(2)} / yr
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {liveRazorpayData?.configured ? (
+                          <span className="px-2 py-0.5 text-[9px] font-bold bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-full inline-flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> Live Keys
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-full inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Ledger Active
                           </span>
                         )}
                       </td>
@@ -2063,6 +2558,26 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
                   {liveBillingTier ? `Live API: ${liveBillingTier.toUpperCase()}` : `Config: ${supabaseTier.toUpperCase()} Plan`}
                 </span>
+                {liveSpendCap !== null && (
+                  <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${
+                    liveSpendCap
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                      : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                  }`}>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    {liveSpendCap ? 'Spend Cap: Enabled ($25 Capped)' : 'Spend Cap: Off (Pay-As-You-Grow)'}
+                  </span>
+                )}
+                {liveSupabaseAddons.length > 0 && (
+                  <span className="text-xs font-mono font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-xl">
+                    {liveSupabaseAddons.length} Active {liveSupabaseAddons.length === 1 ? 'Add-on' : 'Add-ons'}
+                  </span>
+                )}
+                {isLiveDbSize && (
+                  <span className="text-xs font-mono font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Live Postgres Telemetry
+                  </span>
+                )}
               </div>
             </div>
 
@@ -2083,8 +2598,14 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 <div className="mt-3 pt-2.5 border-t border-emerald-500/20 space-y-1.5 text-[11px]">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-slate-400">Compute Base:</span>
-                    <span className="font-mono text-slate-200 font-medium">${supabaseComputeCostMonth.toFixed(2)}/mo</span>
+                    <span className="font-mono text-slate-200 font-medium">${(supabaseTier === 'pro' ? 25.00 : 0.00).toFixed(2)}/mo</span>
                   </div>
+                  {supabaseAddonsCostMonth > 0 && (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="text-slate-400">Add-ons:</span>
+                      <span className="font-mono text-sky-300 font-medium">+${supabaseAddonsCostMonth.toFixed(2)}/mo</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-slate-400">Storage Overage:</span>
                     <span className="font-mono text-slate-200 font-medium">${supabaseDbCostMonth.toFixed(2)}/mo</span>
@@ -2095,24 +2616,33 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 transition-all hover:border-slate-700/80 flex flex-col justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Database Storage Size
+                    Database Storage Size {isLiveDbSize && <span className="text-emerald-400 font-normal lowercase">(live engine)</span>}
                   </span>
                   <div className="text-2xl font-black text-white font-mono">
-                    {formatSize(dbStats.estimatedSizeBytes)}
+                    {formatSize(actualDbSizeBytes)}
                   </div>
                   <span className="text-xs font-mono text-slate-400 mt-0.5 block">
                     Quota: {supabaseTier === 'free' ? '500 MB Free' : '8 GB Included'}
                   </span>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-1.5 text-[11px]">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Aggregate DB Rows:</span>
-                    <span className="font-mono text-slate-200 font-medium">{formatNumber(dbStats.totalRows)}</span>
-                  </div>
+                  {liveSupabaseUsage?.facesTableBytes != null && liveSupabaseUsage.facesTableBytes > 0 ? (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="text-slate-400">AI Vectors (faces):</span>
+                      <span className="font-mono text-purple-400 font-medium">
+                        {formatSize(liveSupabaseUsage.facesTableBytes)} ({formatNumber(liveSupabaseUsage.facesCount || 0)})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="text-slate-400">Aggregate DB Rows:</span>
+                      <span className="font-mono text-slate-200 font-medium">{formatNumber(dbStats.totalRows)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-slate-400">Capacity Utilized:</span>
                     <span className="font-mono text-emerald-400 font-medium">
-                      {((dbStats.estimatedSizeBytes / ((supabaseTier === 'free' ? 500 : 8192) * 1024 * 1024)) * 100).toFixed(2)}%
+                      {((actualDbSizeBytes / ((supabaseTier === 'free' ? 500 : 8192) * 1024 * 1024)) * 100).toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -2121,10 +2651,10 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 transition-all hover:border-slate-700/80 flex flex-col justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Monthly Active Users (MAU)
+                    Monthly Active Users (MAU) {isLiveMau && <span className="text-emerald-400 font-normal lowercase">(timeframe)</span>}
                   </span>
                   <div className="text-2xl font-black text-white font-mono">
-                    {formatNumber(stats?.mau || users.length)}
+                    {formatNumber(actualMAUs)}
                   </div>
                   <span className="text-xs font-mono text-slate-400 mt-0.5 block">
                     Allowance: {supabaseTier === 'free' ? '50,000 MAUs' : '100,000 MAUs'}
@@ -2132,8 +2662,8 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-1.5 text-[11px]">
                   <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Total Users Registered:</span>
-                    <span className="font-mono text-slate-200 font-medium">{formatNumber(users.length)}</span>
+                    <span className="text-slate-400">{isLiveMau ? 'Total Registered Users:' : 'Total Users Registered:'}</span>
+                    <span className="font-mono text-slate-200 font-medium">{formatNumber(liveSupabaseUsage?.totalUsers ?? users.length)}</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-slate-400">MAU Overage:</span>
@@ -2198,38 +2728,54 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
               <div>
                 <h4 className="text-base font-bold text-white flex items-center gap-2">
                   <Activity className="w-5 h-5 text-emerald-400" />
-                  <span>Estimated Database Storage Footprint</span>
+                  <span>{isLiveDbSize ? 'Live Database Storage Footprint' : 'Estimated Database Storage Footprint'}</span>
                 </h4>
                 <p className="text-slate-400 text-xs mt-1">
-                  Database storage allocation derived from active table rows and PostgreSQL indexing overhead.
+                  {isLiveDbSize
+                    ? 'Measured directly from PostgreSQL engine disk allocations including tables, pgvector embeddings, and indexes.'
+                    : 'Database storage allocation derived from active table rows and PostgreSQL indexing overhead.'}
                 </p>
               </div>
 
               <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-4">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Calculated Footprint:</span>
-                  <span className="text-white font-mono font-bold">{formatSize(dbStats.estimatedSizeBytes)}</span>
+                  <span className="text-slate-400">{isLiveDbSize ? 'Measured Disk Footprint:' : 'Calculated Footprint:'}</span>
+                  <span className="text-white font-mono font-bold">{formatSize(actualDbSizeBytes)}</span>
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center text-[10px] mb-1.5 text-slate-400">
-                    <span>Free Plan Limit: 500 MB</span>
+                    <span>{supabaseTier === 'free' ? 'Free Plan Limit: 500 MB' : 'Pro Plan Included: 8 GB'}</span>
                     <span className="text-emerald-400 font-mono font-bold">
-                      {((dbStats.estimatedSizeBytes / (500 * 1024 * 1024)) * 100).toFixed(2)}% consumed
+                      {((actualDbSizeBytes / ((supabaseTier === 'free' ? 500 : 8192) * 1024 * 1024)) * 100).toFixed(2)}% consumed
                     </span>
                   </div>
                   <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden">
                     <div
-                      style={{ width: `${Math.min(100, Math.max(1, (dbStats.estimatedSizeBytes / (500 * 1024 * 1024)) * 100))}%` }}
+                      style={{ width: `${Math.min(100, Math.max(1, (actualDbSizeBytes / ((supabaseTier === 'free' ? 500 : 8192) * 1024 * 1024)) * 100))}%` }}
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
                     />
                   </div>
                 </div>
 
+                {liveSupabaseUsage?.facesTableBytes != null && liveSupabaseUsage.facesTableBytes > 0 && (
+                  <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-800/80">
+                    <span className="text-purple-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Face Vector Embeddings (public.faces):
+                    </span>
+                    <span className="text-purple-200 font-mono font-semibold">
+                      {formatSize(liveSupabaseUsage.facesTableBytes)} ({((liveSupabaseUsage.facesTableBytes / Math.max(1, actualDbSizeBytes)) * 100).toFixed(1)}% of DB)
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-start space-x-2 text-[11px] text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">
                   <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    Calculation assumes 1.2 KB average row overhead including B-tree indexing. Project comfortably operates on Free Tier ($0/mo) up to 500,000 total rows.
+                    {isLiveDbSize
+                      ? 'Live disk usage measured down to the byte via pg_database_size(), accounting for high-density pgvector face embeddings and multi-dimensional indexes.'
+                      : 'Calculation assumes 1.2 KB average row overhead including B-tree indexing. Project comfortably operates on Free Tier ($0/mo) up to 500,000 total rows.'}
                   </p>
                 </div>
               </div>
@@ -2333,51 +2879,194 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 <table className="w-full text-left text-xs text-slate-400">
                   <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider border-b border-slate-800 text-[10px]">
                     <tr className="divide-x divide-slate-800">
-                      <th className="py-3 px-4 font-bold whitespace-nowrap">Billing Unit</th>
+                      <th className="py-3 px-4 font-bold whitespace-nowrap">Billing Component</th>
                       <th className="py-3 px-4 font-bold whitespace-nowrap">Plan Limit / Allowance</th>
                       <th className="py-3 px-4 font-bold whitespace-nowrap">Actual Usage "Till Now"</th>
+                      <th className="py-3 px-4 font-bold whitespace-nowrap">Overage Rate (Unit Charge)</th>
                       <th className="py-3 px-4 text-right font-bold whitespace-nowrap">Cost ({timeframeLabel})</th>
-                      <th className="py-3 px-4 text-right font-bold whitespace-nowrap">Cost (Projected Year)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80">
+                    {/* 1. Base Subscription */}
                     <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">Database Storage (Size)</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '500 MB' : '8 GB'}</td>
-                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">{formatSize(dbStats.estimatedSizeBytes)}</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${(supabaseDbCostMonth * timeframeFactor).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-350 whitespace-nowrap">${supabaseDbCostYear.toFixed(2)}</td>
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        Base Subscription Plan
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'pro' ? '$25.00 / month (₹2,500)' : '$0.00 (Free Tier)'}</td>
+                      <td className="py-3.5 px-4 font-mono whitespace-nowrap text-emerald-300">Active ({supabaseTier.toUpperCase()})</td>
+                      <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">Flat Plan Fee</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                        ${((supabaseTier === 'pro' ? 25.0 : 0.0) * timeframeFactor).toFixed(2)}
+                      </td>
                     </tr>
+
+                    {/* 2. Database Storage */}
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">
+                        Database Storage (Size & Vectors)
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '500 MB Included' : '8 GB Included'}</td>
+                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                        {formatSize(actualDbSizeBytes)} {isLiveDbSize && <span className="text-emerald-400 text-[10px]">(Live Engine)</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$0.125 / GB / mo (~₹12.50)</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                        {supabaseDbCostMonth > 0 ? (
+                          <span className="text-amber-400">${(supabaseDbCostMonth * timeframeFactor).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-emerald-400 font-normal">$0.00 <span className="text-[10px] text-slate-500">(Included)</span></span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* 3. Monthly Active Users (MAU) */}
                     <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">Monthly Active Users (MAU)</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '50,000 MAUs' : '100,000 MAUs'}</td>
-                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">{formatNumber(stats?.mau || users.length)} MAUs</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${(supabaseMauCostMonth * timeframeFactor).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-350 whitespace-nowrap">${supabaseMauCostYear.toFixed(2)}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '50,000 MAUs Included' : '100,000 MAUs Included'}</td>
+                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                        {formatNumber(actualMAUs)} {isLiveMau ? <span className="text-emerald-400 text-[10px]">(Timeframe)</span> : 'MAUs'}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$0.00325 / MAU (~₹0.325)</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                        {supabaseMauCostMonth > 0 ? (
+                          <span className="text-amber-400">${(supabaseMauCostMonth * timeframeFactor).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-emerald-400 font-normal">$0.00 <span className="text-[10px] text-slate-500">(Included)</span></span>
+                        )}
+                      </td>
                     </tr>
+
+                    {/* 4. Data Egress Bandwidth */}
                     <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">Data Egress Bandwidth</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '2 GB' : '50 GB'}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '2 GB Included' : '50 GB Included'}</td>
                       <td className="py-3.5 px-4 font-mono whitespace-nowrap">~0.05 GB (CF Alliance Bypass)</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${(supabaseEgressCostMonth * timeframeFactor).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-350 whitespace-nowrap">${supabaseEgressCostYear.toFixed(2)}</td>
+                      <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$0.09 / GB (~₹9.00)</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                        {supabaseEgressCostMonth > 0 ? (
+                          <span className="text-amber-400">${(supabaseEgressCostMonth * timeframeFactor).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-emerald-400 font-normal">$0.00 <span className="text-[10px] text-slate-500">(Included)</span></span>
+                        )}
+                      </td>
                     </tr>
+
+                    {/* 5. Compute Instance */}
                     <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">Compute Instance Tier</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? 'Shared (Pauses)' : 'Dedicated Micro (Always-on)'}</td>
-                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">Active</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${(supabaseComputeCostMonth * timeframeFactor).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-350 whitespace-nowrap">${supabaseComputeCostYear.toFixed(2)}</td>
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">Compute Instance Sizing</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? 'Shared (Pauses)' : 'Micro Dedicated ($10 Credit Included)'}</td>
+                      <td className="py-3.5 px-4 font-mono whitespace-nowrap text-slate-300">Micro (Baseline)</td>
+                      <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">Small: +$10/mo · Med: +$30/mo</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                        <span className="text-emerald-400 font-normal">$0.00 <span className="text-[10px] text-slate-500">(Included in Base)</span></span>
+                      </td>
                     </tr>
+
+                    {/* 6. Dedicated IPv4 Address */}
+                    {(() => {
+                      const ipv4 = liveSupabaseAddons.find(a => a.type.includes('ipv4') || a.variant?.includes('ipv4') || a.name.toLowerCase().includes('ipv4'));
+                      const active = Boolean(ipv4);
+                      const price = ipv4?.price ?? 4.0;
+                      return (
+                        <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2">
+                            <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-sky-400' : 'bg-slate-600'}`}></span>
+                            Dedicated IPv4 Address (Add-on)
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap text-slate-400">Not Included (IPv6 Default)</td>
+                          <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                            {active ? <span className="text-sky-300 font-bold">Active ($4.00/mo)</span> : <span className="text-slate-500">Not Subscribed</span>}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$4.00 / month (~₹400)</td>
+                          <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                            {active ? (
+                              <span className="text-sky-400">${(price * timeframeFactor).toFixed(2)}</span>
+                            ) : (
+                              <span className="text-slate-500 font-normal">$0.00</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })()}
+
+                    {/* 7. Point-In-Time Recovery (PITR) */}
+                    {(() => {
+                      const pitr = liveSupabaseAddons.find(a => a.type.includes('pitr') || a.variant?.includes('pitr') || a.name.toLowerCase().includes('pitr'));
+                      const active = Boolean(pitr);
+                      const price = pitr?.price ?? 100.0;
+                      return (
+                        <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2">
+                            <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-sky-400' : 'bg-slate-600'}`}></span>
+                            Point-In-Time Recovery (PITR Add-on)
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap text-slate-400">Daily Backups Included</td>
+                          <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                            {active ? <span className="text-sky-300 font-bold">Active ($100.00/mo)</span> : <span className="text-slate-500">Not Subscribed</span>}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$100.00 / month (~₹10,000)</td>
+                          <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                            {active ? (
+                              <span className="text-sky-400">${(price * timeframeFactor).toFixed(2)}</span>
+                            ) : (
+                              <span className="text-slate-500 font-normal">$0.00</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })()}
+
+                    {/* 8. Custom Domain */}
+                    {(() => {
+                      const cd = liveSupabaseAddons.find(a => a.type.includes('custom_domain') || a.variant?.includes('custom_domain') || a.name.toLowerCase().includes('domain'));
+                      const active = Boolean(cd);
+                      const price = cd?.price ?? 10.0;
+                      return (
+                        <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap flex items-center gap-2">
+                            <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-sky-400' : 'bg-slate-600'}`}></span>
+                            Custom Domain (Add-on)
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap text-slate-400">Not Included (supabase.co default)</td>
+                          <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                            {active ? <span className="text-sky-300 font-bold">Active ($10.00/mo)</span> : <span className="text-slate-500">Not Subscribed</span>}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$10.00 / month (~₹1,000)</td>
+                          <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                            {active ? (
+                              <span className="text-sky-400">${(price * timeframeFactor).toFixed(2)}</span>
+                            ) : (
+                              <span className="text-slate-500 font-normal">$0.00</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })()}
+
+                    {/* 9. Supabase File Storage */}
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">
+                        Supabase File / Object Storage
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">{supabaseTier === 'free' ? '1 GB Included' : '100 GB Included'}</td>
+                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                        0.00 GB <span className="text-slate-500 text-[10px]">(Backblaze B2 Bypass)</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-mono whitespace-nowrap">$0.021 / GB / mo (~₹2.10)</td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                        <span className="text-emerald-400 font-normal">$0.00 <span className="text-[10px] text-slate-500">(Included)</span></span>
+                      </td>
+                    </tr>
+
+                    {/* Consolidated Supabase Upkeep */}
                     <tr className="divide-x divide-slate-800 bg-emerald-950/20 font-bold border-t border-slate-800">
                       <td className="py-4 px-4 text-white uppercase text-xs whitespace-nowrap">Total Supabase Upkeep</td>
                       <td className="py-4 px-4 text-emerald-300 whitespace-nowrap">-</td>
                       <td className="py-4 px-4 whitespace-nowrap">-</td>
+                      <td className="py-4 px-4 text-slate-400 whitespace-nowrap">Consolidated</td>
                       <td className="py-4 px-4 text-right font-mono text-emerald-300 font-black text-sm whitespace-nowrap">
                         ${(supabaseTierCost * timeframeFactor).toFixed(2)} {timeframeSuffix}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-slate-200 font-bold whitespace-nowrap">
-                        ${(supabaseTierCost * 12).toFixed(2)} / yr
                       </td>
                     </tr>
                   </tbody>
@@ -3512,174 +4201,1031 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         <div className="space-y-6">
           {renderFilterBar('bg-fuchsia-600', 'text-fuchsia-400', 'border-fuchsia-500/20')}
 
-          {/* Live Railway Account Billing Banner */}
-          {hasLiveRailway && liveRailwayData && (
-            <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-b from-[#111827] to-[#071a12] p-6 sm:p-7 shadow-xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                    <RailwayLogo className="h-4 w-auto text-emerald-400" />
+          {/* ── LIVE RAILWAY METRICS BANNER ── */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 sm:p-7 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl flex items-center justify-center ${hasLiveRailway ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-fuchsia-500/10 border border-fuchsia-500/20'}`}>
+                  <RailwayLogo className={`h-4 w-auto ${hasLiveRailway ? 'text-emerald-400' : 'text-fuchsia-400'}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    Railway Infrastructure Telemetry — {liveRailwayData?.projectName || 'EveBash Backend'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {hasLiveRailway
+                      ? `Real-time container CPU, RAM memory, and network egress metrics for ${timeframeLabel.toLowerCase()}`
+                      : `EveBash production container baseline (@evebash/backend) for ${timeframeLabel.toLowerCase()}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                {hasLiveRailway ? (
+                  <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Live Sync Active ({timeframeLabel})
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono font-bold text-fuchsia-300 bg-fuchsia-500/10 border border-fuchsia-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" />
+                    Production Baseline ({timeframeLabel})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 4 Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
+              {/* CPU Compute Card */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-fuchsia-400 font-bold uppercase tracking-wider mb-1">CPU Compute</p>
+                  <Cpu className="w-3.5 h-3.5 text-fuchsia-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  ${displayedRailwayCpuDollars.toFixed(2)}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  ₹{(displayedRailwayCpuDollars * usdToInrRate).toFixed(2)} · {hasLiveRailway && liveRailwayData?.cpuVcpuMin !== undefined && liveRailwayData.cpuVcpuMin > 0 ? `${liveRailwayData.cpuVcpuMin.toFixed(1)} vCPU-min` : '0.05 vCPU avg'}
+                </p>
+              </div>
+
+              {/* RAM Memory Card */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">RAM Memory</p>
+                  <Server className="w-3.5 h-3.5 text-emerald-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  ${displayedRailwayRamDollars.toFixed(2)}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  ₹{(displayedRailwayRamDollars * usdToInrRate).toFixed(2)} · {hasLiveRailway && liveRailwayData?.memGbMin !== undefined && liveRailwayData.memGbMin > 0 ? `${liveRailwayData.memGbMin.toFixed(1)} GB-min` : '0.5 GB (512MB)'}
+                </p>
+              </div>
+
+              {/* Network Egress Card */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-sky-400 font-bold uppercase tracking-wider mb-1">Network Egress</p>
+                  <TrendingUp className="w-3.5 h-3.5 text-sky-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  ${displayedRailwayEgressDollars.toFixed(2)}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  ₹{(displayedRailwayEgressDollars * usdToInrRate).toFixed(2)} · {hasLiveRailway && liveRailwayData?.networkTxGb !== undefined && liveRailwayData.networkTxGb > 0 ? `${liveRailwayData.networkTxGb.toFixed(3)} GB TX` : '~5 GB/mo JSON'}
+                </p>
+              </div>
+
+              {/* Total Endured Expense Card */}
+              <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/20 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1 text-fuchsia-300">
+                    {timeframeLabel} Total
+                  </p>
+                  <DollarSign className="w-3.5 h-3.5 text-fuchsia-400/60" />
+                </div>
+                <p className="text-xl font-black font-mono text-fuchsia-200">
+                  ${actualRailwayCost.toFixed(2)}
+                </p>
+                <p className="text-[11px] font-mono text-slate-300 mt-1">
+                  ₹{(actualRailwayCost * usdToInrRate).toFixed(0)} @ ₹{usdToInrRate}/USD
+                </p>
+              </div>
+            </div>
+
+            {/* Context Notice */}
+            {!hasLiveRailway && (
+              <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 text-slate-300">
+                  <Info className="w-4 h-4 shrink-0 text-fuchsia-400" />
+                  <span>
+                    Metrics reflect EveBash's deployed Node.js Express server specs (0.5GB RAM, 0.05 vCPU avg, 5GB egress). Provide RAILWAY_API_TOKEN in backend env for live per-second telemetry.
+                  </span>
+                </div>
+                <span className="font-mono text-[11px] text-fuchsia-300 shrink-0">
+                  No Sleeping · Always Online
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ── EVEBASH ACTUAL RAILWAY EXPENSE EXECUTIVE SUMMARY ── */}
+          <div className="rounded-3xl border border-fuchsia-500/30 bg-gradient-to-r from-fuchsia-950/25 via-[#111827] to-indigo-950/25 p-6 sm:p-7 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white">What Railway Actually Costs EveBash</h4>
+                  <p className="text-xs text-slate-400">Real production cash outflow incurred by EveBash at Railway infrastructure</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 font-mono">
+                <div className="text-right">
+                  <p className="text-[10px] uppercase font-bold text-fuchsia-400 tracking-wider">Net Monthly Outflow</p>
+                  <p className="text-xl font-black text-white">~$6.25 / mo <span className="text-xs text-slate-400 font-normal">(~₹625)</span></p>
+                </div>
+                <div className="h-8 w-px bg-slate-800 hidden sm:block" />
+                <div className="text-right hidden sm:block">
+                  <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Annualized</p>
+                  <p className="text-xl font-black text-white">~$75.00 / yr <span className="text-xs text-slate-400 font-normal">(~₹7,500)</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-1">
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-fuchsia-400 font-bold">1. Container Workload</p>
+                <p className="font-bold text-white text-sm">@evebash/backend Express API</p>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  Allocated 0.5 GB RAM + 0.05 vCPU avg runtime profile. Total raw resource usage is ~$6.25/month.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">2. Plan & Credit Offset</p>
+                <p className="font-bold text-white text-sm">$5.00 Usage Credit Included</p>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  The $5/mo Hobby plan includes $5 of usage credit, offsetting the first $5 of compute fees.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-sky-400 font-bold">3. Cost Per Wedding Event</p>
+                <p className="font-bold text-white text-sm">&lt; ₹2.50 INR per Event</p>
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  Photos and video streaming completely bypass Railway to Cloudflare + B2, keeping Railway costs negligible.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SECTION 1: RAILWAY INFRASTRUCTURE COST MATRIX ── */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 sm:p-7 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+              <div>
+                <h4 className="text-base font-bold text-white flex items-center gap-2">
+                  <RailwayLogo className="h-4 w-auto text-fuchsia-400" />
+                  <span>Railway Infrastructure Cost Matrix & EveBash Actuals</span>
+                </h4>
+                <p className="text-slate-400 text-xs mt-1">
+                  Official resource pricing and rate card charged by Railway infrastructure vs. actual EveBash bills.
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-fuchsia-300 bg-fuchsia-500/10 border border-fuchsia-500/20 px-3 py-1 rounded-xl w-fit">
+                Billed Per-Second · 24/7 Uptime
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-bold bg-slate-900/50">
+                    <th className="py-3 px-4">Resource / Service</th>
+                    <th className="py-3 px-4">Railway Rate (USD)</th>
+                    <th className="py-3 px-4">EveBash Actual Allocation</th>
+                    <th className="py-3 px-4">EveBash Monthly Expense</th>
+                    <th className="py-3 px-4 text-fuchsia-300 font-bold">EveBash Endured ({timeframeLabel})</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <Cpu className="w-3.5 h-3.5 text-fuchsia-400" />
+                      <span>vCPU Compute</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$0.00000772 / s</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">0.05 vCPU (average)</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $1.00 / mo <span className="text-slate-400 font-normal">(₹100)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-fuchsia-300 font-bold">
+                      ${displayedRailwayCpuDollars.toFixed(2)} <span className="text-slate-400 font-normal">(₹{(displayedRailwayCpuDollars * usdToInrRate).toFixed(0)})</span>
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <Server className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Memory (RAM)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$0.00000386 / s</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">0.5 GB (512 MB)</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $5.00 / mo <span className="text-slate-400 font-normal">(₹500)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-emerald-300 font-bold">
+                      ${displayedRailwayRamDollars.toFixed(2)} <span className="text-slate-400 font-normal">(₹{(displayedRailwayRamDollars * usdToInrRate).toFixed(0)})</span>
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Network Egress</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$0.05 / GB</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">~5 GB / month</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $0.25 / mo <span className="text-slate-400 font-normal">(₹25)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-sky-300 font-bold">
+                      ${displayedRailwayEgressDollars.toFixed(2)} <span className="text-slate-400 font-normal">(₹{(displayedRailwayEgressDollars * usdToInrRate).toFixed(0)})</span>
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Network Ingress</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$0.00 (Free)</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">Unlimited Inbound</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $0.00 <span className="text-slate-400 font-normal">(₹0)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-teal-300 font-bold">$0.00</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <HardDrive className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Persistent Volumes</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$0.25 / GB / mo</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">0 GB (Stateless)</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $0.00 <span className="text-slate-400 font-normal">(₹0)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-amber-300 font-bold">$0.00</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 px-4 font-sans font-semibold text-white flex items-center gap-2">
+                      <DollarSign className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Platform Plan & Credit</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">$5.00 / mo Hobby</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-medium">Hobby Tier Base</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-bold">
+                      $5.00 base <span className="text-slate-400 font-normal">(-$5.00 credit)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-indigo-300 font-bold">Included Credit</td>
+                  </tr>
+                </tbody>
+
+                <tfoot>
+                  <tr className="border-t-2 border-fuchsia-500/40 bg-fuchsia-950/20 text-xs font-bold font-mono">
+                    <td className="py-3.5 px-4 font-sans text-white uppercase tracking-wider flex items-center gap-2">
+                      <RailwayLogo className="h-3.5 w-auto text-fuchsia-400" />
+                      <span>Total Actual Incurred</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-400">All Metrics</td>
+                    <td className="py-3.5 px-4 text-slate-200 font-sans text-[11px]">0.5GB RAM · 0.05 vCPU · 5GB TX</td>
+                    <td className="py-3.5 px-4 text-fuchsia-300 font-black text-sm">
+                      ~$6.25 / mo <span className="text-xs text-slate-400 font-normal">(~₹625)</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-fuchsia-300 font-black text-sm">
+                      ${actualRailwayCost.toFixed(2)} <span className="text-xs text-slate-400 font-normal">(₹{(actualRailwayCost * usdToInrRate).toFixed(0)})</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* ── SECTION 2: WHAT WE ARE CHARGED FOR EACH SERVICE (ARCHITECTURE BREAKDOWN) ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Active on Railway */}
+            <div className="rounded-3xl border border-fuchsia-500/20 bg-gradient-to-b from-[#111827] to-[#150a1c] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-400">
+                    <RailwayLogo className="h-4 w-auto" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base">Live Railway GraphQL Billing — {liveRailwayData.projectName}</h3>
-                    <p className="text-[11px] text-slate-500">Real-time edge container CPU, RAM memory, and network egress metrics</p>
+                    <h5 className="text-sm font-bold text-white">Active Service on Railway</h5>
+                    <p className="text-[11px] text-slate-400">What Railway actually bills us for</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  Containerized
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-white text-sm">@evebash/backend (API Node.js Container)</span>
+                    <span className="font-mono text-fuchsia-300 font-bold text-xs">Per-second billing</span>
+                  </div>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    Runs user authentication, chunked upload token grants, guest selfie queries, and admin control routing.
+                  </p>
+                  <div className="pt-2 flex flex-wrap gap-2 text-[10px] font-mono">
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/50">~0.005–0.05 vCPU avg</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/50">~300MB–500MB RAM</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700/50">JSON only (&lt;100MB egress/mo)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Decoupled Services */}
+            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-white">Decoupled Workloads</h5>
+                    <p className="text-[11px] text-slate-400">Why Railway charges remain near baseline</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  Offloaded ($0 on Railway)
+                </span>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <BackblazeIcon className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-200 block">Wedding Media Storage &rarr; Backblaze B2</span>
+                    <span className="text-[11px] text-slate-400">Raw 4K photos and videos bypass Railway entirely ($0.006/GB/mo on B2).</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <CloudflareLogo className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-200 block">Global Media CDN &rarr; Cloudflare Edge</span>
+                    <span className="text-[11px] text-slate-400">Guests stream photos via Cloudflare Bandwidth Alliance (100% free egress, $0 to Railway).</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <ModalLogo className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-200 block">AI Facial Recognition &rarr; Modal.com</span>
+                    <span className="text-[11px] text-slate-400">Serverless GPU/CPU workers handle face embeddings; Railway never burns compute on AI.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <SupabaseLogo className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-200 block">Postgres Database & Auth &rarr; Supabase</span>
+                    <span className="text-[11px] text-slate-400">Managed database engine; Railway does not run an internal database container.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB PANEL 7: UPSTASH QSTASH (SERVERLESS QUEUE) DETAIL ── */}
+      {activeSubTab === 'qstash' && (
+        <div className="space-y-6">
+          {renderFilterBar('bg-teal-600', 'text-teal-400', 'border-teal-500/20')}
+
+          {/* ── LIVE QSTASH TELEMETRY & QUEUE BANNER ── */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 sm:p-7 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                  <QStashLogo className="h-5 w-auto" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    Upstash QStash Serverless Queue & Task Ingestion
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Background message queue orchestrating video HLS transcoding, batch photo indexing, and self-healing watchdog delivery for {timeframeLabel.toLowerCase()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {liveQstashData?.configured ? (
+                  <span className="text-xs font-mono font-bold text-teal-300 bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    Live Sync Active
+                    Queue Token Active ({liveQstashData.queueName || 'EveBash'})
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono font-bold text-teal-300 bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" />
+                    Serverless FIFO Dispatch
+                  </span>
+                )}
+                <span className="text-xs font-mono font-bold text-slate-300 bg-slate-800/60 border border-slate-700/50 px-3 py-1.5 rounded-xl">
+                  Rate: ₹100 / 100k msgs ($1.00/100k)
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
+              {/* Total Dispatched Messages */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-teal-400 font-bold uppercase tracking-wider mb-1">Queue Dispatches</p>
+                  <QStashIcon className="w-3.5 h-3.5 text-teal-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  {actualQstashMessages.toLocaleString()}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  ~1.5 per media item · {timeframePhotos.length} media in window
+                </p>
+              </div>
+
+              {/* Free Tier Allowance */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">Free Allowance</p>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400/60" />
+                </div>
+                <p className="text-xl font-black text-emerald-300 font-mono">
+                  {qstashFreeTierAllowance.toLocaleString()} msgs
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  500/day · 15k/mo included free
+                </p>
+              </div>
+
+              {/* Billable Overage Messages */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-1">Billable Overage</p>
+                  <Layers className="w-3.5 h-3.5 text-amber-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  {qstashOverageMessages.toLocaleString()}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  {qstashOverageMessages > 0 ? 'Above free tier limit' : '100% within free quota'}
+                </p>
+              </div>
+
+              {/* QStash Incurred Upkeep */}
+              <div className="rounded-2xl border border-teal-500/30 bg-teal-950/20 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-teal-400 font-bold uppercase tracking-wider mb-1">Incurred Cost</p>
+                  <IndianRupee className="w-3.5 h-3.5 text-teal-400/60" />
+                </div>
+                <p className="text-xl font-black text-teal-200 font-mono">
+                  {fmtCost(actualQstashCostUsd)}
+                </p>
+                <p className="text-[11px] text-teal-300/80 mt-1 font-mono">
+                  {fmtSub(actualQstashCostUsd, timeframeSuffix)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2 Column Architecture & Simulator Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Decoupled Asynchronous Queue Pipeline */}
+            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                    <QStashLogo className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-white">Decoupled Queue Pipelines</h5>
+                    <p className="text-[11px] text-slate-400">Why EveBash uses Upstash QStash instead of worker polls</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                  Zero Polling Overhead
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5 text-purple-400" />
+                      1. Chunked Video Assembly & Transcode
+                    </span>
+                    <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-md">
+                      FIFO Queue
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    When guests or photographers complete multi-part video uploads, the backend enqueues a QStash job with deduplication key <code className="text-teal-300 font-mono text-[10px]">video-transcode-&#123;key&#125;</code>. QStash delivers the webhook to Modal GPU workers with automatic retries.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                      2. Photo Batch Ingestion to Modal AI
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                      Webhook Push
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Photographers uploading hundreds of 4K photos trigger delayed batch tasks via QStash. Modal workers awaken instantly on push, index face embeddings into PostgreSQL <code className="text-emerald-300 font-mono text-[10px]">pgvector</code>, and shut down immediately—incurring $0 idle fees.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-amber-400" />
+                      3. Self-Healing Media Watchdog
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                      Automatic Recovery
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    If an edge network interrupt stalls a transcoding task, the background watchdog automatically re-dispatches the job to QStash up to 3 attempts, ensuring 100% video upload reliability.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Message Scale Simulator */}
+            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                    <Sliders className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-bold text-white">QStash Scaling Simulator</h5>
+                    <p className="text-[11px] text-slate-400">Project monthly queue costs at enterprise scale</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                  Interactive Model
+                </span>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between items-center text-xs mb-1.5">
+                    <span className="text-slate-300 font-semibold">Simulated Monthly Messages:</span>
+                    <span className="text-teal-400 font-mono font-bold text-sm">
+                      {simulatedQstashMessages.toLocaleString()} msgs/mo
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5000"
+                    max="1000000"
+                    step="5000"
+                    value={simulatedQstashMessages}
+                    onChange={e => setSimulatedQstashMessages(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                    <span>5k msgs</span>
+                    <span>100k msgs</span>
+                    <span>500k msgs</span>
+                    <span>1M msgs</span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Free Tier Allowance (Monthly):</span>
+                    <span className="font-mono text-emerald-400 font-semibold">-15,000 msgs</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Billable Overage Messages:</span>
+                    <span className="font-mono text-white font-semibold">
+                      {Math.max(0, simulatedQstashMessages - 15000).toLocaleString()} msgs
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Overage Rate Card:</span>
+                    <span className="font-mono text-slate-300">₹100 ($1.00) per 100,000 msgs</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+                    <span className="font-bold text-white text-xs">Projected Monthly Upkeep:</span>
+                    <div className="text-right font-mono">
+                      <span className="text-base font-black text-teal-300 block">
+                        ₹{(((Math.max(0, simulatedQstashMessages - 15000) / 100000) * 1.00) * usdToInrRate).toFixed(2)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block">
+                        ${((Math.max(0, simulatedQstashMessages - 15000) / 100000) * 1.00).toFixed(4)} USD / mo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-teal-500/5 border border-teal-500/20 text-[11px] text-teal-300 flex items-center gap-2">
+                  <Info className="w-4 h-4 shrink-0 text-teal-400" />
+                  <span>
+                    Upstash QStash contributes less than <strong>0.5%</strong> of overall infrastructure costs, even at 100,000 monthly messages.
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
-                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">CPU Compute</p>
-                  <p className="text-xl font-black text-white font-mono">${liveRailwayData.cpuDollars.toFixed(2)}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">This month</p>
+          {/* Unit Economics Scenario Table (from COST_ANALYSIS.md) */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h5 className="text-sm font-bold text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-teal-400" />
+                  <span>QStash Unit Economics by Photographer Cohort (from COST_ANALYSIS.md)</span>
+                </h5>
+                <p className="text-[11px] text-slate-400 mt-0.5">Approved financial baseline across worst-case (1TB/photog) and average-case (400GB/photog)</p>
+              </div>
+              <span className="text-xs font-mono font-bold text-teal-300 bg-teal-500/10 border border-teal-500/20 px-3 py-1 rounded-full">
+                ₹100 / 100k msgs
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800/80 overflow-hidden bg-slate-950/40">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-400">
+                  <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider border-b border-slate-800 text-[10px]">
+                    <tr className="divide-x divide-slate-800">
+                      <th className="py-3 px-4 font-bold">Scale Tier</th>
+                      <th className="py-3 px-4 font-bold text-center">1 Photographer</th>
+                      <th className="py-3 px-4 font-bold text-center">10 Photographers</th>
+                      <th className="py-3 px-4 font-bold text-center">100 Photographers</th>
+                      <th className="py-3 px-4 font-bold text-center">500 Photographers</th>
+                      <th className="py-3 px-4 font-bold text-center">1,000 Photographers</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80 font-mono">
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40">
+                      <td className="py-3 px-4 font-sans font-bold text-white">Average-Case Yearly (40k photos/yr)</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">₹0 (Free)</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">₹0 (Free)</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-semibold">₹3,800 / yr</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-semibold">₹19,200 / yr</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-bold">₹38,400 / yr</td>
+                    </tr>
+                    <tr className="divide-x divide-slate-800 hover:bg-slate-900/40">
+                      <td className="py-3 px-4 font-sans font-bold text-white">Worst-Case Yearly (100k photos/yr)</td>
+                      <td className="py-3 px-4 text-center text-emerald-400 font-semibold">₹0 (Free)</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-semibold">₹1,200 / yr</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-semibold">₹9,600 / yr</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-semibold">₹48,000 / yr</td>
+                      <td className="py-3 px-4 text-center text-teal-300 font-bold">₹96,000 / yr</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB PANEL 8: RAZORPAY PAYMENT GATEWAY DETAIL ── */}
+      {activeSubTab === 'razorpay' && (
+        <div className="space-y-6">
+          {renderFilterBar('bg-sky-600', 'text-sky-400', 'border-sky-500/20')}
+
+          {/* ── LIVE RAZORPAY GATEWAY BANNER ── */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 sm:p-7 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <RazorpayLogo className="h-5 w-auto" />
                 </div>
-
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
-                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">RAM Memory</p>
-                  <p className="text-xl font-black text-white font-mono">${liveRailwayData.memoryDollars.toFixed(2)}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">This month</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
-                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">Network Egress</p>
-                  <p className="text-xl font-black text-white font-mono">${liveRailwayData.networkDollars.toFixed(2)}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">This month</p>
-                </div>
-
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4">
-                  <p className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider mb-1">
-                    {liveRailwayData.invoiceDollars !== null ? 'Current Invoice' : 'Estimated Total'}
-                  </p>
-                  <p className="text-xl font-black text-emerald-300 font-mono">${actualRailwayCost.toFixed(2)}</p>
-                  <p className="text-[11px] font-mono text-slate-400 mt-1">
-                    ₹{(actualRailwayCost * usdToInrRate).toFixed(0)} @ ₹{usdToInrRate}/USD
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    Razorpay Payment Gateway & Merchant Settlement Hub
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Customer subscription transactions, payment gateway fees (2.0% + 18% GST), and net bank payouts for {timeframeLabel.toLowerCase()}
                   </p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Interactive Server Simulator */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-6">
-              <div>
-                <h4 className="text-base font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-fuchsia-400" />
-                  <span>Railway Node.js Server Allocation Simulator</span>
-                </h4>
-                <p className="text-slate-400 text-xs mt-1">
-                  Railway bills per second for CPU, Memory, and Egress. Test container scaling profiles.
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {liveRazorpayData?.configured ? (
+                  <span className="text-xs font-mono font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Gateway Active ({liveRazorpayData.keyIdMasked || 'API Keys Configured'})
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Payments Ledger Connected
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIncludeGstInFee(!includeGstInFee)}
+                  className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    includeGstInFee
+                      ? 'bg-sky-500/20 border-sky-500/40 text-sky-200'
+                      : 'bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-white'
+                  }`}
+                  title="Toggle including 18% GST on the 2.0% transaction fee"
+                >
+                  <Percent className="w-3.5 h-3.5" />
+                  Fee Mode: {includeGstInFee ? '2.36% (with 18% GST)' : '2.00% (Base Only)'}
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
+              {/* Gross Online Collections */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-sky-400 font-bold uppercase tracking-wider mb-1">Gross Online Volume</p>
+                  <CreditCard className="w-3.5 h-3.5 text-sky-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  ₹{razorpayStats.grossOnlineVolumeInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  ${(razorpayStats.grossOnlineVolumeInr / usdToInrRate).toFixed(2)} USD · {razorpayStats.onlineCaptured.length} online orders
                 </p>
               </div>
 
-              <div className="space-y-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-slate-300 uppercase">Container RAM Allocation</label>
-                    <span className="font-mono font-bold text-fuchsia-400 text-xs">{simulatedRailwayRAM.toFixed(1)} GB</span>
+              {/* Razorpay Gateway Fees */}
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mb-1">Gateway Fee Deducted</p>
+                  <Percent className="w-3.5 h-3.5 text-rose-400/60" />
+                </div>
+                <p className="text-xl font-black text-rose-200 font-mono">
+                  ₹{timeframeActualRazorpayCostInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-rose-300/80 mt-1 font-mono">
+                  ${timeframeActualRazorpayCostUsd.toFixed(2)} USD ({includeGstInFee ? '2.36%' : '2.0%'} effective)
+                </p>
+              </div>
+
+              {/* Net Merchant Bank Payout */}
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">Net Settled Payout</p>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400/60" />
+                </div>
+                <p className="text-xl font-black text-emerald-200 font-mono">
+                  ₹{razorpayStats.netPayoutInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-emerald-300/80 mt-1 font-mono">
+                  ${(razorpayStats.netPayoutInr / usdToInrRate).toFixed(2)} USD direct to bank
+                </p>
+              </div>
+
+              {/* Total Transaction Volume */}
+              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-1">Total Ledger Flow</p>
+                  <IndianRupee className="w-3.5 h-3.5 text-indigo-400/60" />
+                </div>
+                <p className="text-xl font-black text-white font-mono">
+                  ₹{razorpayStats.totalGrossVolumeInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  {razorpayStats.onlineCaptured.length} online · {razorpayStats.offlinePayments.length} offline (₹0 fee)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 2 Column Fee Structure & Revenue Simulator Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Transparent Payment Gateway Fee Structure */}
+            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                    <RazorpayIcon className="w-4 h-4" />
                   </div>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="8"
-                    step="0.1"
-                    value={simulatedRailwayRAM}
-                    onChange={e => setSimulatedRailwayRAM(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                    <span>0.5 GB</span>
-                    <span>8.0 GB</span>
+                  <div>
+                    <h5 className="text-sm font-bold text-white">Razorpay Standard Fee Structure</h5>
+                    <p className="text-[11px] text-slate-400">Domestic card, UPI, netbanking, and GST tax rules</p>
                   </div>
                 </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                  Standard Pricing
+                </span>
+              </div>
 
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-slate-300 uppercase">Container vCPU Allocation</label>
-                    <span className="font-mono font-bold text-fuchsia-400 text-xs">{simulatedRailwayCPU.toFixed(2)} vCPU</span>
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <div>
+                    <span className="font-bold text-slate-200 block">Base Platform Fee</span>
+                    <span className="text-[11px] text-slate-400">Applies to all domestic credit cards, debit cards, UPI, and netbanking.</span>
                   </div>
-                  <input
-                    type="range"
-                    min="0.05"
-                    max="4"
-                    step="0.05"
-                    value={simulatedRailwayCPU}
-                    onChange={e => setSimulatedRailwayCPU(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                    <span>0.05 vCPU</span>
-                    <span>4.0 vCPU</span>
-                  </div>
+                  <span className="text-sm font-black font-mono text-sky-400 shrink-0">2.00%</span>
                 </div>
 
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-slate-300 uppercase">Monthly Network Egress</label>
-                    <span className="font-mono font-bold text-fuchsia-400 text-xs">{simulatedRailwayEgress} GB</span>
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60">
+                  <div>
+                    <span className="font-bold text-slate-200 block">GST on Platform Fee (18%)</span>
+                    <span className="text-[11px] text-slate-400">Indian Goods and Services Tax charged on the 2% fee (18% of 2% = 0.36%).</span>
                   </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="500"
-                    step="1"
-                    value={simulatedRailwayEgress}
-                    onChange={e => setSimulatedRailwayEgress(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                    <span>1 GB</span>
-                    <span>500 GB</span>
+                  <span className="text-sm font-black font-mono text-amber-400 shrink-0">+0.36%</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-sky-950/20 border border-sky-500/30">
+                  <div>
+                    <span className="font-bold text-sky-200 block">Effective Merchant Deduction</span>
+                    <span className="text-[11px] text-sky-300/80">Total amount deducted by Razorpay prior to merchant bank settlement.</span>
                   </div>
+                  <span className="text-base font-black font-mono text-sky-300 shrink-0">2.36%</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/30">
+                  <div>
+                    <span className="font-bold text-emerald-200 block">Manual & Offline Bank Payments</span>
+                    <span className="text-[11px] text-emerald-300/80">Direct NEFT/RTGS/IMPS bank transfers recorded by superadmin.</span>
+                  </div>
+                  <span className="text-sm font-black font-mono text-emerald-400 shrink-0">₹0 (0% Fee)</span>
                 </div>
               </div>
             </div>
 
-            {/* Simulated Impact card */}
-            <div className="space-y-6">
-              <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
-                <h4 className="text-base font-bold text-white flex items-center gap-2">
-                  <RailwayLogo className="h-4 w-auto text-fuchsia-400" />
-                  <span>Simulated Monthly Upkeep Impact</span>
-                </h4>
-                
-                <div className="space-y-3 text-xs pt-1">
-                  <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                    <span className="text-slate-400">RAM Compute ($0.00000386/GB/s)</span>
-                    <span className="font-mono font-bold text-white">${railwayRamCostMonth.toFixed(2)}</span>
+            {/* Interactive Annual Revenue & Margin Simulator */}
+            <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                    <Sliders className="w-4 h-4" />
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                    <span className="text-slate-400">vCPU Compute ($0.00000772/vCPU/s)</span>
-                    <span className="font-mono font-bold text-white">${railwayCpuCostMonth.toFixed(2)}</span>
+                  <div>
+                    <h5 className="text-sm font-bold text-white">Subscription Revenue Simulator</h5>
+                    <p className="text-[11px] text-slate-400">Project annual collections, fees, and net payouts</p>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                    <span className="text-slate-400">Network Egress ($0.05/GB)</span>
-                    <span className="font-mono font-bold text-white">${railwayEgressCostMonth.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-3">
-                    <span className="font-bold text-slate-200">Total Railway Upkeep</span>
-                    <span className="font-mono font-black text-fuchsia-400 text-lg">
-                      ${simulatedRailwayCost.toFixed(2)} / mo (₹{(simulatedRailwayCost * usdToInrRate).toFixed(0)})
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                  Revenue Model
+                </span>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between items-center text-xs mb-1.5">
+                    <span className="text-slate-300 font-semibold">Simulated Annual Online Collections:</span>
+                    <span className="text-sky-400 font-mono font-bold text-sm">
+                      ₹{(simulatedAnnualRevenueInr / 100000).toFixed(1)} Lakhs (₹{simulatedAnnualRevenueInr.toLocaleString('en-IN')})
                     </span>
                   </div>
+                  <input
+                    type="range"
+                    min="100000"
+                    max="10000000"
+                    step="100000"
+                    value={simulatedAnnualRevenueInr}
+                    onChange={e => setSimulatedAnnualRevenueInr(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                    <span>₹1 Lakh</span>
+                    <span>₹25 Lakhs</span>
+                    <span>₹50 Lakhs</span>
+                    <span>₹1 Crore</span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 space-y-3 font-mono">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-sans">Simulated Gross Revenue:</span>
+                    <span className="text-white font-semibold">₹{simulatedAnnualRevenueInr.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-sans">2.0% Base Platform Fee:</span>
+                    <span className="text-rose-400 font-semibold">
+                      -₹{(simulatedAnnualRevenueInr * 0.02).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-sans">18% GST on Fee:</span>
+                    <span className="text-amber-400 font-semibold">
+                      -₹{(simulatedAnnualRevenueInr * 0.0036).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 font-sans">Total Gateway Deduction ({includeGstInFee ? '2.36%' : '2.0%'}):</span>
+                    <span className="text-rose-300 font-bold">
+                      -₹{(simulatedAnnualRevenueInr * (includeGstInFee ? 0.0236 : 0.02)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+                    <span className="font-bold text-white text-xs font-sans">Net Merchant Bank Payout:</span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-emerald-300 block">
+                        ₹{(simulatedAnnualRevenueInr * (1 - (includeGstInFee ? 0.0236 : 0.02))).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block font-sans">
+                        ${((simulatedAnnualRevenueInr * (1 - (includeGstInFee ? 0.0236 : 0.02))) / usdToInrRate).toFixed(2)} USD
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="p-5 rounded-3xl border border-fuchsia-500/20 bg-fuchsia-950/15 space-y-2">
-                <h5 className="text-xs font-bold text-fuchsia-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Server className="w-3.5 h-3.5" />
-                  Container Server Profile
+          {/* Online Captured Transactions Ledger Table */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div>
+                <h5 className="text-sm font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-sky-400" />
+                  <span>Captured Online Transactions Ledger ({timeframeLabel})</span>
                 </h5>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  Next.js containers naturally idle around 0.005 vCPU and ~300MB RAM. Because heavy photos and videos are stored in Backblaze B2 and cached on Cloudflare, Railway egress remains near zero.
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Itemized online transactions with exact Razorpay fee and GST breakdown
                 </p>
+              </div>
+              <span className="text-xs font-mono font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-full self-start sm:self-auto">
+                {razorpayStats.onlineCaptured.length} Captured Orders
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800/80 overflow-hidden bg-slate-950/40">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-400">
+                  <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider border-b border-slate-800 text-[10px]">
+                    <tr className="divide-x divide-slate-800">
+                      <th className="py-3 px-4 font-bold">Transaction / Order</th>
+                      <th className="py-3 px-4 font-bold">Customer ID</th>
+                      <th className="py-3 px-4 font-bold">Plan & Duration</th>
+                      <th className="py-3 px-4 text-right font-bold">Gross Amount</th>
+                      <th className="py-3 px-4 text-right font-bold">2.0% Fee</th>
+                      <th className="py-3 px-4 text-right font-bold">18% GST</th>
+                      <th className="py-3 px-4 text-right font-bold">Net Payout</th>
+                      <th className="py-3 px-4 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80 font-mono">
+                    {razorpayStats.onlineCaptured.length > 0 ? (
+                      razorpayStats.onlineCaptured.map(p => {
+                        const amount = Number(p.amount) || 0;
+                        const baseFee = amount * 0.02;
+                        const gstFee = baseFee * 0.18;
+                        const totalFee = includeGstInFee ? amount * 0.0236 : baseFee;
+                        const netAmount = amount - totalFee;
+
+                        return (
+                          <tr key={p.id} className="divide-x divide-slate-800 hover:bg-slate-900/40 transition-colors">
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="text-white font-semibold block">
+                                {p.razorpay_payment_id || p.id.slice(0, 12)}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block">
+                                {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap text-slate-300 font-sans truncate max-w-[120px]">
+                              {p.user_id ? `${p.user_id.slice(0, 8)}...` : '—'}
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap text-slate-300 font-sans uppercase text-[11px]">
+                              {p.plan_id || 'starter'} ({p.billing_duration || 'yearly'})
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap text-white font-bold">
+                              ₹{amount.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap text-rose-400">
+                              -₹{baseFee.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap text-amber-400">
+                              -₹{gstFee.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap text-emerald-400 font-bold">
+                              ₹{netAmount.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Captured
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-slate-500 text-xs font-sans">
+                          No online Razorpay transactions recorded in this period.
+                          {razorpayStats.offlinePayments.length > 0 && (
+                            <span className="block text-[11px] text-slate-400 mt-1">
+                              ({razorpayStats.offlinePayments.length} manual offline payment(s) recorded at 0% gateway fee).
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
