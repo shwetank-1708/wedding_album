@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GalleryMediaItem, PageFlipDirection, PageFlipThemeConfig } from "./types";
@@ -16,6 +16,11 @@ interface PageFlipPageProps {
   zoomed?: boolean;
   coverMode?: boolean;
   onMediaReady?: () => void;
+  onPreviousMedia?: () => void;
+  onNextMedia?: () => void;
+  onToggleFullscreen?: () => void | Promise<void>;
+  onVideoElementChange?: (node: HTMLVideoElement | null) => void;
+  videoControls?: boolean;
 }
 
 export const PageFlipPage = memo(function PageFlipPage({
@@ -27,13 +32,23 @@ export const PageFlipPage = memo(function PageFlipPage({
   zoomed = false,
   coverMode = false,
   onMediaReady,
+  onPreviousMedia,
+  onNextMedia,
+  onToggleFullscreen,
+  onVideoElementChange,
+  videoControls = true,
 }: PageFlipPageProps) {
   const [loading, setLoading] = useState(item.type === "image");
   const [error, setError] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const handleVideoError = useCallback(() => setError(true), []);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const setVideoRefs = useCallback((node: HTMLVideoElement | null) => {
+    localVideoRef.current = node;
+    onVideoElementChange?.(node);
+  }, [onVideoElementChange]);
 
   useEffect(() => {
-    if (isTurning) videoRef.current?.pause();
+    if (isTurning) localVideoRef.current?.pause();
   }, [isTurning]);
 
   return (
@@ -77,15 +92,18 @@ export const PageFlipPage = memo(function PageFlipPage({
             </div>
           )}
           <HLSVideoPlayer
-            ref={videoRef}
+            ref={setVideoRefs}
             mediaId={item.id}
             src={item.previewUrl}
             poster={item.thumbnailUrl}
-            controls={isActive && !isTurning}
+            controls={isActive && !isTurning && videoControls}
             playsInline
             className={cn("h-full max-h-full w-full max-w-full", coverMode ? "object-cover" : "object-contain")}
             onLoadedMetadata={onMediaReady}
-            onError={() => setError(true)}
+            onError={handleVideoError}
+            onPreviousMedia={onPreviousMedia}
+            onNextMedia={onNextMedia}
+            onToggleFullscreen={onToggleFullscreen}
           />
         </div>
       ) : (

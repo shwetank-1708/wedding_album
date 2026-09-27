@@ -14,65 +14,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import { initUploadQueue } from '@/lib/uploadQueue';
 import { registerDeviceForPushNotifications } from '@/lib/notifications';
 import * as Notifications from 'expo-notifications';
-import { 
-  useFonts, 
-  Outfit_400Regular, 
-  Outfit_600SemiBold, 
-  Outfit_700Bold, 
-  Outfit_800ExtraBold 
-} from '@expo-google-fonts/outfit';
+import { SCREEN_ORIENTATION_LOCK, lockScreenOrientation } from '@/lib/screenOrientation';
+import { useFonts } from 'expo-font';
 import { 
   Inter_400Regular, 
   Inter_500Medium, 
   Inter_600SemiBold, 
-  Inter_700Bold 
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black
 } from '@expo-google-fonts/inter';
-import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_400Regular_Italic,
-  PlayfairDisplay_600SemiBold,
-  PlayfairDisplay_700Bold
-} from '@expo-google-fonts/playfair-display';
-import {
-  VT323_400Regular
-} from '@expo-google-fonts/vt323';
-import {
-  TiltNeon_400Regular
-} from '@expo-google-fonts/tilt-neon';
-import {
-  CormorantGaramond_400Regular,
-  CormorantGaramond_400Regular_Italic,
-  CormorantGaramond_600SemiBold,
-  CormorantGaramond_700Bold,
-} from '@expo-google-fonts/cormorant-garamond';
-import {
-  Lora_400Regular,
-  Lora_400Regular_Italic,
-  Lora_600SemiBold,
-  Lora_700Bold,
-} from '@expo-google-fonts/lora';
-import {
-  NunitoSans_400Regular,
-  NunitoSans_600SemiBold,
-  NunitoSans_700Bold,
-} from '@expo-google-fonts/nunito-sans';
-import {
-  Syne_700Bold
-} from '@expo-google-fonts/syne';
-import {
-  CinzelDecorative_400Regular,
-  CinzelDecorative_700Bold
-} from '@expo-google-fonts/cinzel-decorative';
-import {
-  Cinzel_400Regular,
-  Cinzel_700Bold
-} from '@expo-google-fonts/cinzel';
-import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
 
 const IS_STAGING_BUILD = process.env.EXPO_PUBLIC_API_BASE_URL?.includes('api-staging.evebash.com') ?? false;
 
@@ -187,6 +138,12 @@ function RootLayoutContent() {
     initUploadQueue().catch(err => console.error('[RootLayout] Queue init failed:', err));
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    void lockScreenOrientation(SCREEN_ORIENTATION_LOCK.PORTRAIT_UP);
+  }, []);
+
   const customTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
     dark: isDark,
@@ -228,48 +185,53 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Outfit_400Regular,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-    Outfit_800ExtraBold,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_400Regular_Italic,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
-    VT323_400Regular,
-    TiltNeon_400Regular,
-    CormorantGaramond_400Regular,
-    CormorantGaramond_400Regular_Italic,
-    CormorantGaramond_600SemiBold,
-    CormorantGaramond_700Bold,
-    Lora_400Regular,
-    Lora_400Regular_Italic,
-    Lora_600SemiBold,
-    Lora_700Bold,
-    NunitoSans_400Regular,
-    NunitoSans_600SemiBold,
-    NunitoSans_700Bold,
-    Syne_700Bold,
-    CinzelDecorative_400Regular,
-    CinzelDecorative_700Bold,
-    Cinzel_400Regular,
-    Cinzel_700Bold,
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-    'AkayaKanadaka_400Regular': require('../assets/fonts/AkayaKanadaka-Regular.ttf'),
-    'Monofett_400Regular': require('../assets/fonts/Monofett-Regular.ttf'),
-    'BubblegumSans_400Regular': require('../assets/fonts/BubblegumSans-Regular.ttf'),
-    'PermanentMarker_400Regular': require('../assets/fonts/PermanentMarker-Regular.ttf'),
-    'Yellowtail_400Regular': require('../assets/fonts/Yellowtail-Regular.ttf'),
-    'AlexBrush_400Regular': require('../assets/fonts/AlexBrush-Regular.ttf'),
-    'Cookie_400Regular': require('../assets/fonts/Cookie-Regular.ttf'),
-    'GrandHotel_400Regular': require('../assets/fonts/GrandHotel-Regular.ttf'),
+    Inter_800ExtraBold,
+    Inter_900Black,
+    Outfit_400Regular: Inter_400Regular,
+    Outfit_500Medium: Inter_500Medium,
+    Outfit_600SemiBold: Inter_600SemiBold,
+    Outfit_700Bold: Inter_700Bold,
+    Outfit_800ExtraBold: Inter_800ExtraBold,
+    Outfit_900Black: Inter_900Black,
+    PlayfairDisplay_400Regular: Inter_400Regular,
+    PlayfairDisplay_400Regular_Italic: Inter_400Regular,
+    PlayfairDisplay_600SemiBold: Inter_600SemiBold,
+    PlayfairDisplay_700Bold: Inter_700Bold,
+    VT323_400Regular: Inter_400Regular,
+    TiltNeon_400Regular: Inter_400Regular,
+    CormorantGaramond_400Regular: Inter_400Regular,
+    CormorantGaramond_400Regular_Italic: Inter_400Regular,
+    CormorantGaramond_600SemiBold: Inter_600SemiBold,
+    CormorantGaramond_700Bold: Inter_700Bold,
+    Lora_400Regular: Inter_400Regular,
+    Lora_400Regular_Italic: Inter_400Regular,
+    Lora_600SemiBold: Inter_600SemiBold,
+    Lora_700Bold: Inter_700Bold,
+    NunitoSans_400Regular: Inter_400Regular,
+    NunitoSans_600SemiBold: Inter_600SemiBold,
+    NunitoSans_700Bold: Inter_700Bold,
+    Syne_700Bold: Inter_700Bold,
+    CinzelDecorative_400Regular: Inter_400Regular,
+    CinzelDecorative_700Bold: Inter_700Bold,
+    Cinzel_400Regular: Inter_400Regular,
+    Cinzel_700Bold: Inter_700Bold,
+    SpaceGrotesk_400Regular: Inter_400Regular,
+    SpaceGrotesk_500Medium: Inter_500Medium,
+    SpaceGrotesk_600SemiBold: Inter_600SemiBold,
+    SpaceGrotesk_700Bold: Inter_700Bold,
+    AkayaKanadakaHeader_400Regular: require('../assets/fonts/AkayaKanadaka-Regular.ttf'),
+    AkayaKanadaka_400Regular: Inter_400Regular,
+    Monofett_400Regular: Inter_400Regular,
+    BubblegumSans_400Regular: Inter_400Regular,
+    PermanentMarker_400Regular: Inter_400Regular,
+    Yellowtail_400Regular: Inter_400Regular,
+    AlexBrush_400Regular: Inter_400Regular,
+    Cookie_400Regular: Inter_400Regular,
+    GrandHotel_400Regular: Inter_400Regular,
   });
 
   console.log('--- Font Diagnostics ---');

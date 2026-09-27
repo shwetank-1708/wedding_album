@@ -166,7 +166,7 @@ export const techSleekStyles = {
     elevation: 5,
   },
   techSleekMetricNumber: {
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontSize: 30,
     lineHeight: 32,
     fontFamily: Fonts.spaceGrotesk.bold,
@@ -222,7 +222,7 @@ export const techSleekStyles = {
     backgroundColor: 'rgba(125, 211, 252, 0.24)',
   },
   techSleekHeroTitle: {
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontSize: 40,
     lineHeight: 41,
     fontFamily: Fonts.spaceGrotesk.bold,
@@ -287,7 +287,7 @@ export const techSleekStyles = {
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.74)',
+    backgroundColor: 'rgba(27, 33, 31, 0.74)',
     borderWidth: 1,
     borderColor: 'rgba(125, 211, 252, 0.18)',
   },
@@ -388,7 +388,7 @@ export const techSleekStyles = {
     backgroundColor: 'rgba(125, 211, 252, 0.28)',
   },
   techSleekGalleryTitle: {
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontSize: 34,
     lineHeight: 36,
     fontFamily: Fonts.spaceGrotesk.bold,
@@ -433,7 +433,7 @@ export const techSleekStyles = {
     borderColor: 'rgba(125, 211, 252, 0.22)',
   },
   techSleekPhotoLabelNumber: {
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontSize: 11,
     fontFamily: Fonts.spaceGrotesk.bold,
   },

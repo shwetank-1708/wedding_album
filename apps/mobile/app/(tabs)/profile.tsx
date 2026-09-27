@@ -193,7 +193,7 @@ export default function ProfileScreen() {
       return;
     }
 
-    // Check syntax format (3-30 chars; lowercase letters/numbers with internal dot/underscore)
+    // Check syntax format (3-12 chars; lowercase letters/numbers with internal dot/underscore)
     if (!isValidUsername(normalized)) {
       setUsernameStatus('invalid');
       setIsUsernameValid(false);
@@ -464,7 +464,7 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/settings' as any)}
                 style={styles.settingsBtn}
               >
-                <SettingsIcon size={22} color="#d4af37" />
+                <SettingsIcon size={22} color="#CA9C68" />
               </TouchableOpacity>
             </View>
           </View>
@@ -533,7 +533,7 @@ export default function ProfileScreen() {
           <View style={styles.sectionHead}>
             <Text style={styles.sectionLabel}>Account Info</Text>
             <TouchableOpacity style={styles.editBtn} activeOpacity={0.7} onPress={openEditModal}>
-              <IconSymbol name="pencil" size={12} color="#050505" style={{ marginTop: -1 }} />
+              <IconSymbol name="pencil" size={12} color="#13191F" style={{ marginTop: -1 }} />
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -541,7 +541,7 @@ export default function ProfileScreen() {
           <View style={styles.settingsCard}>
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="person.fill" size={18} color="#d4af37" />
+                <IconSymbol name="person.fill" size={18} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Full Name</Text>
@@ -553,7 +553,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="person.fill" size={18} color="#d4af37" />
+                <IconSymbol name="person.fill" size={18} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Username</Text>
@@ -565,7 +565,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="envelope.fill" size={16} color="#d4af37" />
+                <IconSymbol name="envelope.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Email Address</Text>
@@ -582,7 +582,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="phone.fill" size={16} color="#d4af37" />
+                <IconSymbol name="phone.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Phone Number</Text>
@@ -601,7 +601,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="mappin.and.ellipse" size={16} color="#d4af37" />
+                <IconSymbol name="mappin.and.ellipse" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Location</Text>
@@ -613,7 +613,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="person.fill" size={16} color="#d4af37" />
+                <IconSymbol name="person.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Gender</Text>
@@ -625,7 +625,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="heart.fill" size={16} color="#d4af37" />
+                <IconSymbol name="heart.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Relationship Status</Text>
@@ -637,7 +637,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="gift.fill" size={16} color="#d4af37" />
+                <IconSymbol name="gift.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Birthday</Text>
@@ -649,7 +649,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="sparkles" size={16} color="#d4af37" />
+                <IconSymbol name="sparkles" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Anniversary / Milestone Date</Text>
@@ -661,7 +661,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="person.2.fill" size={16} color="#d4af37" />
+                <IconSymbol name="person.2.fill" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>I am a</Text>
@@ -683,7 +683,7 @@ export default function ProfileScreen() {
 
             <View style={styles.infoRow}>
               <View style={styles.infoIconBox}>
-                <IconSymbol name="calendar" size={16} color="#d4af37" />
+                <IconSymbol name="calendar" size={16} color="#CA9C68" />
               </View>
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Joined EveBash</Text>
@@ -695,20 +695,20 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.usageCard} activeOpacity={0.8} onPress={() => router.push('/(tabs)/usage')}>
               <LinearGradient
-                colors={['rgba(212, 175, 55, 0.15)', 'rgba(212, 175, 55, 0.02)']}
+                colors={['rgba(202, 156, 104, 0.15)', 'rgba(202, 156, 104, 0.02)']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.usageGradient}
               >
                 <View style={styles.usageIconBox}>
-                  <IconSymbol name="chart.bar.fill" size={20} color="#d4af37" />
+                  <IconSymbol name="chart.bar.fill" size={20} color="#CA9C68" />
                 </View>
                 <View style={styles.usageTextContent}>
                   <Text style={styles.usageTitle}>Usage & Plan</Text>
                   <Text style={styles.usageSubtitle}>View limits and upgrade</Text>
                 </View>
                 <View style={styles.usageArrowBox}>
-                  <IconSymbol name="chevron.right" size={14} color="#d4af37" />
+                  <IconSymbol name="chevron.right" size={14} color="#CA9C68" />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -798,7 +798,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Full Name <Text style={styles.requiredMark}>*</Text></Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="person.fill" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="person.fill" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editName}
@@ -814,7 +814,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Email Address <Text style={styles.requiredMark}>*</Text></Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="envelope.fill" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="envelope.fill" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editEmail}
@@ -842,10 +842,11 @@ export default function ProfileScreen() {
                       placeholderTextColor="#475569"
                       autoCapitalize="none"
                       autoCorrect={false}
+                      maxLength={12}
                       editable={!saving}
                     />
                     {usernameStatus === 'checking' && (
-                      <ActivityIndicator size="small" color="#d4af37" style={styles.inputSpinner} />
+                      <ActivityIndicator size="small" color="#CA9C68" style={styles.inputSpinner} />
                     )}
                   </View>
                   
@@ -853,19 +854,19 @@ export default function ProfileScreen() {
                   {editUsername.trim().toLowerCase() !== user?.username?.toLowerCase() && (
                     <View style={styles.feedbackContainer}>
                       {usernameStatus === 'available' && (
-                        <Text style={[styles.feedbackText, styles.feedbackAvailable]}>
-                          ✓ Username is available
-                        </Text>
+                         <Text style={[styles.feedbackText, styles.feedbackAvailable]}>
+                           ✓ Username is available
+                         </Text>
                       )}
                       {usernameStatus === 'taken' && (
-                        <Text style={[styles.feedbackText, styles.feedbackTaken]}>
-                          ✗ Username is already taken
-                        </Text>
+                         <Text style={[styles.feedbackText, styles.feedbackTaken]}>
+                           ✗ Username is already taken
+                         </Text>
                       )}
                       {usernameStatus === 'invalid' && (
-                        <Text style={[styles.feedbackText, styles.feedbackInvalid]}>
-                          ⚠ 3-30 lowercase letters/numbers. Dots/underscores only inside, not repeated.
-                        </Text>
+                         <Text style={[styles.feedbackText, styles.feedbackInvalid]}>
+                           ⚠ 3-12 lowercase letters/numbers. Dots/underscores only inside, not repeated.
+                         </Text>
                       )}
                     </View>
                   )}
@@ -875,7 +876,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Phone Number</Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="phone.fill" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="phone.fill" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editPhone}
@@ -893,7 +894,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Location</Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="mappin.and.ellipse" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="mappin.and.ellipse" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editLocation}
@@ -956,7 +957,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Birthday</Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="gift.fill" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="gift.fill" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editBirthday}
@@ -973,7 +974,7 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Anniversary / Milestone Date</Text>
                   <View style={styles.inputWrapper}>
-                    <IconSymbol name="sparkles" size={16} color="#d4af37" style={styles.inputIcon} />
+                    <IconSymbol name="sparkles" size={16} color="#CA9C68" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
                       value={editAnniversaryDate}
@@ -1046,7 +1047,7 @@ export default function ProfileScreen() {
                   activeOpacity={0.7}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#050505" />
+                    <ActivityIndicator size="small" color="#13191F" />
                   ) : (
                     <Text style={styles.saveBtnText}>Save Changes</Text>
                   )}
@@ -1096,7 +1097,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     lineHeight: 38,
-    fontFamily: 'AkayaKanadaka_400Regular',
+    fontFamily: 'AkayaKanadakaHeader_400Regular',
     color: colors.white,
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -1173,7 +1174,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     maxWidth: '100%',
   },
   planBadge: {
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    backgroundColor: 'rgba(202, 156, 104, 0.12)',
   },
   planBadgeText: {
     fontSize: 9,
@@ -1182,8 +1183,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     letterSpacing: 0.8,
   },
   personaBadge: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
+    backgroundColor: '#2B2F2E',
+    borderColor: '#594C3D',
   },
   personaBadgeText: {
     fontSize: 9,
@@ -1218,7 +1219,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     elevation: 3,
   },
   editBtnText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 12,
     fontFamily: 'Outfit_700Bold',
   },
@@ -1257,7 +1258,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+    backgroundColor: 'rgba(202, 156, 104, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1279,7 +1280,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    backgroundColor: 'rgba(202, 156, 104, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1292,7 +1293,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1417,7 +1418,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: isDark ? 'rgba(2, 6, 23, 0.85)' : 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: isDark ? 'rgba(19, 25, 31, 0.85)' : 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -1625,7 +1626,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     elevation: 0,
   },
   saveBtnText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 16,
     fontFamily: 'Outfit_700Bold',
   },
@@ -1682,8 +1683,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   pickerPillSelected: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderColor: '#d4af37',
+    backgroundColor: 'rgba(202, 156, 104, 0.15)',
+    borderColor: '#CA9C68',
   },
   pickerPillText: {
     fontSize: 12,
@@ -1691,7 +1692,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.slate400,
   },
   pickerPillTextSelected: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontFamily: 'Inter_600SemiBold',
   },
   badgeRow: {
@@ -1701,15 +1702,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: 4,
   },
   badgePill: {
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    backgroundColor: 'rgba(202, 156, 104, 0.12)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 0.5,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderColor: 'rgba(202, 156, 104, 0.3)',
   },
   badgeText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 10,
     fontFamily: 'Inter_600SemiBold',
   },

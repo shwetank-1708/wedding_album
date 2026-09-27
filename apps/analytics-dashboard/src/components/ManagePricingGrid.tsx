@@ -1,6 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, CircleOff, RotateCcw, Save, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+import {
+  Check,
+  CircleOff,
+  RotateCcw,
+  Save,
+  Search,
+  ToggleLeft,
+  ToggleRight,
+  Layers,
+  CheckCircle2,
+  Sparkles,
+  CreditCard,
+  AlertTriangle,
+  Loader2,
+  X,
+  Package
+} from 'lucide-react';
 import { runAdminAction } from '../lib/adminApi';
+import { directUpdatePricingPlans } from '../lib/analytics';
 
 type PlanDraft = {
   id: string;
@@ -186,10 +203,10 @@ const currency = new Intl.NumberFormat('en-IN', {
 });
 
 const numberInputClass =
-  'w-24 rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-right text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-cyan-500/60';
+  'w-24 rounded-lg border border-slate-800 bg-slate-950/80 px-2.5 py-1.5 text-right text-xs font-mono font-medium text-slate-100 outline-none transition-all focus:border-indigo-500/60 focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500/30';
 
 const textInputClass =
-  'w-36 rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-cyan-500/60';
+  'w-36 rounded-lg border border-slate-800 bg-slate-950/80 px-2.5 py-1.5 text-xs font-semibold text-white outline-none transition-all focus:border-indigo-500/60 focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500/30';
 
 function toNumber(value: string) {
   const parsed = Number(value);
@@ -311,7 +328,16 @@ export const ManagePricingGrid: React.FC = () => {
 
     setStatus('loading');
     setMessage('Saving pricing changes...');
-    const result = await runAdminAction('updatePricingPlans', { plans });
+    let result: { success: boolean; error?: string } = { success: false };
+    try {
+      result = await directUpdatePricingPlans(plans);
+    } catch (err: any) {
+      try {
+        result = await runAdminAction('updatePricingPlans', { plans });
+      } catch {
+        result = { success: false, error: err?.message || 'Could not save pricing plans.' };
+      }
+    }
 
     if (!result.success) {
       setStatus('error');
@@ -324,266 +350,505 @@ export const ManagePricingGrid: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="rounded-3xl border border-slate-800 bg-[#111827]/80 p-6 shadow-xl">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+    <div className="space-y-6 animate-fadeIn">
+      {/* Quick Analytics Cards Matching UserGrid Glassmorphism Design */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Total Plans Configured */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-indigo-500/10 blur-2xl transition-all duration-500 group-hover:bg-indigo-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Total Plans
+            </span>
+            <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-2.5 text-indigo-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-indigo-500/40 group-hover:bg-indigo-500/20">
+              <Layers className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-white transition-colors group-hover:text-indigo-300">
+            {plans.length}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>{totals.active} active tiers</span>
+            </div>
+            <span className="rounded border border-indigo-500/25 bg-indigo-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-300">
+              Configured
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Active Plans Coverage */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl transition-all duration-500 group-hover:bg-emerald-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Active Coverage
+            </span>
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-emerald-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-400 transition-colors group-hover:text-emerald-300">
+            {plans.length > 0 ? Math.round((totals.active / plans.length) * 100) : 0}%
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>{plans.length - totals.active} paused</span>
+            </div>
+            <span className="rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+              Public Availability
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Monthly Stack Potential */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-xl hover:shadow-sky-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-sky-500/10 blur-2xl transition-all duration-500 group-hover:bg-sky-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Monthly Stack
+            </span>
+            <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 p-2.5 text-sky-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-sky-500/40 group-hover:bg-sky-500/20">
+              <CreditCard className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white transition-colors group-hover:text-sky-300">
+            {currency.format(totals.monthly)}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span>Sum of all active plans</span>
+            </div>
+            <span className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-sky-300">
+              Per Month
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Discounted Yearly Stack */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-purple-500/10 blur-2xl transition-all duration-500 group-hover:bg-purple-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Discounted Yearly Stack
+            </span>
+            <div className="rounded-xl border border-purple-500/25 bg-purple-500/10 p-2.5 text-purple-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-purple-500/40 group-hover:bg-purple-500/20">
+              <Sparkles className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-purple-400 transition-colors group-hover:text-purple-300">
+            {currency.format(totals.yearly)}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-400" />
+              <span>Prepaid annual pool</span>
+            </div>
+            <span className="rounded border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-purple-300">
+              Annual Rate
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Table Card Container */}
+      <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
+        {/* Controls Toolbar: Search & Action Buttons */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-400">Pricing Control</p>
-            <h3 className="mt-2 text-2xl font-black tracking-tight text-white">Manage Pricing</h3>
+            <h3 className="text-xl font-bold text-white tracking-tight">Manage Pricing Matrix</h3>
+            <p className="text-slate-400 text-xs mt-1">
+              Configure storage capacities, allowances, features, and billing cycles published to users ({filteredPlans.length} plans)
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Search Bar */}
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                placeholder="Search plans by name or storage..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search plans"
-                className="w-64 rounded-xl border border-slate-800 bg-slate-950/70 py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-200 outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-500/60"
+                className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 w-full sm:w-60 placeholder-slate-600 transition-colors"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
+            {/* Reset Draft Button */}
             <button
               type="button"
               onClick={resetPlans}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:border-slate-700 hover:bg-slate-900"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
+              title="Reset draft pricing to defaults"
             >
-              <RotateCcw className="h-4 w-4" />
-              Reset Draft
+              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+              <span>Reset Draft</span>
             </button>
 
+            {/* Save Pricing Button */}
             <button
               type="button"
               onClick={saveDraft}
               disabled={!pricingTableReady || status === 'loading'}
-              className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 transition-colors hover:bg-cyan-500/20"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-indigo-500/40 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-white text-xs font-bold transition-all shadow-md shadow-indigo-500/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="h-4 w-4" />
-              Save Pricing
+              {status === 'loading' ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              <span>{status === 'loading' ? 'Saving...' : 'Save Pricing'}</span>
             </button>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Plans</p>
-            <p className="mt-2 text-2xl font-black text-white">{totals.active}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Monthly Stack</p>
-            <p className="mt-2 text-2xl font-black text-emerald-300">{currency.format(totals.monthly)}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Discounted Yearly Stack</p>
-            <p className="mt-2 text-2xl font-black text-cyan-300">{currency.format(totals.yearly)}</p>
-          </div>
-        </div>
-
+        {/* Status Message Banner */}
         {(status !== 'idle' || message) && (
           <div
-            className={`mt-5 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold ${
+            className={`mb-6 flex items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold ${
               status === 'error'
-                ? 'border-rose-500/20 bg-rose-500/10 text-rose-200'
-                : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
+                ? 'border-rose-500/20 bg-rose-500/10 text-rose-300'
+                : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
             }`}
           >
-            <Check className="h-4 w-4" />
-            {message || (status === 'saved' ? 'Pricing saved.' : 'Loading pricing plans...')}
+            {status === 'error' ? (
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            ) : (
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <span>{message || (status === 'saved' ? 'Pricing saved successfully.' : 'Loading pricing plans...')}</span>
           </div>
         )}
-      </div>
 
-      <div className="rounded-3xl border border-slate-800 bg-[#111827]/80 p-6 shadow-xl">
-        <div className="overflow-x-auto rounded-2xl border border-slate-800/70">
-          <table className="w-full min-w-[1680px] text-left text-sm">
-            <thead className="border-b border-slate-800 bg-slate-950/50 text-xs uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-4">Status</th>
-                <th className="px-4 py-4">Plan</th>
-                <th className="px-4 py-4">Storage</th>
-                <th className="px-4 py-4">Events</th>
-                <th className="px-4 py-4">Image Upload</th>
-                <th className="px-4 py-4">Video Upload</th>
-                <th className="px-4 py-4 text-right">Monthly Actual</th>
-                <th className="px-4 py-4 text-right">Monthly Discounted</th>
-                <th className="px-4 py-4 text-right">3 Months Actual</th>
-                <th className="px-4 py-4 text-right">3 Months Discounted</th>
-                <th className="px-4 py-4 text-right">6 Months Actual</th>
-                <th className="px-4 py-4 text-right">6 Months Discounted</th>
-                <th className="px-4 py-4 text-right">Yearly Actual</th>
-                <th className="px-4 py-4 text-right">Yearly Discounted</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {filteredPlans.map((plan) => (
-                <tr key={plan.id} className="text-slate-300 transition-colors hover:bg-slate-900/30">
-                  <td className="px-4 py-4">
-                    <button
-                      type="button"
-                      onClick={() => updatePlan(plan.id, 'active', !plan.active)}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${
-                        plan.active
-                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          : 'border-slate-700 bg-slate-900 text-slate-500'
-                      }`}
+        {/* Modern Table matching UserGrid architecture */}
+        <div className="bg-[#0f172a]/40 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden backdrop-blur-md">
+          <div className="overflow-x-auto [scrollbar-gutter:stable]">
+            <table className="w-full text-left border-collapse border-spacing-0">
+              <thead>
+                <tr className="bg-[#0f1422] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-700 select-none">
+                  {/* Sr. No. (Sticky Left-0) */}
+                  <th
+                    scope="col"
+                    className="sticky left-0 z-20 bg-[#0f1422] py-3.5 px-2 text-center w-12 min-w-[48px] max-w-[48px] border-r border-slate-700"
+                  >
+                    Sr.
+                  </th>
+
+                  {/* Plan Name & ID (Sticky Left-[48px]) */}
+                  <th
+                    scope="col"
+                    className="sticky left-[48px] z-20 bg-[#0f1422] py-3.5 px-4 min-w-[190px] border-r border-slate-700 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)]"
+                  >
+                    Plan Name & ID
+                  </th>
+
+                  {/* Status */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[110px] border-r border-slate-700">
+                    Status
+                  </th>
+
+                  {/* Storage */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[130px] border-r border-slate-700">
+                    Storage
+                  </th>
+
+                  {/* Events */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[100px] border-r border-slate-700">
+                    Events
+                  </th>
+
+                  {/* Image Upload */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[110px] border-r border-slate-700">
+                    Image Upload
+                  </th>
+
+                  {/* Video Upload */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[150px] border-r border-slate-700">
+                    Video Upload
+                  </th>
+
+                  {/* Monthly Pricing */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    Monthly Actual (₹)
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    Monthly Selling (₹)
+                  </th>
+
+                  {/* 3 Months Pricing */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    3M Actual (₹)
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    3M Selling (₹)
+                  </th>
+
+                  {/* 6 Months Pricing */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    6M Actual (₹)
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    6M Selling (₹)
+                  </th>
+
+                  {/* Yearly Pricing */}
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] border-r border-slate-700 text-right">
+                    Yearly Actual (₹)
+                  </th>
+                  <th scope="col" className="py-3.5 px-3 min-w-[125px] text-right">
+                    Yearly Selling (₹)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {filteredPlans.map((plan, idx) => (
+                  <tr
+                    key={plan.id}
+                    className={`group transition-colors ${
+                      idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                    } hover:bg-[#1e293b]`}
+                  >
+                    {/* Sr. No. (Sticky Left-0) */}
+                    <td
+                      className={`sticky left-0 z-10 ${
+                        idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                      } group-hover:bg-[#1e293b] transition-colors py-3 px-2 whitespace-nowrap w-12 min-w-[48px] max-w-[48px] text-center font-mono text-[11px] font-semibold text-slate-400 border-b border-slate-700 border-r border-slate-700/80`}
                     >
-                      {plan.active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                      {plan.active ? 'Active' : 'Paused'}
-                    </button>
-                  </td>
+                      {idx + 1}
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      value={plan.name}
-                      onChange={(event) => updatePlan(plan.id, 'name', event.target.value)}
-                      className={textInputClass}
-                    />
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-wider text-slate-600">{plan.id}</p>
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <input
-                      value={plan.storageLabel}
-                      onChange={(event) => updatePlan(plan.id, 'storageLabel', event.target.value)}
-                      className="w-24 rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-cyan-500/60"
-                    />
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.events}
-                      onChange={(event) => updatePlan(plan.id, 'events', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <button
-                      type="button"
-                      onClick={() => updatePlan(plan.id, 'imageUpload', !plan.imageUpload)}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black ${
-                        plan.imageUpload ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'
-                      }`}
+                    {/* Plan Name & ID (Sticky Left-[48px]) */}
+                    <td
+                      className={`sticky left-[48px] z-10 ${
+                        idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                      } group-hover:bg-[#1e293b] transition-colors py-3 px-4 whitespace-nowrap min-w-[190px] border-b border-slate-700 border-r border-slate-700 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)]`}
                     >
-                      {plan.imageUpload ? <Check className="h-4 w-4" /> : <CircleOff className="h-4 w-4" />}
-                      {plan.imageUpload ? 'Yes' : 'No'}
-                    </button>
-                  </td>
+                      <div className="flex flex-col gap-1">
+                        <input
+                          value={plan.name}
+                          onChange={(event) => updatePlan(plan.id, 'name', event.target.value)}
+                          className={textInputClass}
+                          placeholder="Plan name"
+                        />
+                        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">
+                          ID: {plan.id}
+                        </span>
+                      </div>
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
+                    {/* Status Toggle */}
+                    <td className="py-3 px-3 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
                       <button
                         type="button"
-                        onClick={() => updatePlan(plan.id, 'videoUpload', !plan.videoUpload)}
-                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black ${
-                          plan.videoUpload ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'
+                        onClick={() => updatePlan(plan.id, 'active', !plan.active)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                          plan.active
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                            : 'border-slate-700 bg-slate-900 text-slate-500 hover:text-slate-300'
                         }`}
                       >
-                        {plan.videoUpload ? <Check className="h-4 w-4" /> : <CircleOff className="h-4 w-4" />}
-                        {plan.videoUpload ? 'Yes' : 'No'}
+                        {plan.active ? <ToggleRight className="h-3.5 w-3.5 text-emerald-400" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+                        <span>{plan.active ? 'Active' : 'Paused'}</span>
                       </button>
-                      {plan.videoLimitMb ? (
-                        <span className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-200">
-                          {plan.videoLimitMb} MB
+                    </td>
+
+                    {/* Storage Capacity */}
+                    <td className="py-3 px-3 min-w-[130px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                      <div className="flex flex-col gap-1">
+                        <input
+                          value={plan.storageLabel}
+                          onChange={(event) => updatePlan(plan.id, 'storageLabel', event.target.value)}
+                          className="w-24 rounded-lg border border-slate-800 bg-slate-950/80 px-2.5 py-1.5 text-xs font-semibold text-white outline-none transition-all focus:border-indigo-500/60 focus:bg-slate-900 focus:ring-1 focus:ring-indigo-500/30"
+                          placeholder="e.g. 10 GB"
+                        />
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {plan.storageGb} GB capacity
                         </span>
-                      ) : null}
-                    </div>
-                  </td>
+                      </div>
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.monthlyActualPrice}
-                      onChange={(event) => updatePlan(plan.id, 'monthlyActualPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* Events Allowed */}
+                    <td className="py-3 px-3 min-w-[100px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.events}
+                        onChange={(event) => updatePlan(plan.id, 'events', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.monthlyPrice}
-                      onChange={(event) => updatePlan(plan.id, 'monthlyPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* Image Upload Toggle */}
+                    <td className="py-3 px-3 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                      <button
+                        type="button"
+                        onClick={() => updatePlan(plan.id, 'imageUpload', !plan.imageUpload)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                          plan.imageUpload
+                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20'
+                        }`}
+                      >
+                        {plan.imageUpload ? <Check className="h-3.5 w-3.5" /> : <CircleOff className="h-3.5 w-3.5" />}
+                        <span>{plan.imageUpload ? 'Allowed' : 'Blocked'}</span>
+                      </button>
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.threeMonthActualPrice}
-                      onChange={(event) => updatePlan(plan.id, 'threeMonthActualPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* Video Upload Toggle */}
+                    <td className="py-3 px-3 min-w-[150px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => updatePlan(plan.id, 'videoUpload', !plan.videoUpload)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                            plan.videoUpload
+                              ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20'
+                          }`}
+                        >
+                          {plan.videoUpload ? <Check className="h-3.5 w-3.5" /> : <CircleOff className="h-3.5 w-3.5" />}
+                          <span>{plan.videoUpload ? 'Allowed' : 'Blocked'}</span>
+                        </button>
+                        {plan.videoLimitMb ? (
+                          <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                            {plan.videoLimitMb} MB
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.threeMonthPrice}
-                      onChange={(event) => updatePlan(plan.id, 'threeMonthPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* Monthly Actual Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.monthlyActualPrice}
+                        onChange={(event) => updatePlan(plan.id, 'monthlyActualPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.sixMonthActualPrice}
-                      onChange={(event) => updatePlan(plan.id, 'sixMonthActualPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* Monthly Selling Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.monthlyPrice}
+                        onChange={(event) => updatePlan(plan.id, 'monthlyPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.sixMonthPrice}
-                      onChange={(event) => updatePlan(plan.id, 'sixMonthPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* 3M Actual Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.threeMonthActualPrice}
+                        onChange={(event) => updatePlan(plan.id, 'threeMonthActualPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.yearlyActualPrice}
-                      onChange={(event) => updatePlan(plan.id, 'yearlyActualPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
+                    {/* 3M Selling Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.threeMonthPrice}
+                        onChange={(event) => updatePlan(plan.id, 'threeMonthPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <input
-                      type="number"
-                      min={0}
-                      value={plan.discountedYearlyPrice}
-                      onChange={(event) => updatePlan(plan.id, 'discountedYearlyPrice', toNumber(event.target.value))}
-                      className={numberInputClass}
-                    />
-                  </td>
-                </tr>
-              ))}
+                    {/* 6M Actual Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.sixMonthActualPrice}
+                        onChange={(event) => updatePlan(plan.id, 'sixMonthActualPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
 
-              {filteredPlans.length === 0 && (
-                <tr>
-                  <td colSpan={14} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
-                    No plans found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {/* 6M Selling Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.sixMonthPrice}
+                        onChange={(event) => updatePlan(plan.id, 'sixMonthPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
+
+                    {/* Yearly Actual Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.yearlyActualPrice}
+                        onChange={(event) => updatePlan(plan.id, 'yearlyActualPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
+
+                    {/* Yearly Selling Price */}
+                    <td className="py-3 px-3 min-w-[125px] whitespace-nowrap border-b border-slate-700 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        value={plan.discountedYearlyPrice}
+                        onChange={(event) => updatePlan(plan.id, 'discountedYearlyPrice', toNumber(event.target.value))}
+                        className={numberInputClass}
+                      />
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredPlans.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={15}
+                      className="py-12 text-center text-slate-500 bg-slate-900/10 border-b border-slate-700"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <Package className="w-8 h-8 text-slate-600" />
+                        <p className="text-base font-semibold text-slate-300">No pricing plans found</p>
+                        <p className="text-xs text-slate-500 max-w-sm">
+                          No plans match your current search query. Try clearing the search filter.
+                        </p>
+                        {search && (
+                          <button
+                            type="button"
+                            onClick={() => setSearch('')}
+                            className="mt-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                          >
+                            Clear search filter
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

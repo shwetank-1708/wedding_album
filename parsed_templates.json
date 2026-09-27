@@ -91,12 +91,12 @@
     "id": "golden_years",
     "category": "Anniversary",
     "label": "Golden Years",
-    "desc": "Champagne legacy celebration",
+    "desc": "Rich dark amber & chocolate golden legacy journal",
     "background": {
       "light": "#fbf4e6",
-      "dark": "#1f1710"
+      "dark": "#160f09"
     },
-    "accent": "#c99a2e"
+    "accent": "#e5a93c"
   },
   {
     "id": "vintage",
@@ -113,34 +113,34 @@
     "id": "rose",
     "category": "Anniversary",
     "label": "Rose Garden",
-    "desc": "Romantic floral memory journal",
+    "desc": "Luxurious velvet burgundy & rose gold editorial journal",
     "background": {
       "light": "#fff9f5",
-      "dark": "#30151d"
+      "dark": "#280a14"
     },
-    "accent": "#b76578"
+    "accent": "#d8a47f"
   },
   {
     "id": "minimal_love",
     "category": "Anniversary",
     "label": "Minimal Love",
-    "desc": "Minimal romantic editorial journal",
+    "desc": "Minimal romantic dark editorial journal",
     "background": {
       "light": "#f7efe4",
-      "dark": "#17120d"
+      "dark": "#1f1d1d"
     },
-    "accent": "#6d4b34"
+    "accent": "#ff5252"
   },
   {
     "id": "bohemian",
     "category": "Other",
     "label": "Bohemian Rhapsody",
-    "desc": "Sunset acoustic & festival theme",
+    "desc": "Vintage retro cream & olive green festival theme",
     "background": {
-      "light": "#fff7ed",
-      "dark": "#2f241d"
+      "light": "#f3e8d3",
+      "dark": "#2f1b12"
     },
-    "accent": "#fb923c"
+    "accent": "#73863a"
   },
   {
     "id": "diamond",
@@ -157,56 +157,56 @@
     "id": "blush",
     "category": "Other",
     "label": "Blush & Bashful",
-    "desc": "Soft pink champagne",
+    "desc": "Velvet burgundy & rose gold luxury editorial journal",
     "background": {
-      "light": "#fff7ed",
-      "dark": "#431407"
+      "light": "#f5dfdb",
+      "dark": "#230a12"
     },
-    "accent": "#ea580c"
+    "accent": "#d89c8a"
   },
   {
     "id": "garden",
     "category": "Other",
     "label": "Garden Path",
-    "desc": "Natural greens and ivory",
+    "desc": "Misty botanical sage & leaf green natural theme",
     "background": {
-      "light": "#E5ECE9",
-      "dark": "#112217"
+      "light": "#e4ebe3",
+      "dark": "#3f4f40"
     },
-    "accent": "#2E6F40"
+    "accent": "#7a9a6b"
   },
   {
     "id": "midnight_glam",
     "category": "Other",
     "label": "Midnight Glam",
-    "desc": "Dark blue and silver",
+    "desc": "Twilight indigo & deep violet nocturnal theme",
     "background": {
-      "light": "#eff6ff",
-      "dark": "#020617"
+      "light": "#EFEBFB",
+      "dark": "#1A1035"
     },
-    "accent": "#3b82f6"
+    "accent": "#6B5BBF"
   },
   {
     "id": "cinematic",
     "category": "Other",
     "label": "Cinematic Noir",
-    "desc": "Dramatic and immersive",
+    "desc": "Vintage biker & dramatic crimson cinematic theme",
     "background": {
       "light": "#f5f5f5",
-      "dark": "#000000"
+      "dark": "#0f0f12"
     },
-    "accent": "#ef4444"
+    "accent": "#e62b3a"
   },
   {
     "id": "modern_lounge",
     "category": "Other",
     "label": "Modern Lounge",
-    "desc": "Sleek and contemporary",
+    "desc": "Dark mood blue & sleek steel architecture",
     "background": {
-      "light": "#f8fafc",
-      "dark": "#0f172a"
+      "light": "#F0F4F8",
+      "dark": "#0D1117"
     },
-    "accent": "#818cf8"
+    "accent": "#3D5F8A"
   },
   {
     "id": "elegant_night",
@@ -223,34 +223,34 @@
     "id": "museum",
     "category": "Corporate",
     "label": "Museum Gallery",
-    "desc": "Luxury corporate exhibition",
+    "desc": "Luxury dark mood blue exhibition",
     "background": {
-      "light": "#f3f0ea",
-      "dark": "#0b1118"
+      "light": "#121820",
+      "dark": "#0D1117"
     },
-    "accent": "#9b7a44"
+    "accent": "#3D5F8A"
   },
   {
     "id": "brutalist",
     "category": "Corporate",
     "label": "Brutalist Grid",
-    "desc": "Modern architectural editorial grid",
+    "desc": "Modern architectural olive earth grid",
     "background": {
-      "light": "#efede7",
-      "dark": "#111113"
+      "light": "#272921",
+      "dark": "#171914"
     },
-    "accent": "#1a1a1c"
+    "accent": "#988B71"
   },
   {
     "id": "tech_sleek",
     "category": "Corporate",
     "label": "Tech Sleek",
-    "desc": "Futuristic and clean",
+    "desc": "Deep ocean navy & electric cyan blue theme",
     "background": {
-      "light": "#050b17",
-      "dark": "#050b17"
+      "light": "#0a182b",
+      "dark": "#040c1a"
     },
-    "accent": "#22d3ee"
+    "accent": "#00a2ff"
   },
   {
     "id": "executive",

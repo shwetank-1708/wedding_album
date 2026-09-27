@@ -36,7 +36,7 @@ export default function BusinessNearYouScreen() {
         headerShown: true, 
         headerTransparent: true,
         headerTitle: '',
-        headerTintColor: '#101010',
+        headerTintColor: '#1B211F',
         headerLeft: () => (
           <TouchableOpacity 
             onPress={() => {
@@ -49,18 +49,18 @@ export default function BusinessNearYouScreen() {
             style={styles.backButton}
             hitSlop={{ top: 50, bottom: 50, left: 50, right: 50 }}
           >
-            <IconSymbol name="chevron.left" size={28} color="#101010" />
+            <IconSymbol name="chevron.left" size={28} color="#1B211F" />
           </TouchableOpacity>
         ),
       }} />
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
-          <IconSymbol name="magnifyingglass" size={18} color="#94a3b8" />
+          <IconSymbol name="magnifyingglass" size={18} color="#CDB89E" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search photographers, caterers..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#CDB89E"
             value={search}
             onChangeText={setSearch}
           />
@@ -104,7 +104,7 @@ export default function BusinessNearYouScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
+  safeArea: { flex: 1, backgroundColor: '#FFF7EB' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   backButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#101010' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1B211F' },
   searchContainer: { padding: 16, paddingTop: 80, backgroundColor: '#ffffff' },
   searchBox: {
     flexDirection: 'row',
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: '#1e293b' },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 15, color: '#2B2F2E' },
   container: { flex: 1 },
   content: { padding: 16 },
   bizGrid: { gap: 16 },
@@ -145,13 +145,13 @@ const styles = StyleSheet.create({
   bizImage: { width: '100%', height: 180 },
   bizInfo: { padding: 16 },
   bizHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  bizName: { fontSize: 18, fontWeight: 'bold', color: '#1e293b' },
+  bizName: { fontSize: 18, fontWeight: 'bold', color: '#2B2F2E' },
   priceBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   priceText: { color: '#16a34a', fontSize: 12, fontWeight: 'bold' },
   bizMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  typeBadge: { backgroundColor: '#f8fafc', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#f1f5f9' },
+  typeBadge: { backgroundColor: '#FFF7EB', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#f1f5f9' },
   typeText: { fontSize: 11, color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' },
   ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { fontSize: 13, fontWeight: 'bold', color: '#1e293b' },
-  reviewText: { fontSize: 12, color: '#94a3b8' },
+  ratingText: { fontSize: 13, fontWeight: 'bold', color: '#2B2F2E' },
+  reviewText: { fontSize: 12, color: '#CDB89E' },
 });

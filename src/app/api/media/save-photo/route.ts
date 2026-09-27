@@ -13,7 +13,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 }
 
 function getBackendApiUrl() {
-  return (process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "");
+  return (process.env.NEXT_PUBLIC_API_URL || "https://api-staging.evebash.com").trim().replace(/\/+$/, "");
 }
 
 export async function OPTIONS() {

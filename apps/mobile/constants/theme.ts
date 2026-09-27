@@ -4,136 +4,138 @@
 
 import { Platform } from 'react-native';
 
-const tintColorDark = '#fff';
+const tintColorDark = '#CA9C68';
 
 export const Colors = {
   light: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFF7EB',
+    background: '#13191F',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#CDB89E',
+    tabIconDefault: '#CDB89E',
     tabIconSelected: tintColorDark,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFF7EB',
+    background: '#13191F',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#CDB89E',
+    tabIconDefault: '#CDB89E',
     tabIconSelected: tintColorDark,
   },
 };
 
 export const MidnightColors = {
-  background: '#050505',
-  deepSlate: '#101010',
-  slate900: '#101010',
-  slate800: '#1a1a1a',
-  slate700: '#2a2a2a',
-  slate400: '#94a3b8',
-  gold: '#d4af37',
-  white: '#ffffff',
-  ghostWhite: '#f8fafc',
-  border: 'rgba(212, 175, 55, 0.25)',
-  cardBorder: 'rgba(255, 255, 255, 0.05)',
+  background: '#13191F',
+  deepSlate: '#1B211F',
+  slate900: '#1B211F',
+  slate800: '#2B2F2E',
+  slate700: '#594C3D',
+  slate400: '#CDB89E',
+  gold: '#CA9C68',
+  white: '#FFF7EB',
+  ghostWhite: '#FFF7EB',
+  border: 'rgba(202, 156, 104, 0.25)',
+  cardBorder: 'rgba(202, 156, 104, 0.12)',
 };
 
 export const RoyalColors = {
-  maroon: '#5D001E',
-  gold: '#D4AF37',
-  cream: '#FFFDD0',
-  green: '#005D4B',
-  slate800: '#1e293b',
-  slate700: '#334155',
-  slate400: '#94a3b8',
+  maroon: '#594C3D',
+  gold: '#CA9C68',
+  cream: '#FFF7EB',
+  green: '#2B2F2E',
+  slate800: '#2B2F2E',
+  slate700: '#594C3D',
+  slate400: '#CDB89E',
 };
 
 export const Fonts = {
   ...Platform.select({
     ios: {
-      sans: 'system-ui',
-      serif: 'ui-serif',
+      sans: 'Inter_400Regular',
+      serif: 'Inter_400Regular',
     },
     default: {
-      sans: 'normal',
-      serif: 'serif',
+      sans: 'Inter_400Regular',
+      serif: 'Inter_400Regular',
     },
   }),
   playfair: {
-    regular: 'PlayfairDisplay_400Regular',
-    italic: 'PlayfairDisplay_400Regular_Italic',
-    semiBold: 'PlayfairDisplay_600SemiBold',
-    bold: 'PlayfairDisplay_700Bold',
+    regular: 'Inter_400Regular',
+    italic: 'Inter_400Regular',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
   cormorant: {
-    regular: 'CormorantGaramond_400Regular',
-    italic: 'CormorantGaramond_400Regular_Italic',
-    semiBold: 'CormorantGaramond_600SemiBold',
-    bold: 'CormorantGaramond_700Bold',
+    regular: 'Inter_400Regular',
+    italic: 'Inter_400Regular',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
   lora: {
-    regular: 'Lora_400Regular',
-    italic: 'Lora_400Regular_Italic',
-    semiBold: 'Lora_600SemiBold',
-    bold: 'Lora_700Bold',
+    regular: 'Inter_400Regular',
+    italic: 'Inter_400Regular',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
   nunitoSans: {
-    regular: 'NunitoSans_400Regular',
-    semiBold: 'NunitoSans_600SemiBold',
-    bold: 'NunitoSans_700Bold',
+    regular: 'Inter_400Regular',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
   outfit: {
-    regular: 'Outfit_400Regular',
-    semiBold: 'Outfit_600SemiBold',
-    bold: 'Outfit_700Bold',
-    extraBold: 'Outfit_800ExtraBold',
+    regular: 'Inter_400Regular',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
+    extraBold: 'Inter_800ExtraBold',
   },
   inter: {
     regular: 'Inter_400Regular',
     medium: 'Inter_500Medium',
     semiBold: 'Inter_600SemiBold',
     bold: 'Inter_700Bold',
+    extraBold: 'Inter_800ExtraBold',
+    black: 'Inter_900Black',
   },
   spaceGrotesk: {
-    regular: 'SpaceGrotesk_400Regular',
-    medium: 'SpaceGrotesk_500Medium',
-    semiBold: 'SpaceGrotesk_600SemiBold',
-    bold: 'SpaceGrotesk_700Bold',
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
   },
   monofett: {
-    regular: 'Monofett_400Regular',
+    regular: 'Inter_400Regular',
   },
   bubblegum: {
-    regular: 'BubblegumSans_400Regular',
+    regular: 'Inter_400Regular',
   },
   permanentMarker: {
-    regular: 'PermanentMarker_400Regular',
+    regular: 'Inter_400Regular',
   },
   vt323: {
-    regular: 'VT323_400Regular',
+    regular: 'Inter_400Regular',
   },
   syne: {
-    bold: 'Syne_700Bold',
+    bold: 'Inter_700Bold',
   },
   yellowtail: {
-    regular: 'Yellowtail_400Regular',
+    regular: 'Inter_400Regular',
   },
   alexBrush: {
-    regular: 'AlexBrush_400Regular',
+    regular: 'Inter_400Regular',
   },
   cookie: {
-    regular: 'Cookie_400Regular',
+    regular: 'Inter_400Regular',
   },
   grandHotel: {
-    regular: 'GrandHotel_400Regular',
+    regular: 'Inter_400Regular',
   },
   cinzelDecorative: {
-    regular: 'CinzelDecorative_400Regular',
-    bold: 'CinzelDecorative_700Bold',
+    regular: 'Inter_400Regular',
+    bold: 'Inter_700Bold',
   },
   cinzel: {
-    regular: 'Cinzel_400Regular',
-    bold: 'Cinzel_700Bold',
+    regular: 'Inter_400Regular',
+    bold: 'Inter_700Bold',
   }
 };

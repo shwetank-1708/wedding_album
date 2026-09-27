@@ -16,6 +16,7 @@ let photoInteractionChannelCounter = 0;
 // --- Types ---
 
 export interface Event {
+    isPublic?: boolean;
     id: string; // "haldi", "wedding", etc.
     title: string;
     date: string;
@@ -56,6 +57,9 @@ export interface Photo {
     mediaType?: 'photo' | 'video';
     resourceType?: 'image' | 'video' | string;
     order?: number;
+    status?: 'uploading' | 'processing' | 'processed' | 'failed';
+    processingError?: string | null;
+    transcodeAttempts?: number;
 }
 
 export interface Business {
@@ -268,6 +272,7 @@ function mapSqlToEvent(e: any): Event {
         coverScale: e.cover_scale,
         coverMode: e.cover_mode,
         order: e.order,
+        isPublic: !!e.is_public,
         isSampleGallery: !!e.is_sample_gallery,
         sampleGalleryOrder: e.sample_gallery_order,
         createdAt: e.created_at
@@ -291,12 +296,24 @@ function mapSqlToPhoto(p: any): Photo {
         thumbnailUrl: p.thumbnail_url,
         mediaType: p.media_type,
         resourceType: p.resource_type,
-        order: p.order
+        order: p.order,
+        status: p.status,
+        processingError: p.processing_error,
+        transcodeAttempts: p.transcode_attempts
     };
 }
 
 function isCoverUsagePhoto(photo: Photo): boolean {
     return Boolean(photo.tags?.includes(COVER_USAGE_TAG));
+}
+
+function isMediaVisibleInGallery(photo: Photo): boolean {
+    if (isCoverUsagePhoto(photo)) return false;
+    if (photo.status === 'uploading') return false;
+    const isVideo = photo.mediaType === "video" || photo.resourceType === "video";
+    // Strict requirement: Videos must NOT show until 100% processed and fully available
+    if (isVideo && photo.status !== "processed") return false;
+    return true;
 }
 
 function getMediaCounts(photos: Photo[]) {
@@ -696,7 +713,7 @@ export async function getEventPhotos(eventId: string, legacyId?: string): Promis
             .in('event_id', ids);
 
         if (error) throw error;
-        const photos = (data || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const photos = (data || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const visiblePhotos = await filterPhotosForPlanExpiry(photos, ids);
         return visiblePhotos.sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
     } catch (error) {
@@ -744,7 +761,7 @@ export async function getEventPhotosPaginated(
 
             if (error) throw error;
 
-            const rawPhotos = (data || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+            const rawPhotos = (data || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
             let visibleIds = new Set<string>();
             try {
                 visibleIds = ownerProfile ? await getVisiblePhotoIdsForExpiredOwner(ownerProfile) : new Set<string>();
@@ -768,12 +785,12 @@ export async function getEventPhotosPaginated(
 
         const { data: countData, error: countError } = await supabase
             .from('photos')
-            .select('id,event_id,storage_key,url,uploaded_at,tags,media_type,resource_type')
+            .select('id,event_id,storage_key,url,uploaded_at,tags,media_type,resource_type,status')
             .in('event_id', ids);
 
         if (countError) throw countError;
 
-        const countedPhotos = (countData || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const countedPhotos = (countData || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const mediaCounts = getMediaCounts(countedPhotos);
         let retainedMediaIds = countedPhotos.map(photo => photo.id);
 
@@ -796,7 +813,7 @@ export async function getEventPhotosPaginated(
 
         if (error) throw error;
 
-        const rawPhotos = (data || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const rawPhotos = (data || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const hasMore = rawPhotos.length > limit;
         const photosToReturn = hasMore ? rawPhotos.slice(0, limit) : rawPhotos;
 
@@ -946,14 +963,14 @@ export async function toggleEventFavouritePhoto(eventId: string, photoId: string
         if (isEventFavouriteTableUnavailable(error)) {
             return {
                 favourited: false,
-                error: "Favourite gallery is not ready yet. Apply the Supabase migration for event_favourite_photos."
+                error: "Primary Gallery selection is not ready yet. Apply the Supabase migration for event_favourite_photos."
             };
         }
 
         if (isEventFavouritePolicyBlocked(error)) {
             return {
                 favourited: false,
-                error: "Favourite gallery table exists, but Supabase RLS policies are not allowing access yet."
+                error: "Primary Gallery selection exists, but Supabase RLS policies are not allowing access yet."
             };
         }
 
@@ -964,7 +981,7 @@ export async function toggleEventFavouritePhoto(eventId: string, photoId: string
             : "";
         return {
             favourited: false,
-            error: message || "Failed to update Favourite gallery."
+            error: message || "Failed to update Primary Gallery."
         };
     }
 }
@@ -1586,7 +1603,7 @@ export const BUSINESS_TYPE_COLORS: Record<string, { bg: string; border: string; 
 };
 
 export const getBusinessTypeColor = (type: string) => {
-    return BUSINESS_TYPE_COLORS[type] || { bg: 'rgba(212, 175, 55, 0.12)', border: 'rgba(212, 175, 55, 0.25)', text: '#d4af37' };
+    return BUSINESS_TYPE_COLORS[type] || { bg: 'rgba(202, 156, 104, 0.12)', border: 'rgba(202, 156, 104, 0.25)', text: '#CA9C68' };
 };
 
 export async function getTopRatedBusinesses(limitCount: number = 10): Promise<Business[]> {
@@ -1671,7 +1688,7 @@ export async function denyRequest(phone: string) {
 /**
  * Checks if a username is unique.
  */
-const USERNAME_PATTERN = /^(?!.*[._]{2})[a-z0-9](?:[a-z0-9._]{1,28}[a-z0-9])$/;
+const USERNAME_PATTERN = /^(?!.*[._]{2})[a-z0-9](?:[a-z0-9._]{1,10}[a-z0-9])$/;
 
 export function isValidUsername(username: string): boolean {
     return USERNAME_PATTERN.test(username.trim().toLowerCase());
@@ -1711,9 +1728,12 @@ export async function generateUniqueUsername(base: string): Promise<string> {
     if (username.length < 3) {
         username = username ? `user_${username}` : "user";
     }
-    if (username.length > 30) {
-        username = username.substring(0, 30);
+    if (username.length > 12) {
+        username = username.substring(0, 12);
         username = username.replace(/[_.]+$/g, "");
+    }
+    if (username.length < 3) {
+        username = username.padEnd(3, "0");
     }
     
     let candidate = username;
@@ -1727,13 +1747,15 @@ export async function generateUniqueUsername(base: string): Promise<string> {
                 isUnique = true;
             } else {
                 const suffixStr = suffix.toString();
-                const maxBaseLen = 30 - suffixStr.length;
-                candidate = `${username.substring(0, maxBaseLen)}${suffixStr}`;
+                const maxBaseLen = 12 - suffixStr.length;
+                let trimmedBase = username.substring(0, maxBaseLen).replace(/[_.]+$/g, "");
+                if (trimmedBase.length < 2) trimmedBase = "u";
+                candidate = `${trimmedBase}${suffixStr}`;
                 suffix++;
             }
         } catch (error) {
             console.error("Failed to check username uniqueness, breaking loop:", error);
-            candidate = `${username.substring(0, 15)}_${Date.now()}`;
+            candidate = `${username.substring(0, 5)}_${Date.now().toString().slice(-6)}`;
             break;
         }
     }
@@ -2124,9 +2146,9 @@ export async function createEvent(event: Event): Promise<{ success: boolean; err
 /**
  * Fetches a single event by ID with fallback support.
  */
-export async function getEventById(eventId: string): Promise<Event | null> {
+export async function getEventById(eventId: string, refresh = false): Promise<Event | null> {
     const decodedId = decodeURIComponent(eventId);
-    if (eventCache[decodedId]) {
+    if (!refresh && eventCache[decodedId]) {
         return eventCache[decodedId];
     }
     try {
@@ -2319,8 +2341,10 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
             }
         }
 
-        // 2. Fetch and delete B2 assets for all photos associated with this event
-        const { data: photos } = await supabase.from('photos').select('id').eq('event_id', eventId);
+        // 2. Fetch photos metadata and delete B2 assets for all photos associated with this event
+        const { data: photos } = await supabase.from('photos').select('id, size, media_type, uploaded_at').eq('event_id', eventId);
+        const { data: eventData } = await supabase.from('events').select('title, created_by, created_at').eq('id', eventId).maybeSingle();
+
         if (photos && photos.length > 0) {
             console.log(`[deleteEvent] Cleaning up B2 files for ${photos.length} photos under event ${eventId}`);
             // Run deletions in chunks of 4 to prevent network socket exhaustion and 502 Bad Gateway timeouts on the server
@@ -2331,10 +2355,42 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
             }
         }
 
-        // 3. Explicitly delete facial indexes associated with this event (for guest privacy)
+        // 3. Record compact 1-row financial ledger entry so Backblaze byte-hours and transactions can be accurately billed
+        try {
+            const totalBytes = (photos || []).reduce((s: number, p: any) => s + (Number(p.size) || 0), 0);
+            const photosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() !== 'video').length;
+            const videosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() === 'video').length;
+            const earliestUpload = photos && photos.length > 0
+                ? photos.map((p: any) => p.uploaded_at).filter(Boolean).sort()[0]
+                : null;
+            const eventCreatedAt = eventData?.created_at || earliestUpload || new Date().toISOString();
+
+            const ledgerPayload: Record<string, any> = {
+                event_id: eventId,
+                user_id: eventData?.created_by || null,
+                event_title: eventData?.title || 'Untitled Gallery',
+                photos_count: photosCount,
+                videos_count: videosCount,
+                total_bytes: totalBytes,
+                estimated_modal_cost_inr: 0,
+                deleted_by: 'user_web',
+                event_created_at: eventCreatedAt,
+            };
+
+            const { error: insErr } = await supabase.from('deleted_events_archive').insert(ledgerPayload);
+            if (insErr) {
+                // Fallback without event_created_at if column not yet migrated
+                delete ledgerPayload.event_created_at;
+                await supabase.from('deleted_events_archive').insert(ledgerPayload);
+            }
+        } catch (archiveErr) {
+            console.warn('[deleteEvent] Could not record deletion ledger (non-blocking):', archiveErr);
+        }
+
+        // 4. Explicitly delete facial indexes associated with this event (for guest privacy)
         await supabase.from('faces').delete().eq('event_id', eventId);
 
-        // 4. Delete the parent event (Cascading foreign key triggers automatically delete associated photos, likes, & comments!)
+        // 5. Delete the parent event (Cascading foreign key triggers automatically delete associated photos, likes, & comments!)
         const { error } = await supabase.from('events').delete().eq('id', eventId);
         if (error) throw error;
 

@@ -7,8 +7,11 @@ import {
   FolderTree,
   UserCheck,
   UserX,
+  Mail,
+  UserPlus,
+  Check,
 } from 'lucide-react';
-import type { Event, GuestLog, UserProfile } from '../lib/analytics';
+import { isProtectedSuperAdmin, type Event, type GuestLog, type UserProfile } from '../lib/analytics';
 
 type AdminSection = 'users' | 'admins' | 'events' | 'guests';
 
@@ -17,9 +20,12 @@ interface SuperAdminPanelProps {
   events: Event[];
   guests: GuestLog[];
   loading: boolean;
+  currentAdminId?: string;
   onRefresh: () => void;
   onSyncUsers: () => void;
   onUpdateUserRole: (userId: string, role: string, delegatedBy?: string, roleType?: string) => void;
+  onPromoteSuperAdmin?: (userId: string) => Promise<void> | void;
+  onRevokeSuperAdmin?: (userId: string) => Promise<void> | void;
   onDeleteUser: (userId: string) => void;
   onDeleteEvent: (eventId: string) => void;
   onDeleteGuest: (guestId: string) => void;
@@ -61,7 +67,7 @@ function RoleSelect({
       <option value="pro">200 GB</option>
       <option value="elite">Elite</option>
       <option value="ultimate">1 TB</option>
-      <option value="admin">Admin</option>
+      <option value="admin">Super Admin</option>
     </select>
   );
 }
@@ -71,9 +77,12 @@ export function SuperAdminPanel({
   events,
   guests,
   loading,
+  currentAdminId,
   onRefresh,
   onSyncUsers,
   onUpdateUserRole,
+  onPromoteSuperAdmin,
+  onRevokeSuperAdmin,
   onDeleteUser,
   onDeleteEvent,
   onDeleteGuest,
@@ -117,6 +126,88 @@ export function SuperAdminPanel({
     [guests]
   );
 
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adminActionUserId, setAdminActionUserId] = useState<string | null>(null);
+  const [addingAdminLoading, setAddingAdminLoading] = useState(false);
+
+  const nonAdminUsers = useMemo(() => {
+    return users.filter(user => user.role !== 'admin');
+  }, [users]);
+
+  const matchedUser = useMemo(() => {
+    const trimmed = newAdminEmail.trim().toLowerCase();
+    if (!trimmed) return null;
+    return users.find(u => (u.email || '').trim().toLowerCase() === trimmed);
+  }, [users, newAdminEmail]);
+
+  const handleAddSuperAdmin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newAdminEmail.trim().toLowerCase();
+    if (!trimmed) return;
+
+    const targetUser = users.find(u => (u.email || '').trim().toLowerCase() === trimmed);
+    if (!targetUser) {
+      alert(`No user found with email "${trimmed}". Please make sure the account is registered first.`);
+      return;
+    }
+
+    if (targetUser.role === 'admin' && !targetUser.delegatedBy) {
+      alert(`${targetUser.email} is already a Global Super Admin.`);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Make ${targetUser.email} (${targetUser.name || 'Anonymous'}) a Super Admin?\n\nThis will give full Analytics Dashboard access and administrative privileges.`
+    );
+    if (!confirmed) return;
+
+    setAddingAdminLoading(true);
+    try {
+      if (onPromoteSuperAdmin) {
+        await onPromoteSuperAdmin(targetUser.id);
+      } else {
+        await onUpdateUserRole(targetUser.id, 'admin');
+      }
+      setNewAdminEmail('');
+    } finally {
+      setAddingAdminLoading(false);
+    }
+  };
+
+  const handleRevokeAdminAccess = async (user: UserProfile) => {
+    if (isProtectedSuperAdmin(user)) {
+      alert('This Super Admin account is permanently protected and cannot be removed.');
+      return;
+    }
+
+    if (user.id === currentAdminId) {
+      alert('You cannot revoke your own Super Admin access.');
+      return;
+    }
+
+    if (globalAdmins.length <= 1) {
+      alert('Cannot remove this Super Admin: At least one Super Admin must remain in the system.');
+      return;
+    }
+
+    const label = user.email || user.name || user.id;
+    const confirmed = window.confirm(
+      `Remove Super Admin role for ${label}?\n\nThis user will lose full dashboard access and will be moved to the standard Free plan.`
+    );
+    if (!confirmed) return;
+
+    setAdminActionUserId(user.id);
+    try {
+      if (onRevokeSuperAdmin) {
+        await onRevokeSuperAdmin(user.id);
+      } else {
+        await onUpdateUserRole(user.id, 'user');
+      }
+    } finally {
+      setAdminActionUserId(null);
+    }
+  };
+
   const sections = [
     { id: 'users' as const, label: 'Users', icon: Users, count: users.length },
     { id: 'admins' as const, label: 'Admins', icon: UserCheck, count: globalAdmins.length + delegatedAdmins.length },
@@ -125,6 +216,11 @@ export function SuperAdminPanel({
   ];
 
   const confirmDeleteUser = (user: UserProfile) => {
+    if (isProtectedSuperAdmin(user)) {
+      alert('This Super Admin account is permanently protected and cannot be deleted.');
+      return;
+    }
+
     if (confirm(`Delete ${user.name || user.email || 'this user'} permanently?`)) {
       onDeleteUser(user.id);
     }
@@ -220,17 +316,30 @@ export function SuperAdminPanel({
                       <p className="text-xs text-slate-500">{user.email || user.phone || user.id}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <RoleSelect user={user} onChange={role => onUpdateUserRole(user.id, role)} />
+                      {isProtectedSuperAdmin(user) ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs font-semibold text-amber-300 select-none">
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                          Super Admin
+                        </span>
+                      ) : (
+                        <RoleSelect user={user} onChange={role => onUpdateUserRole(user.id, role)} />
+                      )}
                     </td>
                     <td className="px-5 py-4 text-slate-400">{formatDate(user.createdAt)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => confirmDeleteUser(user)}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10 text-xs font-semibold"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
+                      {!isProtectedSuperAdmin(user) ? (
+                        <button
+                          onClick={() => confirmDeleteUser(user)}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10 text-xs font-semibold"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-lg select-none">
+                          Protected
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -241,48 +350,237 @@ export function SuperAdminPanel({
       )}
 
       {section === 'admins' && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-            <h2 className="font-bold text-white mb-4">Global Admins</h2>
-            <div className="space-y-3">
-              {globalAdmins.map(user => (
-                <div key={user.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/50 border border-slate-800 p-4">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-100 truncate">{user.name || 'Admin'}</p>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                  </div>
-                  <RoleSelect user={user} onChange={role => onUpdateUserRole(user.id, role)} />
+        <div className="space-y-6">
+          {/* Card: Add Super Admin by Email ID */}
+          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
+                  <UserPlus className="w-4 h-4" />
+                  Grant Privileges
                 </div>
-              ))}
-              {globalAdmins.length === 0 && <p className="text-sm text-slate-500">No global admins found.</p>}
+                <h2 className="text-lg font-bold text-white">Add Super Admin by Email</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Enter an account email to grant full Super Admin privileges and dashboard access.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5">
-            <h2 className="font-bold text-white mb-4">Delegated Admins</h2>
-            <div className="space-y-3">
-              {delegatedAdmins.map(user => (
-                <div key={user.id} className="rounded-xl bg-slate-950/50 border border-slate-800 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-100 truncate">{user.name || 'Delegated Admin'}</p>
-                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                      <p className="text-xs text-slate-400 mt-2">
-                        Owner: {getUserName(users, user.delegatedBy)}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Scope: {user.roleType || 'primary'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => onUpdateUserRole(user.id, 'user')}
-                      className="px-3 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-semibold"
-                    >
-                      Revoke
-                    </button>
-                  </div>
+
+            <form onSubmit={handleAddSuperAdmin} className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                {/* Email text input */}
+                <div className="lg:col-span-2 relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter user email address (e.g. user@example.com)..."
+                    value={newAdminEmail}
+                    onChange={e => setNewAdminEmail(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
                 </div>
-              ))}
-              {delegatedAdmins.length === 0 && <p className="text-sm text-slate-500">No delegated admins found.</p>}
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={addingAdminLoading || !newAdminEmail.trim()}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-600/20 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  {addingAdminLoading ? 'Adding...' : 'Make Super Admin'}
+                </button>
+              </div>
+
+              {/* Quick Select from non-admin accounts */}
+              <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+                <span className="text-slate-500">Or pick from registered users:</span>
+                <select
+                  value=""
+                  onChange={e => {
+                    if (e.target.value) setNewAdminEmail(e.target.value);
+                  }}
+                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="">Select a user account...</option>
+                  {nonAdminUsers.map(u => (
+                    <option key={u.id} value={u.email}>
+                      {u.email} ({u.name || 'Anonymous'}) · {u.role || 'free'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status / Matching helper */}
+              {newAdminEmail.trim() && (
+                <div className="text-xs pt-1">
+                  {matchedUser ? (
+                    matchedUser.role === 'admin' && !matchedUser.delegatedBy ? (
+                      <span className="text-amber-400 font-medium flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {matchedUser.email} is already a Global Super Admin.
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        Ready to promote: <strong className="text-white">{matchedUser.name}</strong> ({matchedUser.email}) · Current role: {matchedUser.role || 'free'}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-slate-500">
+                      No user account matches this email yet. The user must sign up before being promoted.
+                    </span>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Section: Global Super Admins & Delegated Admins */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Global Super Admins List */}
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div>
+                  <h2 className="font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    Global Super Admins
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {globalAdmins.length} account{globalAdmins.length === 1 ? '' : 's'} with full access
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {globalAdmins.map(user => {
+                  const isCurrent = user.id === currentAdminId;
+                  const isBusy = adminActionUserId === user.id;
+                  const isProtected = isProtectedSuperAdmin(user);
+
+                  return (
+                    <div
+                      key={user.id}
+                      className="rounded-xl bg-slate-950/60 border border-slate-800/80 p-4 transition-all hover:border-slate-700"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white text-sm truncate">
+                              {user.name || 'Admin'}
+                            </p>
+                            {isCurrent && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                You
+                              </span>
+                            )}
+                            {isProtected && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 select-none">
+                                <ShieldCheck className="w-3 h-3 text-amber-400" />
+                                Protected
+                              </span>
+                            )}
+                            {user.username && (
+                              <span className="text-[11px] font-mono text-indigo-300">
+                                @{user.username}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Prominent Email ID */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-300 mt-1">
+                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="font-mono truncate select-all">{user.email || 'No email'}</span>
+                          </div>
+
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            Joined: {formatDate(user.createdAt)}
+                          </p>
+                        </div>
+
+                        {/* Actions: Protected accounts cannot be removed or demoted */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isProtected ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs font-semibold text-amber-300 select-none shadow-sm">
+                              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                              Permanent Super Admin
+                            </span>
+                          ) : (
+                            <>
+                              {/* Role Chooser / Dropdown */}
+                              <RoleSelect
+                                user={user}
+                                onChange={role => onUpdateUserRole(user.id, role)}
+                              />
+
+                              {/* Remove Super Admin button */}
+                              <button
+                                type="button"
+                                disabled={isCurrent || isBusy}
+                                onClick={() => handleRevokeAdminAccess(user)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                title={isCurrent ? 'You cannot remove your own Super Admin access' : 'Remove Super Admin role for this email'}
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                                {isBusy ? 'Removing...' : 'Remove'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {globalAdmins.length === 0 && (
+                  <p className="text-sm text-slate-500 py-4 text-center">No global admins found.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Delegated Admins List */}
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div>
+                  <h2 className="font-bold text-white flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-sky-400" />
+                    Delegated Admins
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {delegatedAdmins.length} event-delegated administrator{delegatedAdmins.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {delegatedAdmins.map(user => (
+                  <div key={user.id} className="rounded-xl bg-slate-950/60 border border-slate-800/80 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white text-sm truncate">{user.name || 'Delegated Admin'}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-300 mt-1">
+                          <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="font-mono truncate">{user.email}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-2">
+                          Owner: {getUserName(users, user.delegatedBy)}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Scope: {user.roleType || 'primary'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => onUpdateUserRole(user.id, 'user')}
+                        className="px-3 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {delegatedAdmins.length === 0 && (
+                  <p className="text-sm text-slate-500 py-4 text-center">No delegated admins found.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>

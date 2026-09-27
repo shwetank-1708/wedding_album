@@ -212,7 +212,7 @@ export default function ExploreBusinessScreen() {
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]}
+          colors={isDark ? ['#1B211F', '#13191F'] : [colors.deepSlate, colors.background]}
           style={[styles.header, { paddingTop: insets.top + 4 }]}
         >
           <View style={styles.headerLeft}>
@@ -266,7 +266,7 @@ export default function ExploreBusinessScreen() {
               <IconSymbol
                 name={cat.icon as any}
                 size={16}
-                color={selectedCategory === cat.name ? (isDark ? '#101010' : '#ffffff') : colors.slate400}
+                color={selectedCategory === cat.name ? (isDark ? '#1B211F' : '#ffffff') : colors.slate400}
               />
               <Text style={[styles.categoryText, selectedCategory === cat.name && styles.categoryTextActive]}>
                 {cat.name}
@@ -344,7 +344,7 @@ export default function ExploreBusinessScreen() {
                       transition={400}
                     />
                     <LinearGradient
-                      colors={['rgba(2,6,23,0.15)', 'transparent']}
+                      colors={['rgba(19, 25, 31,0.15)', 'transparent']}
                       style={StyleSheet.absoluteFill}
                     />
 
@@ -365,7 +365,7 @@ export default function ExploreBusinessScreen() {
 
                     {/* Rating Badge - floated on image */}
                     <View style={styles.featuredBadge}>
-                      <IconSymbol name="star.fill" size={10} color="#d4af37" />
+                      <IconSymbol name="star.fill" size={10} color="#CA9C68" />
                       <Text style={styles.featuredBadgeText}>{vendor.rating}</Text>
                     </View>
                   </View>
@@ -389,7 +389,7 @@ export default function ExploreBusinessScreen() {
                         );
                       })()}
                       <View style={styles.locationRow}>
-                        <IconSymbol name="mappin.and.ellipse" size={10} color="#94a3b8" />
+                        <IconSymbol name="mappin.and.ellipse" size={10} color="#CDB89E" />
                         <Text style={styles.locationText} numberOfLines={1}>{vendor.location}</Text>
                       </View>
                     </View>
@@ -416,7 +416,7 @@ export default function ExploreBusinessScreen() {
           </Text>
           {filteredVendors.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <IconSymbol name="magnifyingglass" size={40} color="#334155" />
+              <IconSymbol name="magnifyingglass" size={40} color="#594C3D" />
               <Text style={styles.emptyText}>No vendors found in this category</Text>
             </View>
           ) : (
@@ -485,7 +485,7 @@ export default function ExploreBusinessScreen() {
                         <Text style={styles.listMetaText} numberOfLines={1}>{vendor.location}</Text>
                       </View>
                       <View style={styles.listMetaItem}>
-                        <IconSymbol name="clock.fill" size={10} color="#d4af37" />
+                        <IconSymbol name="clock.fill" size={10} color="#CA9C68" />
                         <Text style={styles.listMetaText}>
                           {(vendor.experience !== undefined && vendor.experience !== null && vendor.experience !== 0)
                             ? `${vendor.experience}+ Yrs`
@@ -496,7 +496,7 @@ export default function ExploreBusinessScreen() {
 
                     <View style={styles.listFooterRow}>
                       <View style={styles.listRatingBadge}>
-                        <IconSymbol name="star.fill" size={10} color="#d4af37" />
+                        <IconSymbol name="star.fill" size={10} color="#CA9C68" />
                         <Text style={styles.listRatingText}>{vendor.rating}</Text>
                       </View>
                       <View style={styles.listActionBtn}>
@@ -530,7 +530,7 @@ export default function ExploreBusinessScreen() {
               <View style={styles.formHeader}>
                 <Text style={styles.formTitle}>List Your Business</Text>
                 <TouchableOpacity onPress={() => setShowListingForm(false)}>
-                  <IconSymbol name="xmark" size={24} color="#94a3b8" />
+                  <IconSymbol name="xmark" size={24} color="#CDB89E" />
                 </TouchableOpacity>
               </View>
 
@@ -584,7 +584,7 @@ export default function ExploreBusinessScreen() {
             <View style={styles.formHeader}>
               <Text style={styles.formTitle}>Sort & Filter</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <IconSymbol name="xmark" size={24} color="#94a3b8" />
+                <IconSymbol name="xmark" size={24} color="#CDB89E" />
               </TouchableOpacity>
             </View>
 
@@ -712,7 +712,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontSize: 28,
     lineHeight: 38,
     color: colors.white,
-    fontFamily: 'AkayaKanadaka_400Regular',
+    fontFamily: 'AkayaKanadakaHeader_400Regular',
     letterSpacing: 0.5,
     textAlign: 'center',
     includeFontPadding: false,
@@ -786,7 +786,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
   },
   categoryTextActive: {
-    color: isDark ? '#101010' : '#ffffff',
+    color: isDark ? '#1B211F' : '#ffffff',
   },
   heroCard: {
     marginHorizontal: 24,
@@ -883,9 +883,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     height: 220,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: isDark ? '#101010' : '#ffffff',
+    backgroundColor: isDark ? '#1B211F' : '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.1)',
+    borderColor: 'rgba(202, 156, 104,0.1)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: isDark ? 0.3 : 0.05,
@@ -895,7 +895,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   featuredImageContainer: {
     width: '100%',
     height: 125,
-    backgroundColor: isDark ? '#050505' : '#f1f5f9',
+    backgroundColor: isDark ? '#13191F' : '#f1f5f9',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -910,7 +910,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: isDark ? 'rgba(27, 33, 31, 0.8)' : 'rgba(255, 255, 255, 0.8)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -986,7 +986,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: isDark ? 'rgba(27, 33, 31, 0.7)' : 'rgba(255, 255, 255, 0.7)',
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -1091,7 +1091,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   modalRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.1)' : 'rgba(202, 156, 104, 0.05)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -1148,7 +1148,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.1)' : 'rgba(202, 156, 104, 0.05)',
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -1201,7 +1201,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   detectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.1)' : 'rgba(202, 156, 104, 0.05)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
@@ -1308,14 +1308,14 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: 16,
   },
   listCard: {
-    backgroundColor: isDark ? '#101010' : '#ffffff',
+    backgroundColor: isDark ? '#1B211F' : '#ffffff',
     borderRadius: 20,
     marginHorizontal: 24,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.1)',
+    borderColor: 'rgba(202, 156, 104,0.1)',
     gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1328,10 +1328,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     height: 90,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: isDark ? '#050505' : '#f1f5f9',
+    backgroundColor: isDark ? '#13191F' : '#f1f5f9',
     position: 'relative',
     borderWidth: 0.5,
-    borderColor: 'rgba(212,175,55,0.1)',
+    borderColor: 'rgba(202, 156, 104,0.1)',
   },
   listInfo: {
     flex: 1,
@@ -1396,7 +1396,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   listRatingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.1)' : 'rgba(202, 156, 104, 0.05)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,

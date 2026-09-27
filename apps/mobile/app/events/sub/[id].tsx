@@ -206,7 +206,7 @@ export default function SubEventPhotosScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#b8860b" />
+        <ActivityIndicator size="large" color="#906D4B" />
       </SafeAreaView>
     );
   }
@@ -245,7 +245,7 @@ export default function SubEventPhotosScreen() {
 
         {!accessGranted ? (
           <View style={styles.emptyContainer}>
-            <IconSymbol name="shield.fill" size={64} color="#334155" />
+            <IconSymbol name="shield.fill" size={64} color="#594C3D" />
             <Text style={styles.emptyText}>Access approval required.</Text>
             <Text style={styles.emptySubText}>Send a request to unlock this shared gallery.</Text>
           </View>
@@ -267,7 +267,7 @@ export default function SubEventPhotosScreen() {
           />
         ) : (
           <View style={styles.emptyContainer}>
-            <IconSymbol name="photo" size={64} color="#334155" />
+            <IconSymbol name="photo" size={64} color="#594C3D" />
             <Text style={styles.emptyText}>No photos uploaded yet.</Text>
             <Text style={styles.emptySubText}>Use the web dashboard to upload photos to this gallery.</Text>
           </View>
@@ -330,7 +330,7 @@ function GuestAccessModal({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.guestModalOverlay}>
         <View style={styles.guestModal}>
           <View style={styles.guestModalIcon}>
-            <IconSymbol name={guestStatus === 'pending' ? 'clock.fill' : 'shield.fill'} size={30} color="#d4af37" />
+            <IconSymbol name={guestStatus === 'pending' ? 'clock.fill' : 'shield.fill'} size={30} color="#CA9C68" />
           </View>
           {guestStatus === 'pending' ? (
             <>
@@ -349,8 +349,8 @@ function GuestAccessModal({
             <>
               <Text style={styles.guestModalTitle}>Request gallery access</Text>
               <Text style={styles.guestModalText}>Enter your details so the host can approve this shared gallery.</Text>
-              <TextInput style={styles.guestInput} value={guestName} onChangeText={onNameChange} placeholder="Your name" placeholderTextColor="#94a3b8" />
-              <TextInput style={styles.guestInput} value={guestPhone} onChangeText={onPhoneChange} placeholder="Phone number" placeholderTextColor="#94a3b8" keyboardType="phone-pad" />
+              <TextInput style={styles.guestInput} value={guestName} onChangeText={onNameChange} placeholder="Your name" placeholderTextColor="#CDB89E" />
+              <TextInput style={styles.guestInput} value={guestPhone} onChangeText={onPhoneChange} placeholder="Phone number" placeholderTextColor="#CDB89E" keyboardType="phone-pad" />
               <TouchableOpacity style={[styles.guestSubmitBtn, submitting && { opacity: 0.7 }]} onPress={onSubmit} disabled={submitting}>
                 {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.guestSubmitText}>Send Request</Text>}
               </TouchableOpacity>
@@ -408,11 +408,11 @@ function PhotoViewer({ photos, initialIndex, onClose, user }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButton: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#2B2F2E',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: '#2B2F2E',
   },
   nativeBackButton: {
     width: 44,
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#CDB89E',
     marginTop: 2,
   },
   gridContainer: {
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     margin: 4,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#2B2F2E',
     borderRadius: 8,
   },
   emptyContainer: {
@@ -477,13 +477,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
   },
   emptySubText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: Dimensions.get('window').height * 0.5,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#2B2F2E',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   commentsTitle: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 24,
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     justifyContent: 'center',
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   commentAvatarText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -613,12 +613,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   commentName: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 13,
     fontWeight: 'bold',
   },
   commentTime: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 11,
   },
   commentBubble: {
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 4,
   },
   commentText: {
-    color: '#334155',
+    color: '#594C3D',
     fontSize: 14,
     lineHeight: 20,
   },
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   replyBtnText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 1,
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   replyBubble: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     padding: 10,
     borderRadius: 12,
     borderTopLeftRadius: 4,
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   emptyComments: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 16,
     fontStyle: 'italic',
     marginTop: 16,
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -739,11 +739,11 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    color: '#101010',
+    color: '#1B211F',
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -752,13 +752,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     justifyContent: 'center',
     alignItems: 'center',
   },
   guestModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.72)',
+    backgroundColor: 'rgba(27, 33, 31,0.72)',
     justifyContent: 'center',
     padding: 24,
   },
@@ -780,7 +780,7 @@ const styles = StyleSheet.create({
   guestModalTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#101010',
+    color: '#1B211F',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -793,18 +793,18 @@ const styles = StyleSheet.create({
   },
   guestInput: {
     width: '100%',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#101010',
+    color: '#1B211F',
     marginBottom: 12,
   },
   guestSubmitBtn: {
     width: '100%',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 16,
     paddingVertical: 15,
     alignItems: 'center',

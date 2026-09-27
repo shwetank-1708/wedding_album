@@ -91,7 +91,7 @@ export function SwipeableNotificationItem({ children, onDismiss, colors, isDark 
     <View style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, marginBottom: 12 }}>
       {/* Background delete action indicator */}
       <View style={[StyleSheet.absoluteFill, {
-        backgroundColor: colors.gold || '#d4af37',
+        backgroundColor: colors.gold || '#CA9C68',
         justifyContent: 'center',
         alignItems: 'flex-end',
         paddingRight: 24,
@@ -580,11 +580,11 @@ export default function DashboardScreen() {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#d4af37" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#CA9C68" />}
       >
         {/* ── HEADER ── */}
         <LinearGradient
-          colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]}
+          colors={isDark ? ['#151C22', '#22302F', '#13191F'] : [colors.deepSlate, colors.background]}
           style={[styles.header, { paddingTop: insets.top + 4 }]}
         >
           <View style={styles.headerLeft}>
@@ -620,13 +620,13 @@ export default function DashboardScreen() {
         </LinearGradient>
 
         {loading && !refreshing
-          ? <ActivityIndicator color="#d4af37" style={{ marginTop: 60 }} />
+          ? <ActivityIndicator color="#CA9C68" style={{ marginTop: 60 }} />
           : <>
               {/* ── SECTION 1: EVENTS (Deep Midnight) ── */}
-              <View style={[styles.section, { backgroundColor: colors.background }]}>
+              <View style={styles.collectionSection}>
                 <View style={styles.sectionHead}>
                   <View>
-                    <Text style={styles.sectionLabel}>Events</Text>
+                    <Text style={styles.sectionLabel}>Event Gallery</Text>
                     <Text style={styles.sectionSub}>Memories curated for you</Text>
                   </View>
                   <TouchableOpacity
@@ -634,7 +634,7 @@ export default function DashboardScreen() {
                     activeOpacity={0.8}
                     onPress={() => setShowJoinModal(true)}
                   >
-                    <IconSymbol name="plus.circle.fill" size={12} color={'#050505'} />
+                    <IconSymbol name="plus.circle.fill" size={12} color={'#13191F'} />
                     <Text style={styles.catchyActionPillText}>Join Event</Text>
                   </TouchableOpacity>
                 </View>
@@ -690,7 +690,7 @@ export default function DashboardScreen() {
                         transition={400}
                       />
                       <LinearGradient
-                        colors={['rgba(2,6,23,0.4)', 'rgba(2,6,23,0.95)']}
+                        colors={['rgba(19, 25, 31,0.4)', 'rgba(19, 25, 31,0.95)']}
                         style={StyleSheet.absoluteFill}
                       />
                       <View style={styles.aestheticExploreContent}>
@@ -703,7 +703,7 @@ export default function DashboardScreen() {
 
                          <View style={styles.aestheticExploreBtn}>
                             <Text style={styles.aestheticExploreBtnText}>Explore All</Text>
-                            <IconSymbol name="arrow.right" size={12} color={'#050505'} />
+                            <IconSymbol name="arrow.right" size={12} color={'#13191F'} />
                          </View>
                       </View>
                     </View>
@@ -718,7 +718,7 @@ export default function DashboardScreen() {
                 onPress={() => router.push('/(tabs)/gallery')}
               >
                 <LinearGradient
-                  colors={['rgba(212, 175, 55, 0.95)', 'rgba(184, 134, 11, 1)']}
+                  colors={['#151B21', '#10161C']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroGradient}
@@ -737,7 +737,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                   <View style={styles.heroIconContainer}>
-                    <IconSymbol name="calendar.badge.plus" size={60} color="rgba(255,255,255,0.2)" />
+                    <IconSymbol name="calendar.badge.plus" size={60} color="rgba(202,156,104,0.22)" />
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -847,7 +847,7 @@ export default function DashboardScreen() {
                             value={joinCode}
                             onChangeText={setJoinCode}
                             placeholder="E.G. A1B2C3"
-                            placeholderTextColor="#334155"
+                            placeholderTextColor="#594C3D"
                             autoCapitalize="characters"
                           />
                         </View>
@@ -858,7 +858,7 @@ export default function DashboardScreen() {
                           disabled={joining}
                         >
                           {joining ? (
-                            <ActivityIndicator color="#101010" />
+                            <ActivityIndicator color="#1B211F" />
                           ) : (
                             <Text style={styles.submitBtnText}>Join with Code</Text>
                           )}
@@ -874,7 +874,7 @@ export default function DashboardScreen() {
                           style={styles.scanBtn}
                           onPress={() => setIsScanning(true)}
                         >
-                          <IconSymbol name="qrcode.viewfinder" size={20} color="#d4af37" />
+                          <IconSymbol name="qrcode.viewfinder" size={20} color="#CA9C68" />
                           <Text style={styles.scanBtnText}>Scan QR Code</Text>
                         </TouchableOpacity>
                       </View>
@@ -1100,7 +1100,7 @@ export default function DashboardScreen() {
                 onRequestClose={() => setShowRequestAccessModal(false)}
               >
                 <View style={styles.modalBackdrop}>
-                  <View style={[styles.modalContent, { padding: 24, borderRadius: 24, borderWidth: 1.5, borderColor: isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.15)' }]}>
+                  <View style={[styles.modalContent, { padding: 24, borderRadius: 24, borderWidth: 1.5, borderColor: isDark ? 'rgba(202, 156, 104, 0.3)' : 'rgba(202, 156, 104, 0.15)' }]}>
                     <View style={{ alignItems: 'center', marginBottom: 20 }}>
                       <View style={[styles.emptyNotifRing, { width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 1, borderColor: colors.border }]}>
                         <IconSymbol name="lock.fill" size={24} color={colors.gold} />
@@ -1133,10 +1133,10 @@ export default function DashboardScreen() {
                         disabled={sendingRequest}
                       >
                         {sendingRequest ? (
-                          <ActivityIndicator color="#101010" />
+                          <ActivityIndicator color="#1B211F" />
                         ) : (
                           <>
-                            <IconSymbol name="paperplane.fill" size={14} color="#101010" />
+                            <IconSymbol name="paperplane.fill" size={14} color="#1B211F" />
                             <Text style={styles.modalCloseBtnText}>Send Join Request</Text>
                           </>
                         )}
@@ -1170,11 +1170,11 @@ export default function DashboardScreen() {
                       padding: 24,
                       borderRadius: 28,
                       borderWidth: 1.5,
-                      backgroundColor: isDark ? '#101010' : '#ffffff',
+                      backgroundColor: isDark ? '#1B211F' : '#ffffff',
                       borderColor: statusModalConfig.type === 'success'
                         ? (isDark ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.2)')
                         : statusModalConfig.type === 'pending'
-                        ? (isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(212, 175, 55, 0.2)')
+                        ? (isDark ? 'rgba(202, 156, 104, 0.4)' : 'rgba(202, 156, 104, 0.2)')
                         : (isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.2)'),
                       shadowColor: statusModalConfig.type === 'success' ? '#22c55e' : statusModalConfig.type === 'pending' ? colors.gold : '#ef4444',
                       shadowOffset: { width: 0, height: 10 },
@@ -1194,12 +1194,12 @@ export default function DashboardScreen() {
                         borderColor: statusModalConfig.type === 'success'
                           ? (isDark ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.25)')
                           : statusModalConfig.type === 'pending'
-                          ? (isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(212, 175, 55, 0.25)')
+                          ? (isDark ? 'rgba(202, 156, 104, 0.4)' : 'rgba(202, 156, 104, 0.25)')
                           : (isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.25)'),
                         backgroundColor: statusModalConfig.type === 'success'
                           ? (isDark ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.05)')
                           : statusModalConfig.type === 'pending'
-                          ? (isDark ? 'rgba(212, 175, 55, 0.12)' : 'rgba(212, 175, 55, 0.05)')
+                          ? (isDark ? 'rgba(202, 156, 104, 0.12)' : 'rgba(202, 156, 104, 0.05)')
                           : (isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.05)'),
                         justifyContent: 'center',
                         alignItems: 'center'
@@ -1224,7 +1224,7 @@ export default function DashboardScreen() {
                         {
                           textAlign: 'center',
                           fontSize: 22,
-                          color: isDark ? '#ffffff' : '#101010',
+                          color: isDark ? '#ffffff' : '#1B211F',
                           fontFamily: 'Outfit_800ExtraBold',
                           marginBottom: 8
                         }
@@ -1321,7 +1321,7 @@ export default function DashboardScreen() {
                       <Text style={[
                         styles.modalCloseBtnText,
                         {
-                          color: statusModalConfig.type === 'pending' ? '#101010' : '#ffffff'
+                          color: statusModalConfig.type === 'pending' ? '#1B211F' : '#ffffff'
                         }
                       ]}>
                         Got It!
@@ -1345,8 +1345,8 @@ export default function DashboardScreen() {
                       padding: 24,
                       borderRadius: 24,
                       borderWidth: 1.5,
-                      backgroundColor: isDark ? '#101010' : '#ffffff',
-                      borderColor: isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.15)',
+                      backgroundColor: isDark ? '#1B211F' : '#ffffff',
+                      borderColor: isDark ? 'rgba(202, 156, 104, 0.3)' : 'rgba(202, 156, 104, 0.15)',
                       alignItems: 'center',
                       alignSelf: 'center',
                       width: width * 0.8,
@@ -1411,7 +1411,8 @@ export default function DashboardScreen() {
 
 const CARD_W = width * 0.55;
 const CARD_H = 155;
-const GRID_ITEM_W = (width - 48 - 12) / 2;
+const DASHBOARD_GRID_SIDE_PADDING = 24;
+const DASHBOARD_GRID_ITEM_WIDTH = '48%' as const;
 
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
@@ -1433,17 +1434,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     shadowOpacity: isDark ? 0.3 : 0.05,
     shadowRadius: 10,
     elevation: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(202, 156, 104, 0.12)',
   },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   greeting: { fontSize: 13, color: colors.slate400, fontFamily: 'Inter_500Medium', textTransform: 'uppercase', letterSpacing: 1.2 },
   datePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.04)',
-    borderWidth: 1, borderColor: isDark ? 'rgba(212,175,55,0.15)' : 'rgba(212,175,55,0.1)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.08)' : 'rgba(202, 156, 104,0.04)',
+    borderWidth: 1, borderColor: isDark ? 'rgba(202, 156, 104,0.15)' : 'rgba(202, 156, 104,0.1)',
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   datePillText: { fontSize: 10, color: colors.gold, fontFamily: 'Outfit_700Bold', letterSpacing: 0.3 },
-  headerTitle: { fontSize: 28, lineHeight: 38, fontFamily: 'AkayaKanadaka_400Regular', color: colors.white, letterSpacing: 0.5, textAlign: 'center', includeFontPadding: false },
+  headerTitle: { fontSize: 28, lineHeight: 38, fontFamily: 'AkayaKanadakaHeader_400Regular', color: colors.white, letterSpacing: 0.5, textAlign: 'center', includeFontPadding: false },
   headingLogoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 38 },
   avatarRingHeader: {
     padding: 3, borderRadius: 30,
@@ -1452,7 +1455,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   avatarHeader: { width: 54, height: 54, borderRadius: 27 },
   avatarFallbackHeader: {
     width: 54, height: 54, borderRadius: 27,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.15)' : 'rgba(212,175,55,0.08)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.15)' : 'rgba(202, 156, 104,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },
   avatarFallbackText: {
@@ -1493,16 +1496,33 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
 
   // ── Sections ──
   section: { paddingTop: 8, paddingBottom: 16 },
+  collectionSection: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 18,
+    paddingTop: 18,
+    paddingBottom: 18,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(202, 156, 104, 0.16)',
+    backgroundColor: '#151B21',
+  },
   sectionHead: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 24, marginBottom: 18,
   },
-  sectionLabel: { fontSize: 22, color: colors.white, fontFamily: 'Outfit_800ExtraBold', letterSpacing: -0.3 },
+  sectionLabel: {
+    fontSize: 11,
+    color: colors.gold,
+    fontFamily: 'Outfit_800ExtraBold',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
   sectionSub: { fontSize: 13, color: colors.slate400, fontFamily: 'Inter_400Regular', marginTop: -2 },
   viewAllPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 5,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.08)' : 'rgba(202, 156, 104,0.04)',
     borderRadius: 20, borderWidth: 1, borderColor: colors.border,
   },
   viewAllLabel: { fontSize: 11, color: colors.gold, fontFamily: 'Outfit_700Bold' },
@@ -1522,7 +1542,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   catchyActionPillText: {
     fontSize: 10,
-    color: '#050505',
+    color: '#13191F',
     fontFamily: 'Outfit_800ExtraBold',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -1556,7 +1576,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   ratingBadge: {
     position: 'absolute', top: 12, right: 12,
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: 'rgba(15,23,42,0.65)',
+    backgroundColor: 'rgba(27, 33, 31,0.65)',
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20,
     borderWidth: 1, borderColor: colors.border,
   },
@@ -1587,6 +1607,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(202, 156, 104, 0.16)',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1603,21 +1625,23 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
   },
   heroBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(202, 156, 104,0.1)',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 6,
     alignSelf: 'flex-start',
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(202, 156, 104, 0.18)',
   },
   heroBadgeText: {
-    color: isDark ? '#ffffff' : '#101010',
+    color: colors.gold,
     fontSize: 9,
     fontFamily: 'Outfit_800ExtraBold',
     letterSpacing: 0.8,
   },
   heroTitle: {
-    color: isDark ? '#ffffff' : '#101010',
+    color: isDark ? '#ffffff' : '#1B211F',
     fontSize: 18,
     fontFamily: 'Outfit_800ExtraBold',
     marginBottom: 2,
@@ -1633,14 +1657,16 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.slate900,
+    backgroundColor: 'rgba(202, 156, 104, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(202, 156, 104, 0.18)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   heroBtnText: {
-    color: isDark ? '#ffffff' : '#101010',
+    color: isDark ? '#ffffff' : '#1B211F',
     fontSize: 12,
     fontFamily: 'Outfit_700Bold',
   },
@@ -1665,16 +1691,16 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
 
   // ── Modal Styles ──
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(2, 6, 23, 0.9)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(19, 25, 31, 0.9)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContent: { backgroundColor: colors.slate900, width: '100%', borderRadius: 28, padding: 28, borderWidth: 1, borderColor: colors.border },
   modalTitle: { fontSize: 24, color: colors.white, fontFamily: 'Outfit_800ExtraBold', marginBottom: 12, letterSpacing: -0.5 },
   modalText: { fontSize: 16, color: colors.slate400, fontFamily: 'Inter_400Regular', lineHeight: 26, marginBottom: 28 },
   modalCloseBtn: { backgroundColor: colors.gold, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
-  modalCloseBtnText: { color: '#101010', fontFamily: 'Outfit_800ExtraBold', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 },
+  modalCloseBtnText: { color: '#1B211F', fontFamily: 'Outfit_800ExtraBold', fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 },
 
   // ── Join Event Modal Specific ──
   joinModalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  joinModalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 6, 23, 0.8)' },
+  joinModalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(19, 25, 31, 0.8)' },
   joinModalContent: {
     backgroundColor: colors.slate900,
     borderTopLeftRadius: 32,
@@ -1707,7 +1733,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderRadius: 20,
     marginTop: 10,
   },
-  submitBtnText: { color: '#101010', fontFamily: 'Outfit_800ExtraBold', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
+  submitBtnText: { color: '#1B211F', fontFamily: 'Outfit_800ExtraBold', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 },
   modalDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 24 },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: '#475569', fontSize: 12, fontFamily: 'Inter_700Bold' },
@@ -1720,7 +1746,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.gold,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(212,175,55,0.02)'
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.05)' : 'rgba(202, 156, 104,0.02)'
   },
   scanBtnText: { color: colors.gold, fontSize: 16, fontFamily: 'Outfit_700Bold' },
   scannerContainer: { width: '100%', height: 350, borderRadius: 24, overflow: 'hidden', backgroundColor: '#000', justifyContent: 'center' },
@@ -1753,7 +1779,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.1)' : 'rgba(202, 156, 104,0.04)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1764,7 +1790,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 4,
   },
   countBadge: {
-    backgroundColor: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(212,175,55,0.1)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.2)' : 'rgba(202, 156, 104,0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1803,7 +1829,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: 8,
   },
   cardActionBtnMainText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 14,
     fontFamily: 'Outfit_800ExtraBold',
   },
@@ -1834,8 +1860,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   eventsGridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 24,
-    gap: 12,
+    alignSelf: 'stretch',
+    paddingHorizontal: DASHBOARD_GRID_SIDE_PADDING,
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingBottom: 10,
   },
@@ -1913,7 +1940,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.1)' : 'rgba(202, 156, 104,0.04)',
     filter: 'blur(30px)',
   },
   watermarkContainer: {
@@ -1932,7 +1959,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 18,
-    backgroundColor: isDark ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.08)' : 'rgba(202, 156, 104,0.04)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1950,7 +1977,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     letterSpacing: -0.2,
   },
   countPill: {
-    backgroundColor: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.1)' : 'rgba(202, 156, 104,0.04)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1977,7 +2004,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   miniGalleryBtnText: {
     fontSize: 12,
-    color: '#050505',
+    color: '#13191F',
     fontFamily: 'Outfit_800ExtraBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1989,16 +2016,17 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.gold || '#d4af37',
+    backgroundColor: colors.gold || '#CA9C68',
   },
   aestheticEventCard: {
-    width: GRID_ITEM_W,
-    height: 185,
-    borderRadius: 20,
+    width: DASHBOARD_GRID_ITEM_WIDTH,
+    height: 168,
+    borderRadius: 18,
+    marginBottom: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: isDark ? '#101010' : '#ffffff',
+    borderColor: 'rgba(202, 156, 104, 0.16)',
+    backgroundColor: isDark ? '#10161C' : '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: isDark ? 0.3 : 0.05,
@@ -2007,18 +2035,21 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   aestheticImageContainer: {
     width: '100%',
-    height: 115,
-    backgroundColor: colors.slate900,
+    height: 100,
+    backgroundColor: '#0E141A',
     position: 'relative',
   },
   aestheticTextContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     justifyContent: 'center',
     flex: 1,
+    backgroundColor: isDark ? 'rgba(14, 20, 26, 0.96)' : '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(202, 156, 104, 0.08)',
   },
   aestheticEventTitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.white,
     fontFamily: 'Outfit_700Bold',
   },
@@ -2029,20 +2060,21 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: 4,
   },
   aestheticEventDate: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.slate400,
     fontFamily: 'Inter_500Medium',
   },
 
   // Explore Card
   aestheticExploreCard: {
-    width: GRID_ITEM_W,
-    height: 185,
-    borderRadius: 20,
+    width: DASHBOARD_GRID_ITEM_WIDTH,
+    height: 168,
+    borderRadius: 18,
+    marginBottom: 14,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.slate900,
+    borderColor: 'rgba(202, 156, 104, 0.2)',
+    backgroundColor: '#10161C',
     shadowColor: colors.gold,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: isDark ? 0.15 : 0.03,
@@ -2066,7 +2098,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     letterSpacing: -0.2,
   },
   aestheticCountPill: {
-    backgroundColor: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(212,175,55,0.04)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104,0.1)' : 'rgba(202, 156, 104,0.04)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -2093,7 +2125,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   aestheticExploreBtnText: {
     fontSize: 11,
-    color: '#050505',
+    color: '#13191F',
     fontFamily: 'Outfit_800ExtraBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -2108,12 +2140,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(212, 175, 55, 0.08)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.15)' : 'rgba(202, 156, 104, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(212, 175, 55, 0.25)' : 'rgba(212, 175, 55, 0.15)',
+    borderColor: isDark ? 'rgba(202, 156, 104, 0.25)' : 'rgba(202, 156, 104, 0.15)',
   },
   emptyNotifTitle: {
     fontSize: 16,
@@ -2133,7 +2165,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: isDark ? '#101010' : '#ffffff',
+    backgroundColor: isDark ? '#1B211F' : '#ffffff',
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -2143,7 +2175,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: isDark ? 'rgba(212, 175, 55, 0.12)' : 'rgba(212, 175, 55, 0.06)',
+    backgroundColor: isDark ? 'rgba(202, 156, 104, 0.12)' : 'rgba(202, 156, 104, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

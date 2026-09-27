@@ -1,12 +1,13 @@
 import React from 'react';
 import Svg, { Path, Circle } from 'react-native-svg';
+import { MidnightColors } from '../../constants/theme';
 
 interface SettingsIconProps {
   size?: number;
   color?: string;
 }
 
-export default function SettingsIcon({ size = 24, color = '#d4af37' }: SettingsIconProps) {
+export default function SettingsIcon({ size = 24, color = MidnightColors.gold }: SettingsIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path

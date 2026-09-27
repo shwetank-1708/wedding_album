@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 
 export type AdminAction =
+  | 'deleteGalleryMedia'
+  | 'viewGallery'
   | 'syncUsers'
   | 'updateUserRole'
   | 'promoteSuperAdmin'
@@ -14,9 +16,24 @@ export type AdminAction =
   | 'deleteGuest'
   | 'scanBackblazeOrphans'
   | 'deleteBackblazeOrphans'
-  | 'updatePricingPlans';
+  | 'updatePricingPlans'
+  | 'recordPayment'
+  | 'deletePayment';
+
+export interface GalleryMedia {
+  id: string;
+  url: string;
+  thumbnail_url?: string | null;
+  preview_url?: string | null;
+  media_type?: string | null;
+  resource_type?: string | null;
+}
 
 export interface AdminActionResult {
+  appliedMediaType?: 'images' | 'videos' | null;
+  gallery?: { id: string; title: string; parent_id?: string | null };
+  media?: GalleryMedia[];
+  hasMore?: boolean;
   success: boolean;
   error?: string;
   count?: number;
@@ -74,7 +91,7 @@ async function postAdminAction(action: AdminAction, payload: Record<string, unkn
     });
   } catch {
     throw new Error(
-      `Unable to reach the backend API at ${apiBaseUrl}. Check VITE_API_BASE_URL and the backend service.`
+      `Unable to reach the backend API at ${apiBaseUrl}. Please ensure the backend server is running (run 'npm run backend' in the project root).`
     );
   }
 

@@ -351,7 +351,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     minHeight: 120,
   },
   submitButton: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

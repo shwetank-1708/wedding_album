@@ -34,12 +34,12 @@ const SPORTS_HEADER_THEMES: Record<string, any> = {
   blush: { background: '#fff3ee', text: '#4a2725', muted: '#9a6b64', accent: '#d9796f', activeText: '#ffffff', tabBg: 'rgba(255,250,246,0.8)', border: 'rgba(217,121,111,0.25)' },
   garden: { background: '#e8eee5', text: '#1a3322', muted: '#526b50', accent: '#587c43', activeText: '#fdfbf7', tabBg: 'rgba(253,251,247,0.82)', border: 'rgba(88,124,67,0.25)' },
   midnight_glam: { background: '#050508', text: '#fff7e6', muted: '#d6bf94', accent: '#cca43b', activeText: '#0a0a0c', tabBg: 'rgba(255,247,230,0.08)', border: 'rgba(204,164,59,0.32)' },
-  cinematic: { background: '#0d0d0d', text: '#f4f4f4', muted: '#b8b8b8', accent: '#d9d9d9', activeText: '#121212', tabBg: 'rgba(245,245,245,0.08)', border: 'rgba(217,217,217,0.26)' },
+  cinematic: { background: '#0d0d0d', text: '#f4f4f4', muted: '#b8b8b8', accent: '#ef4444', activeText: '#ffffff', tabBg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)' },
   modern_lounge: { background: '#efe7dc', text: '#2b211b', muted: '#756353', accent: '#7a563b', activeText: '#fffaf2', tabBg: 'rgba(255,250,242,0.82)', border: 'rgba(122,86,59,0.24)' },
   elegant_night: { background: '#07101f', text: '#f5eddc', muted: '#d4b474', accent: '#d4b474', activeText: '#07101f', tabBg: 'rgba(245,237,220,0.08)', border: 'rgba(212,180,116,0.3)' },
   polaroid: { background: '#f7efe1', text: '#3f2a1e', muted: '#806653', accent: '#b45309', activeText: '#fffaf0', tabBg: 'rgba(255,250,240,0.82)', border: 'rgba(180,83,9,0.24)' },
   editorial: { background: '#fafaf7', text: '#111827', muted: '#57534e', accent: '#111827', activeText: '#ffffff', tabBg: 'rgba(255,255,255,0.86)', border: 'rgba(17,24,39,0.14)' },
-  vibrant: { background: '#08111f', text: '#f8fafc', muted: '#cbd5e1', accent: '#f97316', activeText: '#101010', tabBg: 'rgba(248,250,252,0.08)', border: 'rgba(249,115,22,0.3)' },
+  vibrant: { background: '#08111f', text: '#FFF7EB', muted: '#cbd5e1', accent: '#f97316', activeText: '#1B211F', tabBg: 'rgba(248,250,252,0.08)', border: 'rgba(249,115,22,0.3)' },
   zen: { background: '#f1eee6', text: '#44403c', muted: '#78716c', accent: '#66785f', activeText: '#fffaf2', tabBg: 'rgba(255,252,246,0.82)', border: 'rgba(102,120,95,0.22)' },
 };
 
@@ -126,7 +126,7 @@ export function ThemeHeader({
 
   const themeTextColor = (active: boolean) => active
     ? (isGarden ? '#FFFFFF' : (isHero ? '#cca43b' : (isRoyal ? '#fff' : (isEthereal ? selectedTemplate.accent : '#cca43b'))))
-    : (isGarden ? '#64748b' : (isHero ? '#94a3b8' : selectedTemplate.muted));
+    : (isGarden ? '#64748b' : (isHero ? '#CDB89E' : selectedTemplate.muted));
 
   const academicTabStyle = {
     backgroundColor: 'transparent',
@@ -265,13 +265,12 @@ export function ThemeHeader({
 
   const isPartnersActive = activeSubEvent?.id === 'event-partners';
   const isFindYouActive = activeSubEvent?.id === 'find-you';
-  const isFavouriteActive = activeSubEvent?.id === 'favourite';
 
   return (
     <View style={[
       styles.visitorHeaderContainer,
       isRoyal && { height: 70, marginTop: 12, marginBottom: 0 },
-      isClassic && { height: 60, marginTop: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)', backgroundColor: '#FAF9F6' },
+      isClassic && { height: 60, marginTop: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)', backgroundColor: '#F7F2EB' },
       isHero && { height: 64, marginTop: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', backgroundColor: '#000000' },
       isEthereal && { height: 60, marginTop: 16, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: selectedTemplate.accent + '26', backgroundColor: selectedTemplate.background },
       isAcademicEditorial && { height: 52, marginTop: 12, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: selectedTemplate.text + '1a', backgroundColor: selectedTemplate.background },
@@ -328,12 +327,9 @@ export function ThemeHeader({
         {/* Home Tab */}
         {renderTab(null, !activeSubEvent)}
 
-        {/* Favourite Tab */}
-        {renderTab({ id: 'favourite', title: 'Favourite' }, isFavouriteActive, 0)}
-
         {/* Sub-event Tabs */}
         {subEvents.map((sub, idx) =>
-          renderTab(sub, activeSubEvent?.id === sub.id, idx + 1)
+          renderTab(sub, activeSubEvent?.id === sub.id, idx)
         )}
 
         {/* Event Partners Tab */}

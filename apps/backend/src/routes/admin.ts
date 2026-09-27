@@ -1,3 +1,4 @@
+import { deleteGalleryMedia } from "../deleteGalleryMedia.js";
 import type { Request, Response as ExpressResponse } from "express";
 import { Router } from "express";
 import { getCachedBackblazeAuth, type BackblazeAuth } from "../backblaze.js";
@@ -424,11 +425,20 @@ async function updateUserRole(
   if (role !== null) {
     const { data: targetProfile, error: targetProfileError } = await supabaseAdmin
       .from("profiles")
-      .select("role, delegated_by")
+      .select("role, delegated_by, email, username")
       .eq("id", uid)
       .maybeSingle();
 
     if (targetProfileError) throw targetProfileError;
+
+    const email = String(targetProfile?.email || "").toLowerCase().trim();
+    const isProtected =
+      email === "code4sarthak@gmail.com" ||
+      email === "shwetank.chauhan17@gmail.com";
+
+    if (isProtected && (role !== "admin" || !!delegatedBy)) {
+      throw new AdminActionError("This Super Admin account is permanently protected and cannot be modified or demoted", 403);
+    }
 
     const targetIsGlobalSuperAdmin = targetProfile?.role === "admin" && !targetProfile.delegated_by;
     const wouldRemoveGlobalSuperAdmin = targetIsGlobalSuperAdmin && (role !== "admin" || !!delegatedBy);
@@ -564,13 +574,22 @@ async function revokeSuperAdmin(
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
-    .select("id, role, delegated_by")
+    .select("id, role, delegated_by, email, username")
     .eq("id", uid)
     .maybeSingle();
 
   if (profileError) throw profileError;
   if (!profile) {
     throw new AdminActionError("User profile was not found", 404);
+  }
+
+  const email = String(profile.email || "").toLowerCase().trim();
+  const isProtected =
+    email === "code4sarthak@gmail.com" ||
+    email === "shwetank.chauhan17@gmail.com";
+
+  if (isProtected) {
+    throw new AdminActionError("This Super Admin account is permanently protected and cannot be removed", 403);
   }
 
   if (profile.role !== "admin" || profile.delegated_by) {
@@ -716,6 +735,75 @@ async function deleteUser(
     .eq("id", uid);
 
   if (profileError) throw profileError;
+}
+
+async function recordPayment(
+  supabaseAdmin: ReturnType<typeof getAdminClient>,
+  payload: Record<string, unknown>
+) {
+  const uid = String(payload.uid || "");
+  const amount = Number(payload.amount);
+  const planId = String(payload.planId || "custom");
+  const billingDuration = String(payload.billingDuration || "yearly");
+  const paymentGateway = String(payload.paymentGateway || "manual_upi");
+  const notes = String(payload.notes || "");
+  const updateRole = Boolean(payload.updateRole);
+
+  if (!uid) throw new Error("User id is required");
+  if (!amount || isNaN(amount) || amount <= 0) throw new Error("Valid payment amount is required");
+
+  const { data: paymentRow, error: insertError } = await supabaseAdmin
+    .from("payments")
+    .insert({
+      user_id: uid,
+      amount: amount,
+      currency: "INR",
+      status: "manual_offline",
+      plan_id: planId,
+      billing_duration: billingDuration,
+      payment_gateway: paymentGateway,
+      notes: notes || "Manual payment recorded by admin",
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+
+  if (updateRole && isPaidPlanRole(planId)) {
+    const today = new Date();
+    const startDate = toDateOnly(today);
+    const normalizedDur = normalizeSubscriptionDuration(billingDuration);
+    const endDate = addDurationToDate(startDate, normalizedDur);
+
+    await supabaseAdmin
+      .from("profiles")
+      .update({
+        role: planId,
+        role_type: "primary",
+        subscription_duration: billingDuration,
+        plan_start_date: startDate,
+        plan_end_date: endDate,
+      })
+      .eq("id", uid);
+  }
+
+  return paymentRow;
+}
+
+async function deletePayment(
+  supabaseAdmin: ReturnType<typeof getAdminClient>,
+  payload: Record<string, unknown>
+) {
+  const paymentId = String(payload.paymentId || "");
+  if (!paymentId) throw new Error("Payment id is required");
+
+  const { error } = await supabaseAdmin
+    .from("payments")
+    .delete()
+    .eq("id", paymentId);
+
+  if (error) throw error;
 }
 
 async function collectEventTreeIds(
@@ -944,15 +1032,78 @@ async function deleteEventTree(
     await deleteEventTree(supabaseAdmin, child.id);
   }
 
+  const { data: eventData } = await supabaseAdmin
+    .from("events")
+    .select("id, title, created_by")
+    .eq("id", eventId)
+    .maybeSingle();
+
   const { data: photos, error: photosSelectError } = await supabaseAdmin
     .from("photos")
-    .select("id, storage_key")
+    .select("id, storage_key, media_type, resource_type, size, user_id")
     .eq("event_id", eventId);
 
   if (photosSelectError) throw photosSelectError;
 
   const photoRows = photos || [];
   const photoIds = photoRows.map(photo => photo.id).filter(Boolean);
+
+  const imageCount = photoRows.filter(p => (p.media_type || p.resource_type) !== "video").length;
+  const videoCount = photoRows.filter(p => (p.media_type || p.resource_type) === "video").length;
+  const totalBytes = photoRows.reduce((sum, p) => sum + (Number(p.size) || 0), 0);
+  const userId = eventData?.created_by || photoRows[0]?.user_id || "unknown";
+
+  // Fetch actual per-second compute cost logged in modal_cost_logs
+  const { data: eventLogs } = await supabaseAdmin
+    .from("modal_cost_logs")
+    .select("execution_time_seconds, estimated_cost_inr, cpu_cores, memory_gb, gpu_type")
+    .eq("event_id", eventId);
+
+  let actualModalCost = 0;
+  if (eventLogs && eventLogs.length > 0) {
+    actualModalCost = eventLogs.reduce((sum, log) => {
+      if (typeof log.estimated_cost_inr === "number" && !isNaN(log.estimated_cost_inr)) {
+        return sum + log.estimated_cost_inr;
+      }
+      const dur = Number(log.execution_time_seconds) || 0;
+      const cpu = Number(log.cpu_cores) || 1.0;
+      const mem = Number(log.memory_gb) || 1.0;
+      const gpuRate = log.gpu_type === "l4" ? 0.0222 : 0;
+      return sum + (dur * ((cpu * 0.00131) + (mem * 0.000222) + gpuRate));
+    }, 0);
+  } else {
+    // Fallback baseline for older media uploaded prior to granular logging
+    actualModalCost = (imageCount * 0.0082) + (videoCount * 0.35);
+  }
+
+  // Snapshot into deleted_events_archive so compute cost is permanently retained
+  if (eventData) {
+    try {
+      await supabaseAdmin.from("deleted_events_archive").insert({
+        event_id: eventId,
+        user_id: userId,
+        event_title: eventData.title || "Untitled Gallery",
+        photos_count: imageCount,
+        videos_count: videoCount,
+        total_bytes: totalBytes,
+        estimated_modal_cost_inr: actualModalCost,
+        deleted_by: "admin",
+      });
+    } catch (archiveErr) {
+      console.warn(`[admin/deleteEventTree] Could not archive deleted event ${eventId}:`, archiveErr);
+    }
+  }
+
+  // Ensure modal_cost_logs retains user_id for this event
+  try {
+    await supabaseAdmin
+      .from("modal_cost_logs")
+      .update({ user_id: userId })
+      .eq("event_id", eventId)
+      .is("user_id", null);
+  } catch (logErr) {
+    console.warn(`[admin/deleteEventTree] Could not update modal_cost_logs user_id for ${eventId}:`, logErr);
+  }
 
   if (photoRows.length > 0) {
     const auth = await getCachedBackblazeAuth();
@@ -1105,6 +1256,48 @@ adminRouter.post("/", async (request: Request, response: ExpressResponse) => {
     const { supabaseAdmin, user } = verification;
 
     switch (action) {
+      case "deleteGalleryMedia": {
+        const photoId = typeof payload.photoId === "string" ? payload.photoId.trim() : "";
+        const eventId = typeof payload.eventId === "string" ? payload.eventId.trim() : "";
+        if (!photoId || !eventId || payload.confirm !== "DELETE_MEDIA") {
+          return jsonResponse(response, { success: false, error: "Media, gallery and deletion confirmation are required" }, 400);
+        }
+        const deleted = await deleteGalleryMedia(supabaseAdmin, photoId, eventId);
+        if (!deleted) return jsonResponse(response, { success: false, error: "Media no longer exists in this gallery" }, 404);
+        return jsonResponse(response, { success: true });
+      }
+      case "viewGallery": {
+        const eventId = typeof payload.eventId === "string" ? payload.eventId.trim() : "";
+        const offset = payload.offset === undefined ? 0 : Number(payload.offset);
+        if (!eventId || !Number.isSafeInteger(offset) || offset < 0) {
+          return jsonResponse(response, { success: false, error: "Invalid gallery or page" }, 400);
+        }
+        const mediaType = payload.mediaType;
+        if (mediaType !== undefined && mediaType !== "images" && mediaType !== "videos") {
+          return jsonResponse(response, { success: false, error: "Invalid media type" }, 400);
+        }
+        response.setHeader("Cache-Control", "no-store");
+        const { data: gallery, error: galleryError } = await supabaseAdmin
+          .from("events").select("id, title, parent_id").eq("id", eventId).maybeSingle();
+        if (galleryError) throw new Error(galleryError.message);
+        if (!gallery) return jsonResponse(response, { success: false, error: "Gallery no longer exists" }, 404);
+        let mediaQuery = supabaseAdmin
+          .from("photos").select("id, url, thumbnail_url, media_type, resource_type")
+          .eq("event_id", eventId);
+        if (mediaType === "videos") {
+          mediaQuery = mediaQuery.or("media_type.eq.video,resource_type.eq.video");
+        } else if (mediaType === "images") {
+          // Include legacy images with null type fields, excluding either video marker.
+          mediaQuery = mediaQuery
+            .or("media_type.is.null,media_type.neq.video")
+            .or("resource_type.is.null,resource_type.neq.video");
+        }
+        const { data: media, error: mediaError } = await mediaQuery.order("id").range(offset, offset + 48);
+        if (mediaError) throw new Error(mediaError.message);
+        return jsonResponse(response, {
+          success: true, gallery, appliedMediaType: mediaType || null, media: (media || []).slice(0, 48), hasMore: (media || []).length > 48,
+        });
+      }
       case "syncUsers": {
         const result = await syncAllAuthUsers(supabaseAdmin);
         return jsonResponse(response, { success: true, ...result });
@@ -1177,6 +1370,14 @@ adminRouter.post("/", async (request: Request, response: ExpressResponse) => {
       case "updatePricingPlans": {
         const result = await updatePricingPlans(supabaseAdmin, payload);
         return jsonResponse(response, { success: true, ...result });
+      }
+      case "recordPayment": {
+        const result = await recordPayment(supabaseAdmin, payload);
+        return jsonResponse(response, { success: true, payment: result });
+      }
+      case "deletePayment": {
+        await deletePayment(supabaseAdmin, payload);
+        return jsonResponse(response, { success: true });
       }
       default:
         return jsonResponse(response, { success: false, error: "Unsupported admin action" }, 400);

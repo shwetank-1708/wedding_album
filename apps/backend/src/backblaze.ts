@@ -62,6 +62,68 @@ export async function getCachedBackblazeAuth(): Promise<BackblazeAuth> {
   return authPromise;
 }
 
+export function invalidateBackblazeAuth() {
+  authPromise = null;
+  tokenExpiresAt = 0;
+}
+
+export type B2PartInfo = {
+  partNumber: number;
+  contentLength: number;
+  contentSha1: string;
+};
+
+export async function listLargeFileParts(
+  auth: BackblazeAuth,
+  fileId: string,
+  startPartNumber = 1,
+  maxPartCount = 1000
+): Promise<B2PartInfo[]> {
+  const parts: B2PartInfo[] = [];
+  let nextPartNumber: number | undefined = startPartNumber;
+
+  while (nextPartNumber !== undefined) {
+    const res: Response = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_parts`, {
+      method: "POST",
+      headers: {
+        Authorization: auth.authorizationToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileId,
+        startPartNumber: nextPartNumber,
+        maxPartCount,
+      }),
+    });
+
+    if (res.status === 401) {
+      invalidateBackblazeAuth();
+      throw new Error("B2 authorization expired while listing parts");
+    }
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`b2_list_parts failed with status ${res.status}: ${errText}`);
+    }
+
+    const json = (await res.json()) as {
+      parts?: Array<{ partNumber: number; contentLength: number; contentSha1: string }>;
+      nextPartNumber?: number;
+    };
+    for (const part of json.parts || []) {
+      parts.push({
+        partNumber: part.partNumber,
+        contentLength: part.contentLength,
+        contentSha1: part.contentSha1,
+      });
+    }
+
+    nextPartNumber = json.nextPartNumber;
+  }
+
+  return parts;
+}
+
 export async function getUploadUrl(auth: BackblazeAuth): Promise<BackblazeUploadUrl> {
   const bucketId = requireEnv("B2_BUCKET_ID");
   const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_get_upload_url`, {
@@ -73,6 +135,10 @@ export async function getUploadUrl(auth: BackblazeAuth): Promise<BackblazeUpload
     body: JSON.stringify({ bucketId }),
   });
 
+  if (response.status === 401) {
+    invalidateBackblazeAuth();
+  }
+
   if (!response.ok) {
     throw new Error(`Backblaze upload URL request failed with status ${response.status}`);
   }
@@ -80,27 +146,26 @@ export async function getUploadUrl(auth: BackblazeAuth): Promise<BackblazeUpload
   return response.json();
 }
 
-const POOL_SIZE = 5;
-const uploadUrlPool: (Promise<BackblazeUploadUrl> | null)[] = new Array(POOL_SIZE).fill(null);
-const poolExpiration: number[] = new Array(POOL_SIZE).fill(0);
-
+/**
+ * Backblaze B2 upload URLs are strictly single-use.
+ * Caching them across concurrent requests causes 401/503 upload collisions.
+ * We now always fetch a fresh upload URL for every request.
+ */
 export async function getCachedUploadUrl(
   auth: BackblazeAuth,
-  forceRefresh = false,
-  laneIndex = 0,
+  _forceRefresh = false,
+  _laneIndex = 0,
 ): Promise<BackblazeUploadUrl> {
-  const slotIndex = Number.isFinite(laneIndex) ? Math.abs(laneIndex) % POOL_SIZE : 0;
-
-  if (forceRefresh || !uploadUrlPool[slotIndex] || Date.now() > poolExpiration[slotIndex]) {
-    poolExpiration[slotIndex] = Date.now() + 23 * 60 * 60 * 1000;
-    uploadUrlPool[slotIndex] = getUploadUrl(auth).catch((err) => {
-      uploadUrlPool[slotIndex] = null;
-      poolExpiration[slotIndex] = 0;
-      throw err;
-    });
+  try {
+    return await getUploadUrl(auth);
+  } catch (err: any) {
+    if (err?.message?.includes("401")) {
+      invalidateBackblazeAuth();
+      const freshAuth = await getCachedBackblazeAuth();
+      return await getUploadUrl(freshAuth);
+    }
+    throw err;
   }
-
-  return uploadUrlPool[slotIndex]!;
 }
 
 export async function startLargeFile(
@@ -130,7 +195,36 @@ export async function getUploadPartUrl(
   auth: BackblazeAuth,
   fileId: string,
 ): Promise<BackblazeUploadUrl> {
-  const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_get_upload_part_url`, {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(`${auth.apiUrl}/b2api/v3/b2_get_upload_part_url`, {
+      method: "POST",
+      headers: {
+        Authorization: auth.authorizationToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fileId }),
+    });
+
+    if (response.status === 401) {
+      invalidateBackblazeAuth();
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`b2_get_upload_part_url failed with status ${response.status}: ${errText}`);
+    }
+
+    const data: BackblazeUploadUrl = await response.json();
+    // Intercept known broken/refusing storage pod so browser never gets ERR_CONNECTION_REFUSED
+    if (data.uploadUrl && data.uploadUrl.includes("pod-060-1002-05.backblaze.com")) {
+      console.warn(`[Backblaze] Intercepted down pod URL (${data.uploadUrl}). Requesting healthy pod retry ${attempt + 1}/3...`);
+      continue;
+    }
+
+    return data;
+  }
+
+  const finalRes = await fetch(`${auth.apiUrl}/b2api/v3/b2_get_upload_part_url`, {
     method: "POST",
     headers: {
       Authorization: auth.authorizationToken,
@@ -138,13 +232,7 @@ export async function getUploadPartUrl(
     },
     body: JSON.stringify({ fileId }),
   });
-
-  if (!response.ok) {
-    const errText = await response.text().catch(() => "");
-    throw new Error(`b2_get_upload_part_url failed with status ${response.status}: ${errText}`);
-  }
-
-  return response.json();
+  return finalRes.json();
 }
 
 export async function finishLargeFile(

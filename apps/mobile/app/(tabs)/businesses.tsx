@@ -379,7 +379,7 @@ export default function BusinessLandingScreen() {
         {!fetchingBusinesses && userBusinesses.length === 0 && (
           <View style={styles.heroSection}>
             <LinearGradient
-              colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]}
+              colors={isDark ? ['#1B211F', '#13191F'] : [colors.deepSlate, colors.background]}
               style={styles.heroGradient}
             >
               <View style={styles.heroBadge}>
@@ -577,7 +577,7 @@ export default function BusinessLandingScreen() {
               <View style={styles.formHeader}>
                 <Text style={styles.formTitle}>Business Details</Text>
                 <TouchableOpacity onPress={() => setShowListingForm(false)}>
-                  <IconSymbol name="xmark" size={24} color="#94a3b8" />
+                  <IconSymbol name="xmark" size={24} color="#CDB89E" />
                 </TouchableOpacity>
               </View>
 
@@ -757,7 +757,7 @@ export default function BusinessLandingScreen() {
                     <ActivityIndicator size="small" color={INDIGO_LIGHT} />
                   ) : (
                     <>
-                      <IconSymbol name="location.fill" size={18} color={location ? "#101010" : INDIGO_LIGHT} />
+                      <IconSymbol name="location.fill" size={18} color={location ? "#1B211F" : INDIGO_LIGHT} />
                       <Text style={[styles.locationBtnText, location && styles.locationBtnTextActive]} numberOfLines={1}>
                         {location ? `Captured: ${capturedAddress || 'Location Captured'}` : 'Use Current GPS'}
                       </Text>
@@ -772,7 +772,7 @@ export default function BusinessLandingScreen() {
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#101010" />
+                  <ActivityIndicator color="#1B211F" />
                 ) : (
                   <Text style={styles.submitFormText}>Create Business</Text>
                 )}
@@ -800,7 +800,7 @@ export default function BusinessLandingScreen() {
             <View style={styles.pickerHeader}>
               <Text style={styles.pickerTitle}>Select Category</Text>
               <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                <IconSymbol name="xmark" size={20} color="#CDB89E" />
               </TouchableOpacity>
             </View>
             <View>
@@ -828,7 +828,7 @@ export default function BusinessLandingScreen() {
                 ))}
               </ScrollView>
               <LinearGradient
-                colors={isDark ? ['transparent', 'rgba(15, 23, 42, 0.9)', '#101010'] : ['transparent', 'rgba(255, 255, 255, 0.9)', colors.background]}
+                colors={isDark ? ['transparent', 'rgba(27, 33, 31, 0.9)', '#1B211F'] : ['transparent', 'rgba(255, 255, 255, 0.9)', colors.background]}
                 style={styles.pickerFade}
                 pointerEvents="none"
               />
@@ -908,7 +908,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontSize: 28,
     lineHeight: 38,
     color: colors.white,
-    fontFamily: 'AkayaKanadaka_400Regular',
+    fontFamily: 'AkayaKanadakaHeader_400Regular',
     textAlign: 'center',
     includeFontPadding: false,
   },
@@ -1034,13 +1034,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     lineHeight: 18,
   },
   bizManageCard: {
-    backgroundColor: isDark ? '#101010' : '#ffffff',
+    backgroundColor: isDark ? '#1B211F' : '#ffffff',
     borderRadius: 24,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.15)',
+    borderColor: 'rgba(202, 156, 104,0.15)',
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -1053,10 +1053,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     height: 96,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: isDark ? '#050505' : '#f1f5f9',
+    backgroundColor: isDark ? '#13191F' : '#f1f5f9',
     position: 'relative',
     borderWidth: 0.5,
-    borderColor: 'rgba(212,175,55,0.1)',
+    borderColor: 'rgba(202, 156, 104,0.1)',
   },
   bizManageInfo: {
     flex: 1,
@@ -1151,11 +1151,11 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: isDark ? '#050505' : '#f8fafc',
+    backgroundColor: isDark ? '#13191F' : '#FFF7EB',
   },
   coverPreviewOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(2, 6, 23, 0.45)',
+    backgroundColor: 'rgba(19, 25, 31, 0.45)',
   },
   coverPreviewImage: {
     width: '100%',
@@ -1256,7 +1256,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontFamily: 'Outfit_700Bold',
   },
   locationBtnTextActive: {
-    color: '#101010',
+    color: '#1B211F',
   },
   submitFormBtn: {
     backgroundColor: INDIGO,
@@ -1273,7 +1273,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     opacity: 0.7,
   },
   submitFormText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 16,
     fontFamily: 'Outfit_800ExtraBold',
     textTransform: 'uppercase',
@@ -1410,7 +1410,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(2,6,23,0.85)',
+    backgroundColor: 'rgba(19, 25, 31,0.85)',
     paddingHorizontal: 20,
   },
   quotaModalContent: {

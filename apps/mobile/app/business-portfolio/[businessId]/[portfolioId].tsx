@@ -491,7 +491,7 @@ export default function BusinessPortfolioDetailScreen() {
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.coverIconBtn} onPress={pickCover} disabled={uploading}>
-                {uploading ? <ActivityIndicator size="small" color="#101010" /> : <IconSymbol name="camera.fill" size={16} color="#101010" />}
+                {uploading ? <ActivityIndicator size="small" color="#1B211F" /> : <IconSymbol name="camera.fill" size={16} color="#1B211F" />}
               </TouchableOpacity>
               <TouchableOpacity style={styles.coverDarkIconBtn} onPress={openDetailsModal}>
                 <IconSymbol name="pencil" size={16} color="#ffffff" />
@@ -524,7 +524,7 @@ export default function BusinessPortfolioDetailScreen() {
                 <Text style={styles.repositionBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.repositionBtn, styles.repositionSaveBtn]} onPress={saveCoverPosition}>
-                <Text style={[styles.repositionBtnText, { color: '#101010' }]}>Save</Text>
+                <Text style={[styles.repositionBtnText, { color: '#1B211F' }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -565,7 +565,7 @@ export default function BusinessPortfolioDetailScreen() {
             </View>
             {canManage && (
               <TouchableOpacity style={styles.uploadBtn} onPress={pickMedia} disabled={uploading}>
-                {uploading ? <ActivityIndicator size="small" color="#101010" /> : <IconSymbol name="plus" size={16} color="#101010" />}
+                {uploading ? <ActivityIndicator size="small" color="#1B211F" /> : <IconSymbol name="plus" size={16} color="#1B211F" />}
                 <Text style={styles.uploadBtnText}>Upload</Text>
               </TouchableOpacity>
             )}
@@ -654,7 +654,7 @@ export default function BusinessPortfolioDetailScreen() {
                 <Text style={styles.modalSub}>Update the event name, type, and date</Text>
               </View>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowDetailsModal(false)}>
-                <IconSymbol name="xmark" size={18} color="#94a3b8" />
+                <IconSymbol name="xmark" size={18} color="#CDB89E" />
               </TouchableOpacity>
             </View>
             <Text style={styles.fieldLabel}>Event Name</Text>
@@ -673,7 +673,7 @@ export default function BusinessPortfolioDetailScreen() {
             <Text style={styles.fieldLabel}>Event Date</Text>
             <TextInput style={styles.input} value={editDate} onChangeText={setEditDate} placeholder="YYYY-MM-DD" placeholderTextColor="#475569" />
             <TouchableOpacity style={styles.modalSaveBtn} onPress={saveDetails}>
-              <IconSymbol name="checkmark" size={16} color="#101010" />
+              <IconSymbol name="checkmark" size={16} color="#1B211F" />
               <Text style={styles.uploadBtnText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
@@ -689,7 +689,7 @@ export default function BusinessPortfolioDetailScreen() {
                 <Text style={styles.modalSub}>Choose the portfolio event type</Text>
               </View>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowTypeModal(false)}>
-                <IconSymbol name="xmark" size={18} color="#94a3b8" />
+                <IconSymbol name="xmark" size={18} color="#CDB89E" />
               </TouchableOpacity>
             </View>
             <View style={styles.modalOptionList}>
@@ -716,7 +716,7 @@ export default function BusinessPortfolioDetailScreen() {
                 <Text style={styles.modalSub}>Templates shown for {portfolio.type || 'this event type'}</Text>
               </View>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowTemplateModal(false)}>
-                <IconSymbol name="xmark" size={18} color="#94a3b8" />
+                <IconSymbol name="xmark" size={18} color="#CDB89E" />
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
@@ -772,7 +772,7 @@ export default function BusinessPortfolioDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   center: {
     alignItems: 'center',
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -809,11 +809,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   coverImageFit: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   coverImageFill: {
     position: 'absolute',
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(15,23,42,0.96)',
+    backgroundColor: 'rgba(27, 33, 31,0.96)',
     padding: 12,
     gap: 10,
   },
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dateText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 13,
     fontFamily: 'Inter_700Bold',
   },
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 16,
     borderRadius: 24,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   },
   sectionSub: {
     marginTop: 3,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontFamily: 'Inter_700Bold',
   },
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 14,
     paddingVertical: 13,
     color: '#ffffff',
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
@@ -1062,12 +1062,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#818cf8',
   },
   typeChipText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontFamily: 'Outfit_800ExtraBold',
   },
   typeChipTextActive: {
-    color: '#101010',
+    color: '#1B211F',
   },
   templateGrid: {
     flexDirection: 'row',
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     padding: 12,
   },
   templateCardActive: {
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 16,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   uploadBtnText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 12,
     fontFamily: 'Outfit_800ExtraBold',
   },
@@ -1188,7 +1188,7 @@ const styles = StyleSheet.create({
     height: PORTFOLIO_MEDIA_THUMB_SIZE,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   removeBtn: {
     position: 'absolute',
@@ -1222,7 +1222,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   coverBadgeText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 8,
     fontFamily: 'Outfit_800ExtraBold',
     letterSpacing: 0.8,
@@ -1334,7 +1334,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 10,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 13,
     fontFamily: 'Outfit_600SemiBold',
     textAlign: 'center',
@@ -1347,7 +1347,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   primaryBtnText: {
-    color: '#101010',
+    color: '#1B211F',
     fontFamily: 'Outfit_800ExtraBold',
   },
   modalOverlay: {
@@ -1360,7 +1360,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     borderRadius: 28,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     padding: 18,
@@ -1379,7 +1379,7 @@ const styles = StyleSheet.create({
   },
   modalSub: {
     marginTop: 4,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontFamily: 'Inter_700Bold',
   },
@@ -1387,7 +1387,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -1411,7 +1411,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
   },
   templateModalSub: {
     marginTop: 3,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 11,
     fontFamily: 'Inter_700Bold',
   },

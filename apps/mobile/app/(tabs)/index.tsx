@@ -69,7 +69,7 @@ export default function HomeScreen() {
                 style={styles.primaryButton}
                 onPress={() => user ? router.push('/(tabs)/dashboard') : router.push('/login')}
               >
-                <IconSymbol name={user ? 'square.grid.2x2.fill' : 'person.fill'} size={18} color="#0f172a" />
+                <IconSymbol name={user ? 'square.grid.2x2.fill' : 'person.fill'} size={18} color="#13191F" />
                 <Text style={styles.primaryButtonText}>{user ? 'Open Dashboard' : 'Create Account'}</Text>
               </TouchableOpacity>
 
@@ -315,7 +315,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     gap: 10,
   },
   primaryButtonText: {
-    color: '#0f172a',
+    color: '#13191F',
     fontFamily: Fonts.outfit.extraBold,
     fontSize: 13,
     letterSpacing: 1.2,
@@ -392,7 +392,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     alignSelf: 'flex-start',
     marginTop: 8,
     borderBottomWidth: 2,
-    borderBottomColor: 'rgba(212,175,55,0.45)',
+    borderBottomColor: 'rgba(202, 156, 104,0.45)',
     paddingBottom: 6,
   },
   aboutButtonText: {
@@ -407,7 +407,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     paddingTop: 42,
     paddingBottom: 42,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(212,175,55,0.14)',
+    borderTopColor: 'rgba(202, 156, 104,0.14)',
     backgroundColor: colors.background,
   },
   footerSection: {
@@ -482,7 +482,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   },
   footerDivider: {
     height: 1,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(27, 33, 31,0.1)',
     marginTop: 6,
     marginBottom: 28,
   },

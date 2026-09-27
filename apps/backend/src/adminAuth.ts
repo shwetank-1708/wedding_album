@@ -10,9 +10,14 @@ function requireEnv(name: string) {
 }
 
 export function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) {
+    throw new Error("Supabase admin credentials are not configured");
+  }
   return createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    url,
+    key,
     {
       auth: {
         autoRefreshToken: false,

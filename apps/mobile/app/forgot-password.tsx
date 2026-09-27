@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <LinearGradient colors={['#101010', '#1e293b', '#334155']} style={styles.gradient}>
+    <LinearGradient colors={['#1B211F', '#2B2F2E', '#594C3D']} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -105,7 +105,7 @@ export default function ForgotPasswordScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder="you@example.com"
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor="#CDB89E"
                       value={email}
                       onChangeText={setEmail}
                       keyboardType="email-address"
@@ -192,23 +192,23 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(212,175,55,0.15)',
+    backgroundColor: 'rgba(202, 156, 104,0.15)',
     borderWidth: 2,
-    borderColor: 'rgba(212,175,55,0.4)',
+    borderColor: 'rgba(202, 156, 104,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   logoEmoji: {
     fontSize: 20,
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontWeight: '900',
     letterSpacing: 1,
   },
   brandName: {
     fontFamily: 'AkayaKanadaka_400Regular',
     fontSize: 28,
-    color: '#f8fafc',
+    color: '#FFF7EB',
     letterSpacing: 0.5,
   },
 
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#101010',
+    color: '#1B211F',
     marginBottom: 8,
   },
   cardSubtitle: {
@@ -249,14 +249,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#101010',
+    color: '#1B211F',
   },
 
   // Error
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#101010',
+    color: '#1B211F',
     marginBottom: 8,
   },
   successText: {
@@ -301,13 +301,13 @@ const styles = StyleSheet.create({
 
   // Submit
   submitBtn: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#101010',
+    shadowColor: '#1B211F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

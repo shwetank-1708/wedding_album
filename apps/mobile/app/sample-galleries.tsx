@@ -79,7 +79,7 @@ export default function SampleGalleriesScreen() {
             >
               <Image source={{ uri: album.coverImage }} style={styles.cardImage} />
               <LinearGradient
-                colors={['transparent', 'rgba(2, 6, 23, 0.9)']}
+                colors={['transparent', 'rgba(19, 25, 31, 0.9)']}
                 style={styles.cardGradient}
               />
               <View style={styles.cardContent}>
@@ -115,7 +115,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(27, 33, 31,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -136,7 +136,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   cardImage: { ...StyleSheet.absoluteFillObject },
   cardGradient: { ...StyleSheet.absoluteFillObject },
   cardContent: { position: 'absolute', bottom: 20, left: 20, right: 20 },
-  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(212,175,55,0.2)', borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
+  categoryBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(202, 156, 104,0.2)', borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(202, 156, 104,0.3)' },
   categoryText: { fontSize: 10, color: colors.gold, fontFamily: Fonts.inter.bold, textTransform: 'uppercase' },
   cardTitle: { fontSize: 20, color: '#fff', fontFamily: Fonts.outfit.bold },
   cardYear: { fontSize: 12, color: colors.slate400, fontFamily: Fonts.inter.medium, marginTop: 2 },

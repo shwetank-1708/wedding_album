@@ -50,10 +50,10 @@ export default function Navbar() {
                 <div className="flex items-center justify-between h-20">
                     {/* Logo & Brand */}
                     <Link href="/" className="flex items-center space-x-2 group">
-                        <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] p-2 rounded-lg group-hover:bg-[#D4AF37]/20 group-hover:border-[#D4AF37]/60 transition-all duration-300">
-                            <EveBashLogo className="h-6 w-6 text-[#D4AF37]" aria-hidden="true" />
+                        <div className="bg-[#CA9C68]/10 border border-[#CA9C68]/35 text-[#CA9C68] p-2 rounded-lg group-hover:bg-[#CA9C68]/20 group-hover:border-[#CA9C68]/65 transition-all duration-300">
+                            <EveBashLogo className="h-6 w-6 text-[#CA9C68]" aria-hidden="true" />
                         </div>
-                        <span className="font-playfair text-xl font-bold text-[var(--site-text)] group-hover:text-[#D4AF37] transition-colors">
+                        <span className="font-playfair text-xl font-bold text-[var(--site-text)] group-hover:text-[#CA9C68] transition-colors">
                             EveBash
                         </span>
                     </Link>
@@ -67,8 +67,8 @@ export default function Navbar() {
                                 className={cn(
                                     "inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-[var(--site-text)] pb-1 border-b-2 border-transparent",
                                     isActiveLink(link.href)
-                                        ? "text-[var(--site-text)] border-[var(--site-text)]"
-                                        : "text-[var(--site-muted)] hover:border-slate-500"
+                                        ? "text-[var(--site-text)] border-[#CA9C68]"
+                                        : "text-[var(--site-muted)] hover:border-[#906D4B]"
                                 )}
                             >
                                 {link.name}
@@ -83,8 +83,8 @@ export default function Navbar() {
                                 className={cn(
                                     "ml-4 flex h-11 w-11 items-center justify-center rounded-full border transition-all",
                                     pathname === "/profile"
-                                        ? "border-yellow-400 bg-yellow-400 text-slate-950"
-                                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white"
+                                        ? "border-[#CA9C68] bg-[#CA9C68] text-[#13191F]"
+                                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-[#CA9C68]/60 hover:bg-slate-800 hover:text-white"
                                 )}
                             >
                                 {user.profileImage ? (
@@ -97,7 +97,7 @@ export default function Navbar() {
                         ) : (
                             <Link
                                 href="/login"
-                                className="px-5 py-2 bg-white text-[#0f172a] text-sm font-bold rounded-full hover:bg-slate-200 transition-colors shadow-sm"
+                                className="px-5 py-2 bg-[#CA9C68] text-[#13191F] text-sm font-bold rounded-full hover:bg-[#D7AE7D] transition-colors shadow-sm"
                             >
                                 Login
                             </Link>
@@ -133,7 +133,7 @@ export default function Navbar() {
                             className={cn(
                                 "flex items-center gap-2 px-4 py-3 rounded-lg text-lg font-medium transition-colors",
                                 isActiveLink(link.href)
-                                    ? "text-sky-400 bg-sky-900/30 font-semibold"
+                                    ? "text-[#CA9C68] bg-[#CA9C68]/15 font-semibold"
                                     : "text-[var(--site-muted)] hover:bg-[var(--site-card-muted)] hover:text-[var(--site-text)]"
                             )}
                         >
@@ -157,7 +157,7 @@ export default function Navbar() {
                                     onClick={() => setIsOpen(false)}
                                     className={cn(
                                         "block w-full text-center px-4 py-3 rounded-lg text-lg font-medium transition-colors",
-                                        pathname === "/profile" ? "bg-sky-900/30 text-sky-400" : "text-[var(--site-muted)] hover:bg-[var(--site-card-muted)] hover:text-[var(--site-text)]"
+                                        pathname === "/profile" ? "bg-[#CA9C68]/15 text-[#CA9C68]" : "text-[var(--site-muted)] hover:bg-[var(--site-card-muted)] hover:text-[var(--site-text)]"
                                     )}
                                 >
                                     Profile
@@ -176,7 +176,7 @@ export default function Navbar() {
                             <Link
                                 href="/login"
                                 onClick={() => setIsOpen(false)}
-                                className="block w-full text-center px-4 py-3 bg-white text-[#0f172a] rounded-lg text-lg font-medium hover:bg-slate-200 transition-colors"
+                                className="block w-full text-center px-4 py-3 bg-[#CA9C68] text-[#13191F] rounded-lg text-lg font-medium hover:bg-[#D7AE7D] transition-colors"
                             >
                                 Login
                             </Link>

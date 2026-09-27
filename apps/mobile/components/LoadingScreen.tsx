@@ -7,12 +7,13 @@ import {
   Easing,
   Dimensions,
 } from 'react-native';
+import { MidnightColors } from '../constants/theme';
 
 const { width, height } = Dimensions.get('window');
-const GOLD = '#D4AF37';
-const GOLD_DIM = 'rgba(212,175,55,0.25)';
-const MAROON = 'rgba(93,0,30,0.7)';
-const BG = '#0d0808';
+const GOLD = MidnightColors.gold;
+const GOLD_DIM = 'rgba(202,156,104,0.25)';
+const MAROON = 'rgba(89,76,61,0.7)';
+const BG = MidnightColors.background;
 
 interface LoadingScreenProps {
   message?: string;
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: 'rgba(212,175,55,0.08)',
+    backgroundColor: 'rgba(202,156,104,0.08)',
   },
   blobBottomRight: {
     position: 'absolute',
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(93,0,30,0.1)',
+    backgroundColor: 'rgba(89,76,61,0.16)',
   },
 
   // Spinner wrap
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: GOLD_DIM,
     borderTopColor: GOLD,
-    borderRightColor: 'rgba(212,175,55,0.55)',
+    borderRightColor: 'rgba(202,156,104,0.55)',
   },
   ringOuterArc: { width: 0, height: 0 }, // just a spacer
 
@@ -299,8 +300,8 @@ const styles = StyleSheet.create({
     height: RING_INNER,
     borderRadius: RING_INNER / 2,
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.06)',
-    borderTopColor: 'rgba(212,175,55,0.65)',
+    borderColor: 'rgba(202,156,104,0.06)',
+    borderTopColor: 'rgba(202,156,104,0.65)',
   },
   ringInnerArc: { width: 0, height: 0 },
 
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     width: CENTER,
     height: CENTER,
     borderRadius: CENTER / 2,
-    backgroundColor: '#C49B2A',
+    backgroundColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: GOLD,
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: BG,
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.3)',
+    borderColor: 'rgba(202,156,104,0.3)',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
     padding: 3,
@@ -359,14 +360,14 @@ const styles = StyleSheet.create({
     color: GOLD,
     letterSpacing: 2,
     lineHeight: 30,
-    textShadowColor: 'rgba(212,175,55,0.5)',
+    textShadowColor: 'rgba(202,156,104,0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 14,
   },
   brandAmp: {
     fontFamily: 'PlayfairDisplay_400Regular_Italic',
     fontSize: 14,
-    color: 'rgba(212,175,55,0.4)',
+    color: 'rgba(202,156,104,0.4)',
     marginBottom: 2,
   },
   messageText: {
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 3,
     textTransform: 'uppercase',
-    color: 'rgba(255,253,208,0.45)',
+    color: 'rgba(255,247,235,0.56)',
     textAlign: 'center',
   },
 
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: 110,
     height: 2,
-    backgroundColor: 'rgba(212,175,55,0.1)',
+    backgroundColor: 'rgba(202,156,104,0.1)',
     borderRadius: 2,
     overflow: 'hidden',
   },

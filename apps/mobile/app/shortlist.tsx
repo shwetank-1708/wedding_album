@@ -53,7 +53,7 @@ export default function ShortlistScreen() {
 
       {/* ── HEADER ── */}
       <LinearGradient
-        colors={['#101010', '#050505']}
+        colors={['#1B211F', '#13191F']}
         style={[styles.header, { paddingTop: insets.top + 4 }]}
       >
         <View style={styles.headerLeft}>
@@ -164,7 +164,7 @@ export default function ShortlistScreen() {
                         </Text>
                       </View>
                       <View style={styles.listMetaItem}>
-                        <IconSymbol name="clock.fill" size={9} color="#d4af37" />
+                        <IconSymbol name="clock.fill" size={9} color="#CA9C68" />
                         <Text style={styles.listMetaText}>
                           {(vendor.experience !== undefined && vendor.experience !== null && String(vendor.experience) !== '')
                             ? `${vendor.experience}+ Yrs`
@@ -177,7 +177,7 @@ export default function ShortlistScreen() {
 
                     <View style={styles.listFooterRow}>
                       <View style={styles.listRatingBadge}>
-                        <IconSymbol name="star.fill" size={9} color="#d4af37" />
+                        <IconSymbol name="star.fill" size={9} color="#CA9C68" />
                         <Text style={styles.listRatingText}>{vendor.rating || '5.0'}</Text>
                       </View>
                       <View style={styles.listActionBtn}>
@@ -197,7 +197,7 @@ export default function ShortlistScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050505' },
+  container: { flex: 1, backgroundColor: '#13191F' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 20,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 15,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'AkayaKanadaka_400Regular',
     textAlign: 'center',
     marginTop: -18,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',
     lineHeight: 24,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   listCard: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 16,
     marginHorizontal: 0,
     padding: 8,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     position: 'relative',
     borderWidth: 0.5,
     borderColor: 'rgba(129, 140, 248, 0.15)',

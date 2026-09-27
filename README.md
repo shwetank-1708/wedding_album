@@ -58,5 +58,11 @@ Open [http://localhost:3000](http://localhost:3000) to view the gallery.
 - `src/lib`: Supabase database and storage utilities.
 - `src/app/actions`: Secure server-side Cloudinary operations.
 
+## 📚 Architecture & Documentation
+
+- [Video Upload & Transcoding Pipeline](file:///Users/sarthak/EveBash/VIDEO_UPLOAD_PIPELINE.md) — Comprehensive specification of the direct-to-storage chunked upload, QStash routing, Modal GPU/CPU HLS transcoding, and self-healing watchdog.
+- [Architecture Migration Plan](file:///Users/sarthak/EveBash/ARCHITECTURE_MIGRATION.md) — Railway backend API migration status and route topologies.
+- [Cost Analysis & Financial Model](file:///Users/sarthak/EveBash/COST_ANALYSIS.md) — Unit economics for Backblaze B2, Modal.com, Supabase, and Cloudflare.
+
 ---
 Created with ❤️ by Lens & Frame.

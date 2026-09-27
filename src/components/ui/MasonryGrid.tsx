@@ -36,6 +36,7 @@ interface MasonryGridProps {
     lightboxTheme?: LightboxTheme;
     pageFlipTheme?: PageFlipTheme;
     viewerLayout?: ViewerLayout;
+    commentsMode?: "overlay" | "side-panel";
     templateId?: string;
     showPageFlipThumbnails?: boolean;
     onLikeChange?: () => void;
@@ -153,13 +154,22 @@ function PhotoCard({
             <div className="relative w-full overflow-hidden">
                 {isVideo ? (
                     <div className="relative aspect-[4/5] w-full bg-slate-950 overflow-hidden">
-                        <video
-                            src={photo.src}
-                            className="h-full w-full object-cover transform transition-all duration-700 group-hover:scale-[1.02]"
-                            muted
-                            playsInline
-                            preload="metadata"
-                        />
+                        {photo.thumbnailUrl ? (
+                            <img
+                                src={photo.thumbnailUrl}
+                                alt={photo.alt || "Video preview"}
+                                className="h-full w-full object-cover transform transition-all duration-700 group-hover:scale-[1.02]"
+                                loading="lazy"
+                            />
+                        ) : (
+                            <video
+                                src={photo.src}
+                                className="h-full w-full object-cover transform transition-all duration-700 group-hover:scale-[1.02]"
+                                muted
+                                playsInline
+                                preload="metadata"
+                            />
+                        )}
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 group-hover:bg-slate-950/10 transition-colors">
                             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform">
                                 <Play className="h-5 w-5 fill-current ml-0.5" />
@@ -254,6 +264,7 @@ export function MasonryGrid({
     lightboxClassName,
     pageFlipTheme,
     viewerLayout,
+    commentsMode = "side-panel",
     templateId,
     showPageFlipThumbnails = true,
     onLikeChange
@@ -308,6 +319,7 @@ export function MasonryGrid({
                         showThumbnails={showPageFlipThumbnails}
                         showDownload={!disableDownload}
                         viewerLayout={resolvedViewerLayout}
+                        commentsMode={commentsMode}
                         onClose={() => setViewingPhoto(null)}
                         onIndexChange={(index) => setViewingPhoto(photos[index] || null)}
                     />

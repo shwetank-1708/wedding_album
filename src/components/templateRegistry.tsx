@@ -12,6 +12,8 @@ import { TemplatePolaroid } from "@/components/TemplatePolaroid";
 import { TemplateRoyal } from "@/components/TemplateRoyal";
 import { TemplateScrapbook } from "@/components/TemplateScrapbook";
 import { TemplatePop } from "@/components/TemplatePop";
+import { TemplateNeon } from "@/components/TemplateNeon";
+import { TemplateCyberTech } from "@/components/TemplateCyberTech";
 import { Event } from "@/lib/database";
 import { makeUniversalTemplate } from "@/components/TemplateUniversal";
 
@@ -29,9 +31,10 @@ export const WEB_TEMPLATE_COMPONENTS: Record<string, WebTemplateComponent> = {
   scrapbook: TemplateScrapbook,
   brutalist: TemplateBrutalist,
   pop: TemplatePop,
+  neon: TemplateNeon,
+  cyber_tech: TemplateCyberTech,
 
   ethereal: makeUniversalTemplate("ethereal"),
-  neon: makeUniversalTemplate("neon"),
   pastel: makeUniversalTemplate("pastel"),
   golden_years: makeUniversalTemplate("golden_years"),
   vintage: makeUniversalTemplate("vintage"),
@@ -47,7 +50,6 @@ export const WEB_TEMPLATE_COMPONENTS: Record<string, WebTemplateComponent> = {
   executive: makeUniversalTemplate("executive"),
   vibrant: makeUniversalTemplate("vibrant"),
   zen: makeUniversalTemplate("zen"),
-  cyber_tech: makeUniversalTemplate("cyber_tech"),
   retro_arcade: makeUniversalTemplate("retro_arcade"),
   academic_editorial: makeUniversalTemplate("academic_editorial"),
   neon_carnival: makeUniversalTemplate("neon_carnival"),

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import {
   fetchUsers,
@@ -7,6 +7,16 @@ import {
   fetchPhotos,
   fetchContactMessages,
   updateContactMessageStatus,
+  directPromoteSuperAdmin,
+  directRevokeSuperAdmin,
+  directUpdateUserRole,
+  directUpdateUserDuration,
+  directUpdateUserPlanDates,
+  directDeleteGuest,
+  directToggleSampleGallery,
+  directDeleteEvent,
+  directResetUserData,
+  directDeleteUser,
   computeDashboardStats,
   type DashboardStats,
   type UserProfile,
@@ -24,8 +34,9 @@ import { ManagePricingGrid } from './components/ManagePricingGrid';
 import { InfraCostGrid } from './components/InfraCostGrid';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { ContactMessagesGrid } from './components/ContactMessagesGrid';
+import { PaymentsGrid } from './components/PaymentsGrid';
 import { runAdminAction, type AdminAction } from './lib/adminApi';
-import { BarChart3, Users, Folder, LogOut, Key, Mail, AlertTriangle, ShieldCheck, Layers, DollarSign, Settings2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { BarChart3, Users, Folder, LogOut, Key, Mail, AlertTriangle, ShieldCheck, Layers, DollarSign, Settings2, CheckCircle2, ArrowLeft, CreditCard } from 'lucide-react';
 
 const isPasswordRecoveryUrl = () => {
   if (typeof window === 'undefined') return false;
@@ -61,13 +72,33 @@ export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'plans' | 'pricing' | 'infra' | 'messages' | 'superadmin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'plans' | 'pricing' | 'infra' | 'payments' | 'messages' | 'superadmin'>('overview');
+  const [usersResetTrigger, setUsersResetTrigger] = useState(0);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleNavClick = (tab: 'overview' | 'users' | 'events' | 'plans' | 'pricing' | 'infra' | 'payments' | 'messages' | 'superadmin') => {
+    setActiveTab(tab);
+    if (tab === 'users') {
+      setUsersResetTrigger(prev => prev + 1);
+    }
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const isRecoveryLink = isPasswordRecoveryUrl();
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // Clean up stale auth fragments from the URL so reloading doesn't cause gotrue token expiration warnings
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hash &&
+        (window.location.hash.includes('access_token') || window.location.hash.includes('error=')) &&
+        !isRecoveryLink
+      ) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
       setSession(session);
       if (isRecoveryLink) {
         setAuthView('reset');
@@ -122,6 +153,7 @@ export default function App() {
           id: data.id,
           name: data.name || 'Admin',
           email: data.email || '',
+          username: data.username || '',
           role: data.role,
           roleType: data.role_type || '',
           delegatedBy: data.delegated_by || '',
@@ -266,17 +298,51 @@ export default function App() {
   ) => {
     setLoadingData(true);
     try {
-      const result = await runAdminAction(action, payload);
-      if (!result.success) {
-        alert(result.error || 'Admin action failed.');
-        return;
+      if (action === 'promoteSuperAdmin') {
+        await directPromoteSuperAdmin(String(payload.uid || ''));
+      } else if (action === 'revokeSuperAdmin') {
+        await directRevokeSuperAdmin(String(payload.uid || ''), profile?.id);
+      } else if (action === 'updateUserRole') {
+        await directUpdateUserRole(String(payload.uid || ''), String(payload.role || 'free'), {
+          delegatedBy: payload.delegatedBy ? String(payload.delegatedBy) : undefined,
+          roleType: payload.roleType ? String(payload.roleType) : undefined,
+          assignedEvents: Array.isArray(payload.assignedEvents) ? payload.assignedEvents.map(String) : undefined,
+        });
+      } else if (action === 'updateUserDuration') {
+        await directUpdateUserDuration(String(payload.uid || ''), String(payload.duration || 'monthly'));
+      } else if (action === 'updateUserPlanDates') {
+        await directUpdateUserPlanDates(
+          String(payload.uid || ''),
+          String(payload.planStartDate || ''),
+          String(payload.planEndDate || '')
+        );
+      } else if (action === 'deleteGuest') {
+        await directDeleteGuest(String(payload.guestId || ''));
+      } else if (action === 'toggleSampleGallery') {
+        await directToggleSampleGallery(String(payload.eventId || ''), Boolean(payload.isSampleGallery));
+      } else if (action === 'deleteEvent') {
+        await directDeleteEvent(String(payload.eventId || ''));
+      } else if (action === 'deleteUser') {
+        await directDeleteUser(String(payload.uid || ''));
+      } else if (action === 'resetUserData') {
+        await directResetUserData(String(payload.uid || ''));
+      } else {
+        const result = await runAdminAction(action, payload);
+        if (!result.success) {
+          alert(result.error || 'Admin action failed.');
+          return;
+        }
+
+        if (action === 'syncUsers') {
+          alert(`Sync completed. ${result.synced || 0} missing profiles added from ${result.count || 0} auth users.`);
+          await loadDashboardData();
+          return;
+        }
       }
 
       await loadDashboardData();
 
-      if (action === 'syncUsers') {
-        alert(`Sync completed. ${result.synced || 0} missing profiles added from ${result.count || 0} auth users.`);
-      } else if (successMessage) {
+      if (successMessage) {
         alert(successMessage);
       }
     } catch (err) {
@@ -532,18 +598,23 @@ export default function App() {
         <div>
           {/* Logo Brand */}
           <div className="h-16 border-b border-slate-800 flex items-center px-6">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">
+            <button
+              type="button"
+              onClick={() => handleNavClick('overview')}
+              className="flex items-center space-x-2.5 cursor-pointer text-left group transition-opacity hover:opacity-90"
+              title="Back to Overview Analytics"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm group-hover:scale-105 transition-transform">
                 A
               </div>
               <span className="font-bold text-white tracking-wide">Analytics Hub</span>
-            </div>
+            </button>
           </div>
 
           {/* Navigation Links */}
           <nav className="p-4 space-y-1">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleNavClick('overview')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'overview'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -555,7 +626,7 @@ export default function App() {
             </button>
             
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => handleNavClick('users')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'users'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -567,7 +638,7 @@ export default function App() {
             </button>
             
             <button
-              onClick={() => setActiveTab('events')}
+              onClick={() => handleNavClick('events')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'events'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -579,7 +650,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('plans')}
+              onClick={() => handleNavClick('plans')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'plans'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -591,7 +662,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('pricing')}
+              onClick={() => handleNavClick('pricing')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'pricing'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -603,7 +674,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('infra')}
+              onClick={() => handleNavClick('infra')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'infra'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -615,7 +686,19 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('messages')}
+              onClick={() => handleNavClick('payments')}
+              className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === 'payments'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
+                  : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 mr-3" />
+              Payments
+            </button>
+
+            <button
+              onClick={() => handleNavClick('messages')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'messages'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -627,7 +710,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveTab('superadmin')}
+              onClick={() => handleNavClick('superadmin')}
               className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'superadmin'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10'
@@ -662,16 +745,17 @@ export default function App() {
       </aside>
 
       {/* Main Panel Area */}
-      <div className="h-screen flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Header Block */}
-        <header className="h-16 border-b border-slate-800 bg-[#0f1422] flex items-center justify-between px-8">
+      <div className="h-screen flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Fixed Header Block (isolated from scrollable content) */}
+        <header className="h-16 border-b border-slate-800 bg-[#0f1422] flex items-center justify-between px-8 shrink-0 select-none">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">
             {activeTab === 'overview' ? 'Overview Analytics' :
-             activeTab === 'users' ? 'Registered User Accounts' :
+             activeTab === 'users' ? 'User Accounts' :
              activeTab === 'events' ? 'Galleries Catalog' :
              activeTab === 'plans' ? 'Subscription Plans Details' :
              activeTab === 'pricing' ? 'Manage Pricing' :
              activeTab === 'infra' ? 'Infrastructure Cost Hub' :
+             activeTab === 'payments' ? 'Customer Payments & Ledger' :
              activeTab === 'messages' ? 'Contact Messages' :
              'Super Admin Control'}
           </h2>
@@ -683,8 +767,9 @@ export default function App() {
           </div>
         </header>
 
-        {/* Dynamic Inner Dashboard Page */}
-        <main className="p-8 max-w-7xl w-full mx-auto flex-1">
+        {/* Dynamic Inner Dashboard Page Scroll Area */}
+        <div ref={mainScrollRef} className="flex-1 overflow-y-scroll [scrollbar-gutter:stable]">
+          <main className="p-8 max-w-7xl w-full mx-auto">
           {loadingData || !stats ? (
             <div className="h-96 flex flex-col items-center justify-center space-y-4">
               <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -695,10 +780,10 @@ export default function App() {
               {activeTab === 'overview' && <AnalyticsOverview stats={stats} />}
               {activeTab === 'users' && (
                 <UserGrid
+                  resetTrigger={usersResetTrigger}
                   users={users}
                   events={events}
                   photos={photos}
-                  currentAdminId={profile?.id}
                   onPlanChange={(userId, role) =>
                     handleAdminAction(
                       'updateUserRole',
@@ -718,20 +803,6 @@ export default function App() {
                       'updateUserPlanDates',
                       { uid: userId, planStartDate, planEndDate },
                       ''
-                    )
-                  }
-                  onPromoteSuperAdmin={userId =>
-                    handleAdminAction(
-                      'promoteSuperAdmin',
-                      { uid: userId },
-                      'User promoted to Super Admin.'
-                    )
-                  }
-                  onRevokeSuperAdmin={userId =>
-                    handleAdminAction(
-                      'revokeSuperAdmin',
-                      { uid: userId },
-                      'Super Admin access revoked.'
                     )
                   }
                   onResetUserData={userId =>
@@ -760,6 +831,44 @@ export default function App() {
               {activeTab === 'plans' && <PlanDetailsGrid users={users} />}
               {activeTab === 'pricing' && <ManagePricingGrid />}
               {activeTab === 'infra' && <InfraCostGrid stats={stats} users={users} events={events} guests={guests} photos={photos} />}
+              {activeTab === 'payments' && (
+                <PaymentsGrid
+                  users={users}
+                  events={events}
+                  photos={photos}
+                  onPlanChange={(userId, role) =>
+                    handleAdminAction(
+                      'updateUserRole',
+                      { uid: userId, role },
+                      'User plan updated.'
+                    )
+                  }
+                  onDurationChange={(userId, duration) =>
+                    handleAdminAction(
+                      'updateUserDuration',
+                      { uid: userId, duration },
+                      'User duration updated.'
+                    )
+                  }
+                  onPlanDatesChange={(userId, planStartDate, planEndDate) =>
+                    handleAdminAction(
+                      'updateUserPlanDates',
+                      { uid: userId, planStartDate, planEndDate },
+                      ''
+                    )
+                  }
+                  onDeleteEvent={eventId =>
+                    handleAdminAction('deleteEvent', { eventId }, 'Event deleted.')
+                  }
+                  onToggleSampleGallery={(eventId, isSampleGallery) =>
+                    handleAdminAction(
+                      'toggleSampleGallery',
+                      { eventId, isSampleGallery },
+                      isSampleGallery ? 'Event added to Sample Galleries.' : 'Event removed from Sample Galleries.'
+                    )
+                  }
+                />
+              )}
               {activeTab === 'messages' && (
                 <ContactMessagesGrid
                   messages={contactMessages}
@@ -772,8 +881,23 @@ export default function App() {
                   events={events}
                   guests={guests}
                   loading={loadingData}
+                  currentAdminId={profile?.id || session?.user?.id}
                   onRefresh={loadDashboardData}
                   onSyncUsers={() => handleAdminAction('syncUsers')}
+                  onPromoteSuperAdmin={userId =>
+                    handleAdminAction(
+                      'promoteSuperAdmin',
+                      { uid: userId },
+                      'User promoted to Super Admin.'
+                    )
+                  }
+                  onRevokeSuperAdmin={userId =>
+                    handleAdminAction(
+                      'revokeSuperAdmin',
+                      { uid: userId },
+                      'Super Admin access revoked.'
+                    )
+                  }
                   onUpdateUserRole={(userId, role, delegatedBy, roleType) =>
                     handleAdminAction(
                       'updateUserRole',
@@ -794,7 +918,8 @@ export default function App() {
               )}
             </>
           )}
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );

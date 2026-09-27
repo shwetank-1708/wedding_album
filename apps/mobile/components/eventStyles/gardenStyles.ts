@@ -17,7 +17,7 @@ export const gardenStyles = {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#2E6F40',
+    backgroundColor: '#7a9a6b',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -33,7 +33,7 @@ export const gardenStyles = {
     borderRadius: 24,
     borderWidth: 1,
     // borderColor set dynamically in JSX
-    shadowColor: '#14532d',
+    shadowColor: '#2b382c',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 14,

@@ -8,12 +8,16 @@ import { supabaseAnonKey, supabaseUrl } from "../config.js";
 import { getSupabaseAdminClient } from "../supabase.js";
 import {
   type BackblazeAuth,
+  type BackblazeUploadUrl,
+  type B2PartInfo,
   cancelLargeFile,
   finishLargeFile,
   getCachedBackblazeAuth,
   getCachedUploadUrl,
   getUploadPartUrl,
   getUploadUrl,
+  invalidateBackblazeAuth,
+  listLargeFileParts,
   startLargeFile,
 } from "../backblaze.js";
 import {
@@ -22,6 +26,7 @@ import {
   publishModalBatchTask,
   publishVideoTranscodeTask,
 } from "../qstash.js";
+import { runMediaWatchdog } from "../services/watchdog.js";
 
 export const mediaRouter = Router();
 
@@ -34,6 +39,9 @@ type PhotoPayload = {
   url: string;
   width?: number | null;
   height?: number | null;
+  user_id?: string;
+  fileSize?: number;
+  duration?: number;
 };
 
 type SavedPhoto = {
@@ -230,6 +238,7 @@ function toPhotoRow(params: {
   fileSize?: number;
   userId: string;
   resourceType?: string;
+  duration?: number;
 }) {
   const isVideo = isVideoResource(params.resourceType, params.fileName, params.storageKey);
   const mediaDomain = getMediaDomain();
@@ -242,20 +251,58 @@ function toPhotoRow(params: {
       event_id: params.eventId,
       storage_key: params.storageKey,
       url,
-      height: null,
-      width: null,
+      height: null as number | null,
+      width: null as number | null,
       uploaded_at: new Date().toISOString(),
-      tags: [],
+      tags: [] as string[],
       user_id: params.userId,
       size: Number(params.fileSize) || 0,
+      duration: params.duration ? Number(params.duration) : null,
       format: params.fileName.split(".").pop()?.toLowerCase() || (isVideo ? "mp4" : "jpg"),
       media_type: isVideo ? "video" : "photo",
       resource_type: isVideo ? "video" : "image",
+      status: isVideo ? "processing" : "processed",
+      b2_file_id: null as string | null,
+      processing_error: null as string | null,
+      transcode_attempts: 0,
     },
     url,
     photoId,
     isVideo,
   };
+}
+
+async function safeUpsertPhoto(supabaseAdmin: any, row: any) {
+  const { error } = await supabaseAdmin.from("photos").upsert(row);
+  if (!error) return { error: null };
+
+  if (error.message?.includes("column") || error.code === "PGRST204") {
+    console.warn(`[Photos] Upsert encountered schema issue (${error.message}), retrying with sanitized row...`);
+    const sanitized = { ...row };
+    delete sanitized.duration;
+    delete sanitized.transcode_attempts;
+    delete sanitized.b2_file_id;
+    return await supabaseAdmin.from("photos").upsert(sanitized);
+  }
+  return { error };
+}
+
+async function safeUpsertPhotosBatch(supabaseAdmin: any, rows: any[]) {
+  const { error } = await supabaseAdmin.from("photos").upsert(rows);
+  if (!error) return { error: null };
+
+  if (error.message?.includes("column") || error.code === "PGRST204") {
+    console.warn(`[Photos] Batch upsert encountered schema issue (${error.message}), retrying with sanitized rows...`);
+    const sanitized = rows.map((r: any) => {
+      const s = { ...r };
+      delete s.duration;
+      delete s.transcode_attempts;
+      delete s.b2_file_id;
+      return s;
+    });
+    return await supabaseAdmin.from("photos").upsert(sanitized);
+  }
+  return { error };
 }
 
 function background(label: string, task: () => Promise<unknown>) {
@@ -494,6 +541,25 @@ function getB2KeyFromUrl(url: string) {
   }
 }
 
+// Watchdog recovery endpoint (can be triggered by Railway Cron, QStash Cron, or internal admin)
+mediaRouter.all("/watchdog/run", asyncRoute(async (request, response) => {
+  // Allow authorized admin users or internal services
+  const authHeader = request.header("authorization") || "";
+  const internalSecret = process.env.INTERNAL_JOB_SECRET?.trim();
+  const isSecretMatch = internalSecret && authHeader.includes(internalSecret);
+
+  if (!isSecretMatch) {
+    const user = await verifySupabaseUser(authHeader.replace("Bearer ", ""));
+    // Allow if authenticated (or configure admin check if preferred)
+    if (!user) {
+      return jsonError(response, 401, "Unauthorized watchdog execution");
+    }
+  }
+
+  const report = await runMediaWatchdog();
+  response.json({ success: true, report });
+}));
+
 mediaRouter.post("/get-upload-url", asyncRoute(async (request, response) => {
   const body = request.body || {};
   const scope = body.scope === "profile" ? "profile" : "event";
@@ -510,11 +576,7 @@ mediaRouter.post("/get-upload-url", asyncRoute(async (request, response) => {
 
   const storageKey = buildStorageKey({ eventId, userId, resourceType, fileName, scope });
   const backblazeAuth = await getCachedBackblazeAuth();
-  const b2UploadData = await getCachedUploadUrl(
-    backblazeAuth,
-    body.forceRefresh === true,
-    typeof body.laneIndex === "number" ? body.laneIndex : 0,
-  );
+  const b2UploadData = await getCachedUploadUrl(backblazeAuth);
 
   response.json({
     uploadUrl: b2UploadData.uploadUrl,
@@ -532,6 +594,7 @@ mediaRouter.post("/upload/chunk/initiate", asyncRoute(async (request, response) 
   const resourceType = requestedResourceType === "video" ? "video" : "image";
   const fileName = String(body.fileName || (scope === "profile" ? "profile.mp4" : "upload.mp4"));
   const contentType = String(body.contentType || (resourceType === "video" ? "video/mp4" : "image/jpeg"));
+  const fileSize = Number(body.fileSize || 0);
 
   if (scope === "event" && !eventId.trim()) return jsonError(response, 400, "Missing eventId");
 
@@ -540,19 +603,114 @@ mediaRouter.post("/upload/chunk/initiate", asyncRoute(async (request, response) 
     return jsonError(response, 401, "Invalid event or unauthorized access");
   }
 
-  const storageKey = buildStorageKey({ eventId, userId, resourceType, fileName, scope });
-  const backblazeAuth = await getCachedBackblazeAuth();
-  const largeFileData = await startLargeFile(backblazeAuth, storageKey, contentType);
+  const supabaseAdmin = getSupabaseAdminClient();
+  let backblazeAuth = await getCachedBackblazeAuth();
 
-  response.json({ fileId: largeFileData.fileId, storageKey, mediaDomain: getMediaDomain() });
+  // ── 1. Check for an active resumable session in `photos` ─────────────────────
+  // Look for a session created within the last 23 hours by the same user for the same event and file
+  const twentyThreeHoursAgo = new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString();
+
+  const { data: activeSession } = await supabaseAdmin
+    .from("photos")
+    .select("id, storage_key, b2_file_id, size, format, status, uploaded_at")
+    .eq("event_id", eventId)
+    .eq("user_id", userId)
+    .eq("status", "uploading")
+    .eq("size", fileSize)
+    .not("b2_file_id", "is", null)
+    .gte("uploaded_at", twentyThreeHoursAgo)
+    .order("uploaded_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeSession?.b2_file_id && activeSession?.storage_key) {
+    try {
+      console.log(`[Media] Found existing active session for ${fileName}: fileId=${activeSession.b2_file_id}`);
+      let parts: B2PartInfo[];
+      try {
+        parts = await listLargeFileParts(backblazeAuth, activeSession.b2_file_id);
+      } catch (err: any) {
+        if (err?.message?.includes("expired") || err?.message?.includes("401")) {
+          invalidateBackblazeAuth();
+          backblazeAuth = await getCachedBackblazeAuth();
+          parts = await listLargeFileParts(backblazeAuth, activeSession.b2_file_id);
+        } else {
+          throw err;
+        }
+      }
+
+      const completedParts = parts.map((p) => ({
+        partNumber: p.partNumber,
+        sha1: p.contentSha1,
+      }));
+
+      console.log(`[Media] Server-side resume active for ${fileName}: ${completedParts.length} parts already on B2.`);
+      response.json({
+        fileId: activeSession.b2_file_id,
+        storageKey: activeSession.storage_key,
+        resumed: true,
+        completedParts,
+        mediaDomain: getMediaDomain(),
+      });
+      return;
+    } catch (err) {
+      console.warn(`[Media] Existing session ${activeSession.b2_file_id} could not be resumed (likely expired). Starting fresh.`, err);
+    }
+  }
+
+  // ── 2. Fresh session initiation ──────────────────────────────────────────────
+  const storageKey = buildStorageKey({ eventId, userId, resourceType, fileName, scope });
+  const largeFileData = await startLargeFile(backblazeAuth, storageKey, contentType);
+  const photoId = storageKey.replace(/\//g, "_");
+  const mediaDomain = getMediaDomain();
+
+  // ── 3. Upsert session row into `photos` with status: 'uploading' ─────────────
+  await supabaseAdmin.from("photos").upsert({
+    id: photoId,
+    event_id: eventId,
+    storage_key: storageKey,
+    url: `https://${mediaDomain}/${storageKey}`,
+    user_id: userId,
+    size: fileSize,
+    format: fileName.split(".").pop()?.toLowerCase() || (resourceType === "video" ? "mp4" : "jpg"),
+    media_type: resourceType === "video" ? "video" : "photo",
+    resource_type: resourceType === "video" ? "video" : "image",
+    status: "uploading",
+    b2_file_id: largeFileData.fileId,
+    uploaded_at: new Date().toISOString(),
+    tags: [],
+    processing_error: null,
+    transcode_attempts: 0,
+  });
+
+  response.json({
+    fileId: largeFileData.fileId,
+    storageKey,
+    resumed: false,
+    completedParts: [],
+    mediaDomain,
+  });
 }));
 
 mediaRouter.post("/upload/chunk/part-url", asyncRoute(async (request, response) => {
   const fileId = String(request.body?.fileId || "");
   if (!fileId.trim()) return jsonError(response, 400, "Missing fileId");
 
-  const backblazeAuth = await getCachedBackblazeAuth();
-  const partUrlData = await getUploadPartUrl(backblazeAuth, fileId);
+  let backblazeAuth = await getCachedBackblazeAuth();
+  let partUrlData: BackblazeUploadUrl;
+  try {
+    partUrlData = await getUploadPartUrl(backblazeAuth, fileId);
+  } catch (err: any) {
+    if (err?.message?.includes("401")) {
+      invalidateBackblazeAuth();
+      backblazeAuth = await getCachedBackblazeAuth();
+      partUrlData = await getUploadPartUrl(backblazeAuth, fileId);
+    } else if (err?.message?.includes("No active upload") || err?.message?.includes("status 400")) {
+      return jsonError(response, 410, "Upload session has expired on storage provider. Please start fresh.");
+    } else {
+      throw err;
+    }
+  }
   response.json({ uploadUrl: partUrlData.uploadUrl, authorizationToken: partUrlData.authorizationToken });
 }));
 
@@ -564,11 +722,22 @@ mediaRouter.post("/upload/chunk/complete-part", asyncRoute(async (request, respo
 
 
 mediaRouter.post("/upload/chunk/abort", asyncRoute(async (request, response) => {
+  const user = await requireUser(request, response);
+  if (!user) return;
   const fileId = String(request.body?.fileId || "");
   if (!fileId.trim()) return jsonError(response, 400, "Missing fileId");
-
+  const supabaseAdmin = getSupabaseAdminClient();
+  const { data: photo, error } = await supabaseAdmin.from("photos")
+    .select("id,user_id,status").eq("b2_file_id", fileId).maybeSingle();
+  if (error) throw error;
+  if (!photo) return jsonError(response, 404, "Upload session was not found");
+  if (photo.user_id !== user.id) return jsonError(response, 403, "Only the uploader can cancel this upload");
+  if (photo.status !== "uploading") return jsonError(response, 409, "Upload has already finished; processing cannot be cancelled here");
   const backblazeAuth = await getCachedBackblazeAuth();
   await cancelLargeFile(backblazeAuth, fileId);
+  const { error: deleteError } = await supabaseAdmin.from("photos").delete()
+    .eq("id", photo.id).eq("user_id", user.id).eq("status", "uploading");
+  if (deleteError) throw deleteError;
   response.json({ success: true });
 }));
 
@@ -601,6 +770,7 @@ mediaRouter.post("/upload/chunk/complete", asyncRoute(async (request, response) 
     }
   }
 
+  const duration = Number(body.duration || 0);
   const { row, url, photoId, isVideo } = toPhotoRow({
     storageKey,
     eventId,
@@ -608,14 +778,35 @@ mediaRouter.post("/upload/chunk/complete", asyncRoute(async (request, response) 
     fileSize: fileSize || finishResult.contentLength || 0,
     userId,
     resourceType: body.resourceType,
+    duration,
   });
 
+  // Explicit status transition: clear b2_file_id and mark processing
+  row.status = isVideo ? "processing" : "processed";
+  row.b2_file_id = null;
+
   const supabaseAdmin = getSupabaseAdminClient();
-  const { error: dbError } = await supabaseAdmin.from("photos").upsert(row);
+  const { error: dbError } = await safeUpsertPhoto(supabaseAdmin, row);
   if (dbError) return jsonError(response, 500, `Upload succeeded to storage but failed to save database record: ${dbError.message}`);
 
   if (isVideo) {
-    background("CompleteChunkedUpload", () => publishManifestAssemblyTask({ id: photoId, storage_key: storageKey, event_id: eventId }));
+    // Await QStash registration before returning HTTP 200 to prevent loss on container restart (BUG-5)
+    try {
+      await publishManifestAssemblyTask({
+        id: photoId,
+        photo_id: photoId,
+        storage_key: storageKey,
+        event_id: eventId,
+        url,
+        duration: Number(body.duration || 0),
+        fileSize: Number(fileSize || finishResult.contentLength || body.fileSize || 0),
+        user_id: userId,
+      });
+    } catch (err) {
+      console.error(`[CompleteChunkedUpload] QStash dispatch error for ${photoId}:`, err);
+      // Even if QStash is momentarily unreachable, the row is saved as status='processing'
+      // and the Stage 3 self-healing watchdog will re-enqueue it automatically!
+    }
   }
   background("CompleteChunkedUploadNotify", () =>
     sendOwnerUploadNotification(
@@ -657,9 +848,10 @@ mediaRouter.post("/save-photo", asyncRoute(async (request, response) => {
     return jsonError(response, 401, "Invalid event or unauthorized access");
   }
 
-  const { row, url, photoId, isVideo } = toPhotoRow({ storageKey, eventId, fileName, fileSize, userId, resourceType: body.resourceType });
+  const duration = Number(body.duration || 0);
+  const { row, url, photoId, isVideo } = toPhotoRow({ storageKey, eventId, fileName, fileSize, userId, resourceType: body.resourceType, duration });
   const supabaseAdmin = getSupabaseAdminClient();
-  const { error: dbError } = await supabaseAdmin.from("photos").upsert(row);
+  const { error: dbError } = await safeUpsertPhoto(supabaseAdmin, row);
 
   if (dbError) {
     background("UploadRollback", () => rollbackB2Upload(storageKey, isVideo ? "video" : "image"));
@@ -671,9 +863,14 @@ mediaRouter.post("/save-photo", asyncRoute(async (request, response) => {
   );
 
   if (isVideo) {
-    background("SavePhotoVideo", () => publishVideoTranscodeTask({ id: photoId, storage_key: storageKey, event_id: eventId, url }, fileSize));
+    // Await transcode dispatch before responding
+    try {
+      await publishVideoTranscodeTask({ id: photoId, storage_key: storageKey, event_id: eventId, url, user_id: userId, fileSize, duration }, fileSize);
+    } catch (err) {
+      console.error(`[SavePhoto] QStash dispatch error for ${photoId}:`, err);
+    }
   } else {
-    background("SavePhotoModalTrigger", () => publishModalBatchTask([{ id: photoId, storage_key: storageKey, event_id: eventId, url }]));
+    background("SavePhotoModalTrigger", () => publishModalBatchTask([{ id: photoId, storage_key: storageKey, event_id: eventId, url, user_id: userId, fileSize }]));
   }
 
   response.json({ success: true, url, photoId });
@@ -686,7 +883,7 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
   const userId = await getUploadUserId(request);
   const upsertRows: unknown[] = [];
   const imagePayloads: PhotoPayload[] = [];
-  const videoPayloads: Array<PhotoPayload & { fileSize?: number }> = [];
+  const videoPayloads: Array<PhotoPayload & { fileSize?: number; duration?: number }> = [];
   let firstEventId = "";
 
   for (const photo of photos) {
@@ -694,26 +891,29 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
     const eventId = String(photo.eventId || "");
     const fileName = String(photo.fileName || "");
     const fileSize = Number(photo.fileSize || 0);
+    const duration = Number(photo.duration || 0);
     if (!storageKey || !eventId || !fileName) continue;
     if (!firstEventId) firstEventId = eventId;
 
-    const { row, url, photoId, isVideo } = toPhotoRow({ storageKey, eventId, fileName, fileSize, userId, resourceType: photo.resourceType });
+    const { row, url, photoId, isVideo } = toPhotoRow({ storageKey, eventId, fileName, fileSize, userId, resourceType: photo.resourceType, duration });
     upsertRows.push(row);
     if (isVideo && !photo.skipTranscode) {
-      videoPayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, fileSize });
+      videoPayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, fileSize, duration, user_id: userId });
     } else if (!isVideo) {
-      imagePayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, width: null, height: null });
+      imagePayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, width: null, height: null, user_id: userId, fileSize });
     }
   }
 
   if (upsertRows.length === 0) return jsonError(response, 400, "No valid photos in batch");
 
   const supabaseAdmin = getSupabaseAdminClient();
-  const { error: dbError } = await supabaseAdmin.from("photos").upsert(upsertRows);
+  const { error: dbError } = await safeUpsertPhotosBatch(supabaseAdmin, upsertRows);
   if (dbError) return jsonError(response, 500, `Failed to save database records: ${dbError.message}`);
 
-  for (const video of videoPayloads) {
-    background("SavePhotoBatchVideo", () => publishVideoTranscodeTask(video, video.fileSize));
+  if (videoPayloads.length > 0) {
+    await Promise.allSettled(
+      videoPayloads.map((video) => publishVideoTranscodeTask(video, video.fileSize))
+    );
   }
 
   if (imagePayloads.length > 0) {
@@ -763,7 +963,7 @@ mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) =>
 
   let query = supabaseAdmin
     .from("photos")
-    .select("id, storage_key, event_id, preview_url, thumbnail_url, url")
+    .select("id, storage_key, event_id, preview_url, thumbnail_url, url, user_id")
     .eq("media_type", "photo")
     .eq("face_indexed", false)
     .limit(100);
@@ -777,6 +977,7 @@ mediaRouter.post("/trigger-modal-batch", asyncRoute(async (request, response) =>
     storage_key: photo.storage_key,
     event_id: photo.event_id,
     url: photo.preview_url || photo.thumbnail_url || photo.url,
+    user_id: photo.user_id,
   }));
 
   if (payload.length > 0) {
@@ -862,6 +1063,7 @@ mediaRouter.post("/delete", asyncRoute(async (request, response) => {
 
   response.json({ success: true });
 }));
+
 
 mediaRouter.post("/profile-image", asyncRoute(async (request, response) => {
   const user = await requireUser(request, response);

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
     "start": "tsx src/server.ts",
     "start:tsx": "tsx src/server.ts"
   },
@@ -20,13 +21,13 @@
     "pino-http": "^11.0.0",
     "razorpay": "^2.9.8",
     "sharp": "^0.35.3",
+    "tsx": "^4.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^20",
-    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

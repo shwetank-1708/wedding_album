@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Info } from "lucide-react";
-import { getApiUrl } from "@/lib/apiBase";
 import { getPlanDetails } from "@/lib/planLimits";
 import { pricingPlanToFeatures, PricingPlan } from "@/lib/pricingPlans";
 import type { RazorpayBillingDuration } from "@/lib/razorpayPricing";
@@ -291,10 +290,10 @@ export default function Pricing() {
 
         async function loadPricingPlans() {
             try {
-                const response = await fetch(getApiUrl("/api/v1/pricing-plans"), { cache: "no-store" });
+                const response = await fetch("/api/v1/pricing-plans", { cache: "no-store" });
                 const result = await response.json().catch(() => ({}));
                 if (!isMounted) return;
-                if (result.source !== "supabase" || !Array.isArray(result.plans)) {
+                if (!Array.isArray(result.plans)) {
                     setPricingStatus("unavailable");
                     setPlans([]);
                     return;
@@ -494,12 +493,34 @@ export default function Pricing() {
                 },
             });
 
-            checkout.on("payment.failed", (response) => {
+            checkout.on("payment.failed", async (response) => {
+                const failureText = response.error?.description || "Payment failed. Please try again.";
                 setCheckoutMessage({
                     type: "error",
-                    text: response.error?.description || "Payment failed. Please try again.",
+                    text: failureText,
                 });
                 setCheckoutPlanId(null);
+
+                try {
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    const token = sessionData.session?.access_token;
+                    fetch("/api/log-payment-failure", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
+                            orderId: orderResult.order_id,
+                            paymentId: (response.error as any)?.metadata?.payment_id || null,
+                            planId: plan.id,
+                            duration: billingCycle,
+                            failureReason: `${response.error?.code || 'error'}: ${failureText}`,
+                        }),
+                    }).catch(() => {});
+                } catch {
+                    // Non-blocking telemetry
+                }
             });
 
             checkout.open();

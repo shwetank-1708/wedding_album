@@ -32,7 +32,7 @@ const packages = [
     ],
     cta: "Select Free",
     accentColor: "rgba(148, 163, 184, 0.2)",
-    checkColor: "#94a3b8",
+    checkColor: "#CDB89E",
   },
   {
     id: "tier_10gb",
@@ -137,8 +137,8 @@ const packages = [
       "Priority Support & Faster CDN",
     ],
     cta: "Select Scale",
-    accentColor: "#d4af37",
-    checkColor: "#d4af37",
+    accentColor: "#CA9C68",
+    checkColor: "#CA9C68",
   },
   {
     id: "tier_200gb",
@@ -339,7 +339,7 @@ export default function PricingScreen() {
         >
           {activePackage.isPopular && (
             <LinearGradient
-              colors={['rgba(212, 175, 55, 0.25)', 'rgba(212, 175, 55, 0.02)']}
+              colors={['rgba(202, 156, 104, 0.25)', 'rgba(202, 156, 104, 0.02)']}
               style={StyleSheet.absoluteFill}
             />
           )}
@@ -383,7 +383,7 @@ export default function PricingScreen() {
           <TouchableOpacity 
             style={[
               styles.ctaButton, 
-              { backgroundColor: activePackage.isPopular ? '#d4af37' : '#1e293b' }
+              { backgroundColor: activePackage.isPopular ? '#CA9C68' : '#2B2F2E' }
             ]}
             onPress={() => {
               router.push('/contact');
@@ -392,7 +392,7 @@ export default function PricingScreen() {
           >
             <Text style={[
               styles.ctaText, 
-              activePackage.isPopular && { color: '#050505', fontFamily: 'Outfit_800ExtraBold' }
+              activePackage.isPopular && { color: '#13191F', fontFamily: 'Outfit_800ExtraBold' }
             ]}>{activePackage.cta}</Text>
           </TouchableOpacity>
         </View>
@@ -431,7 +431,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(212, 175, 55, 0.2)',
+    borderBottomColor: 'rgba(202, 156, 104, 0.2)',
   },
   backButton: {
     width: 40,
@@ -439,7 +439,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.06)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(27, 33, 31, 0.06)',
   },
   headerTitle: {
     fontSize: 28,
@@ -490,7 +490,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     borderRadius: 10,
   },
   filterTabActive: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
   },
   filterTabText: {
     fontSize: 12,
@@ -498,7 +498,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     color: colors.slate400,
   },
   filterTabTextActive: {
-    color: '#050505',
+    color: '#13191F',
     fontFamily: 'Outfit_800ExtraBold',
   },
   sectionLabel: {
@@ -530,16 +530,16 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     position: 'relative',
   },
   tierPillActive: {
-    borderColor: '#d4af37',
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    borderColor: '#CA9C68',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
   },
   tierPillPopularBorder: {
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderColor: 'rgba(202, 156, 104, 0.3)',
   },
   popularBadgeMini: {
     position: 'absolute',
     top: -6,
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 1,
@@ -547,7 +547,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   popularBadgeMiniText: {
     fontSize: 8,
     fontFamily: 'Outfit_800ExtraBold',
-    color: '#050505',
+    color: '#13191F',
   },
   tierPillTitle: {
     fontSize: 16,
@@ -555,7 +555,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     color: colors.ghostWhite,
   },
   tierPillTitleActive: {
-    color: '#d4af37',
+    color: '#CA9C68',
   },
   tierPillSubtitle: {
     fontSize: 10,
@@ -572,7 +572,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     padding: 24,
   },
   cardPopularBorder: {
-    borderColor: '#d4af37',
+    borderColor: '#CA9C68',
     borderWidth: 1.5,
   },
   planHeaderRow: {
@@ -623,7 +623,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   },
   divider: {
     height: 1,
-    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.1)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(27, 33, 31, 0.1)',
     marginBottom: 20,
   },
   featuresList: {
@@ -685,7 +685,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     marginTop: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(202, 156, 104, 0.2)',
   },
   customPlanTitle: {
     fontSize: 20,
@@ -702,7 +702,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     lineHeight: 22,
   },
   customPlanLink: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 14,
     fontFamily: 'Outfit_700Bold',
   },

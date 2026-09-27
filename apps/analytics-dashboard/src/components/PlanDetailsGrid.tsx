@@ -1,6 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import type { UserProfile } from '../lib/analytics';
-import { Search, Filter, Clock } from 'lucide-react';
+import {
+  Search,
+  Filter,
+  Clock,
+  Users,
+  Layers,
+  TrendingUp,
+  Calendar,
+  HardDrive,
+  CheckCircle2,
+  X
+} from 'lucide-react';
 
 interface Props {
   users: UserProfile[];
@@ -183,20 +194,132 @@ export const PlanDetailsGrid: React.FC<Props> = ({ users }) => {
     }, { current: 0, total: 0, thisWeek: 0, thisMonth: 0, last6Months: 0, lastYear: 0 });
   }, [filteredUnits]);
 
+  const hasActiveFilters = search !== '' || storageFilter !== 'all' || durationFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearch('');
+    setStorageFilter('all');
+    setDurationFilter('all');
+  };
+
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Header and Filter Controls */}
+    <div className="space-y-6 animate-fadeIn">
+      {/* Quick Analytics Cards Matching UserGrid Glassmorphism Design */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Active Subscriptions */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-500/40 hover:shadow-xl hover:shadow-indigo-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-indigo-500/10 blur-2xl transition-all duration-500 group-hover:bg-indigo-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Active Subscribers
+            </span>
+            <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-2.5 text-indigo-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-indigo-500/40 group-hover:bg-indigo-500/20">
+              <Users className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-white transition-colors group-hover:text-indigo-300">
+            {aggregateStats.current.toLocaleString()}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>Current in Filter</span>
+            </div>
+            <span className="rounded border border-indigo-500/25 bg-indigo-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-300">
+              {filteredUnits.length} units listed
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Total Subscribers Ever */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-xl hover:shadow-sky-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-sky-500/10 blur-2xl transition-all duration-500 group-hover:bg-sky-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              All-Time Subscribers
+            </span>
+            <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 p-2.5 text-sky-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-sky-500/40 group-hover:bg-sky-500/20">
+              <Layers className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-white transition-colors group-hover:text-sky-300">
+            {aggregateStats.total.toLocaleString()}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span>Cumulative Total</span>
+            </div>
+            <span className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-sky-300">
+              {storageTiers.length} storage tiers
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Velocity (Weekly / Monthly Growth) */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl transition-all duration-500 group-hover:bg-emerald-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              Monthly Growth
+            </span>
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-emerald-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-emerald-400 transition-colors group-hover:text-emerald-300">
+            +{aggregateStats.thisMonth.toLocaleString()}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>This Week: +{aggregateStats.thisWeek.toLocaleString()}</span>
+            </div>
+            <span className="rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+              Last 30 Days
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Long-Term Growth (6M / 1Y) */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-[#0c1322]/90 p-5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/5">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-purple-500/10 blur-2xl transition-all duration-500 group-hover:bg-purple-500/20" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-slate-300">
+              6-Month Retention
+            </span>
+            <div className="rounded-xl border border-purple-500/25 bg-purple-500/10 p-2.5 text-purple-400 shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:border-purple-500/40 group-hover:bg-purple-500/20">
+              <Calendar className="h-5 w-5" />
+            </div>
+          </div>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-purple-400 transition-colors group-hover:text-purple-300">
+            +{aggregateStats.last6Months.toLocaleString()}
+          </h3>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-400" />
+              <span>1 Year: +{aggregateStats.lastYear.toLocaleString()}</span>
+            </div>
+            <span className="rounded border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-purple-300">
+              Long-term
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Table Card Container */}
       <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* Controls Toolbar: Search & Tier Filters */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-xl font-bold text-white">Subscription Units Breakdown</h3>
+            <h3 className="text-xl font-bold text-white tracking-tight">Subscription Units Breakdown</h3>
             <p className="text-slate-400 text-xs mt-1">
-              Analyzing user counts and intervals across unique plan dimensions ({filteredUnits.length} units listed)
+              Analyzing subscriber distribution across unique storage and billing cycle dimensions ({filteredUnits.length} units listed)
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {/* Search */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Bar */}
             <div className="relative">
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -204,8 +327,18 @@ export const PlanDetailsGrid: React.FC<Props> = ({ users }) => {
                 placeholder="Search plan sizes or billing..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500/50 w-full sm:w-60 placeholder-slate-600 transition-colors"
+                className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 w-full sm:w-60 placeholder-slate-600 transition-colors"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Storage Filter */}
@@ -237,118 +370,245 @@ export const PlanDetailsGrid: React.FC<Props> = ({ users }) => {
                 ))}
               </select>
             </div>
+
+            {/* Clear All Filters Button */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Reset all filters"
+              >
+                <X className="w-3.5 h-3.5 text-rose-400" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Aggregated view for filtered plans */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-6 pt-6 border-t border-slate-800/60 text-center">
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Current Subs</p>
-            <p className="text-xl font-black text-white mt-1">{aggregateStats.current}</p>
-          </div>
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Total Subs</p>
-            <p className="text-xl font-black text-white mt-1">{aggregateStats.total}</p>
-          </div>
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">This Week</p>
-            <p className="text-xl font-black text-emerald-400 mt-1">+{aggregateStats.thisWeek}</p>
-          </div>
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">This Month</p>
-            <p className="text-xl font-black text-sky-400 mt-1">+{aggregateStats.thisMonth}</p>
-          </div>
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Last 6 Months</p>
-            <p className="text-xl font-black text-indigo-400 mt-1">+{aggregateStats.last6Months}</p>
-          </div>
-          <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Last Year</p>
-            <p className="text-xl font-black text-purple-400 mt-1">+{aggregateStats.lastYear}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Single Comprehensive Table of Subscription Units */}
-      <div className="bg-[#111827]/80 border border-slate-800 rounded-3xl p-6 shadow-xl">
-        <div className="overflow-x-auto border border-slate-800/60 rounded-2xl">
-          <table className="w-full text-left text-sm text-slate-400">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-900/30 border-b border-slate-800">
-              <tr>
-                <th scope="col" className="py-3.5 px-4">Storage Plan</th>
-                <th scope="col" className="py-3.5 px-4">Billing Cycle</th>
-                <th scope="col" className="py-3.5 px-4">Current Active</th>
-                <th scope="col" className="py-3.5 px-4">Total Subs</th>
-                <th scope="col" className="py-3.5 px-4">This Week</th>
-                <th scope="col" className="py-3.5 px-4">This Month</th>
-                <th scope="col" className="py-3.5 px-4">Last 6 Months</th>
-                <th scope="col" className="py-3.5 px-4">Last Year</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/40">
-              {sortedUnits.map((unit, idx) => {
-                const isActive = unit.current > 0;
-                return (
-                  <tr
-                    key={idx}
-                    className={`hover:bg-slate-800/10 transition-colors ${
-                      isActive ? 'text-slate-200' : 'opacity-40 text-slate-500'
-                    }`}
+        {/* Modern Table matching UserGrid architecture */}
+        <div className="bg-[#0f172a]/40 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden backdrop-blur-md">
+          <div className="overflow-x-auto [scrollbar-gutter:stable]">
+            <table className="w-full text-left border-collapse border-spacing-0">
+              <thead>
+                <tr className="bg-[#0f1422] text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-700 select-none">
+                  {/* Sr. No. (Sticky Left-0) */}
+                  <th
+                    scope="col"
+                    className="sticky left-0 z-20 bg-[#0f1422] py-3.5 px-2 text-center w-12 min-w-[48px] max-w-[48px] border-r border-slate-700"
                   >
-                    {/* Storage Plan */}
-                    <td className="py-3.5 px-4 font-semibold flex items-center space-x-3">
-                      <span className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-indigo-400' : 'bg-slate-700'}`} />
-                      <span className={isActive ? 'text-white' : ''}>{unit.storageName}</span>
-                    </td>
+                    Sr.
+                  </th>
 
-                    {/* Billing Cycle */}
-                    <td className="py-3.5 px-4 font-semibold">
-                      {unit.durationKey}
-                    </td>
+                  {/* Storage Plan (Sticky Left-[48px]) */}
+                  <th
+                    scope="col"
+                    className="sticky left-[48px] z-20 bg-[#0f1422] py-3.5 px-4 min-w-[200px] border-r border-slate-700 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)]"
+                  >
+                    Storage Plan
+                  </th>
 
-                    {/* Current Active */}
-                    <td className={`py-3.5 px-4 font-bold ${isActive ? 'text-white' : ''}`}>
-                      {unit.current}
-                    </td>
+                  {/* Billing Cycle */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[130px] border-r border-slate-700">
+                    Billing Cycle
+                  </th>
 
-                    {/* Total Subs */}
-                    <td className={`py-3.5 px-4 ${isActive ? 'text-slate-300' : ''}`}>
-                      {unit.total}
-                    </td>
+                  {/* Current Active */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[130px] border-r border-slate-700">
+                    Current Active
+                  </th>
 
-                    {/* This Week */}
-                    <td className={`py-3.5 px-4 font-semibold ${isActive && unit.thisWeek > 0 ? 'text-emerald-400' : ''}`}>
-                      +{unit.thisWeek}
-                    </td>
+                  {/* Total Subs */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[110px] border-r border-slate-700">
+                    Total Subs
+                  </th>
 
-                    {/* This Month */}
-                    <td className={`py-3.5 px-4 font-semibold ${isActive && unit.thisMonth > 0 ? 'text-sky-400' : ''}`}>
-                      +{unit.thisMonth}
-                    </td>
+                  {/* This Week */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[110px] border-r border-slate-700">
+                    This Week
+                  </th>
 
-                    {/* Last 6 Months */}
-                    <td className={`py-3.5 px-4 ${isActive ? 'text-slate-300' : ''}`}>
-                      +{unit.last6Months}
-                    </td>
+                  {/* This Month */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[110px] border-r border-slate-700">
+                    This Month
+                  </th>
 
-                    {/* Last Year */}
-                    <td className={`py-3.5 px-4 ${isActive ? 'text-slate-300' : ''}`}>
-                      +{unit.lastYear}
+                  {/* Last 6 Months */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[120px] border-r border-slate-700">
+                    Last 6 Months
+                  </th>
+
+                  {/* Last Year */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[110px] border-r border-slate-700">
+                    Last Year
+                  </th>
+
+                  {/* Share of Active */}
+                  <th scope="col" className="py-3.5 px-4 min-w-[120px] text-right">
+                    Active Share
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {sortedUnits.map((unit, idx) => {
+                  const isActive = unit.current > 0;
+                  const activeShare = aggregateStats.current > 0
+                    ? ((unit.current / aggregateStats.current) * 100).toFixed(1)
+                    : '0.0';
+
+                  return (
+                    <tr
+                      key={idx}
+                      className={`group transition-colors ${
+                        idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                      } hover:bg-[#1e293b]`}
+                    >
+                      {/* Sr. No. (Sticky Left-0) */}
+                      <td
+                        className={`sticky left-0 z-10 ${
+                          idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                        } group-hover:bg-[#1e293b] transition-colors py-3 px-2 whitespace-nowrap w-12 min-w-[48px] max-w-[48px] text-center font-mono text-[11px] font-semibold text-slate-400 border-b border-slate-700 border-r border-slate-700/80`}
+                      >
+                        {idx + 1}
+                      </td>
+
+                      {/* Storage Plan (Sticky Left-[48px]) */}
+                      <td
+                        className={`sticky left-[48px] z-10 ${
+                          idx % 2 === 0 ? 'bg-[#111827]' : 'bg-[#0c1322]'
+                        } group-hover:bg-[#1e293b] transition-colors py-3 px-4 whitespace-nowrap min-w-[200px] border-b border-slate-700 border-r border-slate-700 shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)]`}
+                      >
+                        <div className="flex items-center space-x-2.5">
+                          <div
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              isActive ? 'bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.6)]' : 'bg-slate-700'
+                            }`}
+                          />
+                          <span
+                            className={`font-semibold text-xs ${
+                              isActive ? 'text-white' : 'text-slate-400'
+                            }`}
+                          >
+                            {unit.storageName}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Billing Cycle */}
+                      <td className="py-3 px-4 min-w-[130px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold ${
+                            unit.durationKey === '-'
+                              ? 'bg-slate-800/60 text-slate-400 border border-slate-700/60'
+                              : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/25'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>{unit.durationKey}</span>
+                        </span>
+                      </td>
+
+                      {/* Current Active */}
+                      <td className="py-3 px-4 min-w-[130px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span>{unit.current.toLocaleString()}</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-slate-500">0</span>
+                        )}
+                      </td>
+
+                      {/* Total Subs */}
+                      <td className="py-3 px-4 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        <span className={`text-xs font-semibold ${isActive ? 'text-slate-200' : 'text-slate-500'}`}>
+                          {unit.total.toLocaleString()}
+                        </span>
+                      </td>
+
+                      {/* This Week */}
+                      <td className="py-3 px-4 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        {unit.thisWeek > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
+                            +{unit.thisWeek}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-600">-</span>
+                        )}
+                      </td>
+
+                      {/* This Month */}
+                      <td className="py-3 px-4 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        {unit.thisMonth > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-semibold">
+                            +{unit.thisMonth}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-600">-</span>
+                        )}
+                      </td>
+
+                      {/* Last 6 Months */}
+                      <td className="py-3 px-4 min-w-[120px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        {unit.last6Months > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+                            +{unit.last6Months}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-600">-</span>
+                        )}
+                      </td>
+
+                      {/* Last Year */}
+                      <td className="py-3 px-4 min-w-[110px] whitespace-nowrap border-b border-slate-700 border-r border-slate-700/80">
+                        {unit.lastYear > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold">
+                            +{unit.lastYear}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-600">-</span>
+                        )}
+                      </td>
+
+                      {/* Share of Active */}
+                      <td className="py-3 px-4 min-w-[120px] whitespace-nowrap border-b border-slate-700 text-right">
+                        <span className={`font-mono text-xs ${isActive ? 'text-slate-300 font-semibold' : 'text-slate-600'}`}>
+                          {activeShare}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {sortedUnits.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-12 text-center text-slate-500 bg-slate-900/10 border-b border-slate-700"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <HardDrive className="w-8 h-8 text-slate-600" />
+                        <p className="text-base font-semibold text-slate-300">No subscription units found</p>
+                        <p className="text-xs text-slate-500 max-w-sm">
+                          No plans match your current search or tier filters. Try resetting the filters.
+                        </p>
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="mt-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                          >
+                            Reset filters
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
-
-              {sortedUnits.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500 bg-slate-900/10">
-                    <p className="text-base font-semibold">No subscription units found</p>
-                    <p className="text-xs text-slate-650 mt-1">Try resetting the storage capacity or billing cycle dropdowns.</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

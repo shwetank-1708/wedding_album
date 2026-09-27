@@ -106,7 +106,7 @@ export default function PublicProfileScreen() {
 
         {isPrivate ? (
           <View style={styles.privateBox}>
-            <IconSymbol name="lock.fill" size={22} color="#94a3b8" />
+            <IconSymbol name="lock.fill" size={22} color="#CDB89E" />
             <Text style={styles.privateText}>This profile is private.</Text>
           </View>
         ) : (
@@ -137,7 +137,7 @@ function InfoTile({ label, value, icon }: { label: string; value: string; icon: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 18,
   },
   center: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
     borderRadius: 22,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: '#1f2937',
     alignItems: 'center',
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 1,
     borderColor: '#1f2937',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     padding: 22,
     alignItems: 'center',
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#1f2937',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     padding: 18,
     alignItems: 'center',
     gap: 10,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#1f2937',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     padding: 14,
   },
   infoIcon: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   primaryButtonText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 14,
     fontFamily: 'Outfit_800ExtraBold',
   },

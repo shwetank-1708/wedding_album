@@ -27,6 +27,7 @@ import {
     LayoutGrid,
     List,
     Users,
+    Store,
     Share2,
     Phone,
     Globe,
@@ -49,7 +50,8 @@ import {
     Gift,
     Briefcase,
     GraduationCap,
-    Download
+    Download,
+    Layers3
 } from "lucide-react";
 import { cn, formatEventDate } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -87,14 +89,13 @@ import {
 	    generateEventJoinId,
 	    setEventSampleGalleryStatus,
 	} from "@/lib/database";
-import { uploadEventImage } from "@/lib/storage";
+import { uploadEventImage, validateVideoFile } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { getApiUrl } from "@/lib/apiBase";
 import { Tooltip } from "@/components/Tooltip";
 import { navigateWithModifierClick } from "@/lib/navigation";
 import { formatStorageSize, getPlanDetails, getUsagePercent } from "@/lib/planLimits";
 import { getSubscriptionStatus } from "@/lib/subscriptionStatus";
-import { getWebLightboxTheme } from "@/lib/webTemplateTheme";
 import { v4 as uuidv4 } from "uuid";
 
 
@@ -138,10 +139,24 @@ const GridMediaCell = ({
                     preload="metadata"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-300/70 bg-slate-950/80 text-amber-300 shadow-xl">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#CA9C68]/70 bg-slate-950/80 text-[#CA9C68] shadow-xl">
                         <Play className="h-5 w-5 fill-current" />
                     </div>
                 </div>
+                {photo.status === 'processing' && (
+                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/90 text-slate-950 text-[10px] font-bold shadow-lg backdrop-blur-md">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Processing HLS...</span>
+                    </div>
+                )}
+                {photo.status === 'failed' && (
+                    <div 
+                        className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-600/90 text-white text-[10px] font-bold shadow-lg backdrop-blur-md"
+                        title={photo.processingError || "Transcoding failed"}
+                    >
+                        <span>⚠️ Processing Failed</span>
+                    </div>
+                )}
             </div>
         );
     }
@@ -211,18 +226,18 @@ const TEMPLATE_THEMES = [
             "light": "#033026",
             "dark": "#02231c"
         },
-        "accent": "#cca43b"
+        "accent": "#ca9c69"
     },
     {
         "id": "classic",
         "category": "Wedding",
         "label": "Classic White",
-        "desc": "Timeless and elegant design",
+        "desc": "Vintage sage & warm silk ivory elegance",
         "background": {
-            "light": "#FAF9F6",
-            "dark": "#FAF9F6"
+            "light": "#F7F2EB",
+            "dark": "#F7F2EB"
         },
-        "accent": "#cca43b"
+        "accent": "#8B9A6E"
     },
     {
         "id": "hero",
@@ -233,7 +248,7 @@ const TEMPLATE_THEMES = [
             "light": "#000000",
             "dark": "#000000"
         },
-        "accent": "#cca43b"
+        "accent": "#ca9c69"
     },
     {
         "id": "ethereal",
@@ -294,12 +309,12 @@ const TEMPLATE_THEMES = [
         "id": "golden_years",
         "category": "Anniversary",
         "label": "Golden Years",
-        "desc": "Champagne legacy celebration",
+        "desc": "Rich dark amber & chocolate golden legacy journal",
         "background": {
             "light": "#fbf4e6",
-            "dark": "#1f1710"
+            "dark": "#160f09"
         },
-        "accent": "#c99a2e"
+        "accent": "#e5a93c"
     },
     {
         "id": "vintage",
@@ -316,34 +331,34 @@ const TEMPLATE_THEMES = [
         "id": "rose",
         "category": "Anniversary",
         "label": "Rose Garden",
-        "desc": "Romantic floral memory journal",
+        "desc": "Luxurious velvet burgundy & rose gold editorial journal",
         "background": {
             "light": "#fff9f5",
-            "dark": "#30151d"
+            "dark": "#280a14"
         },
-        "accent": "#b76578"
+        "accent": "#d8a47f"
     },
     {
         "id": "minimal_love",
         "category": "Anniversary",
         "label": "Minimal Love",
-        "desc": "Minimal romantic editorial journal",
+        "desc": "Minimal romantic dark editorial journal",
         "background": {
             "light": "#f7efe4",
-            "dark": "#17120d"
+            "dark": "#1f1d1d"
         },
-        "accent": "#6d4b34"
+        "accent": "#ff5252"
     },
     {
         "id": "bohemian",
         "category": "Other",
         "label": "Bohemian Rhapsody",
-        "desc": "Sunset acoustic & festival theme",
+        "desc": "Vintage retro cream & olive green festival theme",
         "background": {
-            "light": "#fff7ed",
-            "dark": "#2f241d"
+            "light": "#f3e8d3",
+            "dark": "#2f1b12"
         },
-        "accent": "#fb923c"
+        "accent": "#73863a"
     },
     {
         "id": "diamond",
@@ -360,56 +375,56 @@ const TEMPLATE_THEMES = [
         "id": "blush",
         "category": "Other",
         "label": "Blush & Bashful",
-        "desc": "Soft pink champagne",
+        "desc": "Velvet burgundy & rose gold luxury editorial journal",
         "background": {
-            "light": "#fff7ed",
-            "dark": "#431407"
+            "light": "#f5dfdb",
+            "dark": "#230a12"
         },
-        "accent": "#ea580c"
+        "accent": "#d89c8a"
     },
     {
         "id": "garden",
         "category": "Other",
         "label": "Garden Path",
-        "desc": "Natural greens and ivory",
+        "desc": "Misty botanical sage & leaf green natural theme",
         "background": {
-            "light": "#E5ECE9",
-            "dark": "#112217"
+            "light": "#e4ebe3",
+            "dark": "#3f4f40"
         },
-        "accent": "#2E6F40"
+        "accent": "#7a9a6b"
     },
     {
         "id": "midnight_glam",
         "category": "Other",
         "label": "Midnight Glam",
-        "desc": "Dark blue and silver",
+        "desc": "Twilight indigo & deep violet nocturnal theme",
         "background": {
-            "light": "#eff6ff",
-            "dark": "#050505"
+            "light": "#EFEBFB",
+            "dark": "#1A1035"
         },
-        "accent": "#3b82f6"
+        "accent": "#6B5BBF"
     },
     {
         "id": "cinematic",
         "category": "Other",
         "label": "Cinematic Noir",
-        "desc": "Dramatic and immersive",
+        "desc": "Vintage biker & dramatic crimson cinematic theme",
         "background": {
             "light": "#f5f5f5",
-            "dark": "#000000"
+            "dark": "#0f0f12"
         },
-        "accent": "#ef4444"
+        "accent": "#e62b3a"
     },
     {
         "id": "modern_lounge",
         "category": "Other",
         "label": "Modern Lounge",
-        "desc": "Sleek and contemporary",
+        "desc": "Dark mood blue & sleek steel architecture",
         "background": {
-            "light": "#f8fafc",
-            "dark": "#101010"
+            "light": "#F0F4F8",
+            "dark": "#0D1117"
         },
-        "accent": "#818cf8"
+        "accent": "#3D5F8A"
     },
     {
         "id": "elegant_night",
@@ -426,34 +441,34 @@ const TEMPLATE_THEMES = [
         "id": "museum",
         "category": "Corporate",
         "label": "Museum Gallery",
-        "desc": "Luxury corporate exhibition",
+        "desc": "Luxury dark mood blue exhibition",
         "background": {
-            "light": "#f3f0ea",
-            "dark": "#0b1118"
+            "light": "#121820",
+            "dark": "#0D1117"
         },
-        "accent": "#9b7a44"
+        "accent": "#3D5F8A"
     },
     {
         "id": "brutalist",
         "category": "Corporate",
         "label": "Brutalist Grid",
-        "desc": "Modern architectural editorial grid",
+        "desc": "Modern architectural olive earth grid",
         "background": {
-            "light": "#efede7",
-            "dark": "#111113"
+            "light": "#272921",
+            "dark": "#171914"
         },
-        "accent": "#1a1a1c"
+        "accent": "#988B71"
     },
     {
         "id": "tech_sleek",
         "category": "Corporate",
         "label": "Tech Sleek",
-        "desc": "Futuristic and clean",
+        "desc": "Deep ocean navy & electric cyan blue theme",
         "background": {
-            "light": "#050b17",
-            "dark": "#050b17"
+            "light": "#0a182b",
+            "dark": "#040c1a"
         },
-        "accent": "#22d3ee"
+        "accent": "#00a2ff"
     },
     {
         "id": "executive",
@@ -689,6 +704,8 @@ function DashboardContent() {
     const [photoActionItem, setPhotoActionItem] = useState<Photo | null>(null);
     const [galleryViewMode, setGalleryViewMode] = useState<"grid" | "list">("grid");
     const [galleryMediaTab, setGalleryMediaTab] = useState<"photos" | "videos">("photos");
+    const [showOnlyFavourites, setShowOnlyFavourites] = useState(false);
+    const [sourceGalleryFilter, setSourceGalleryFilter] = useState("all");
     const [isDraggingPhotos, setIsDraggingPhotos] = useState(false);
     const [galleryMessageText, setGalleryMessageText] = useState("");
     const [isNavigating, setIsNavigating] = useState(false);
@@ -698,7 +715,7 @@ function DashboardContent() {
     interface UploadQueueItem {
         id: string;
         fileName: string;
-        status: "pending" | "uploading" | "processing" | "success" | "error";
+        status: "pending" | "uploading" | "finalizing" | "cancelling" | "cancelled" | "processing" | "success" | "error";
         progress: number; // 0 to 100
         error?: string;
         mediaType?: "photo" | "video";
@@ -706,6 +723,16 @@ function DashboardContent() {
         photoId?: string;
     }
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+    const uploadControllers = useRef(new Map<string, AbortController>());
+    const cancelUpload = (id: string) => {
+        const controller = uploadControllers.current.get(id);
+        if (!controller || controller.signal.aborted) return;
+        controller.abort();
+        setUploadQueue(previous => previous.map(item => item.id === id ? { ...item, status: "cancelling" } : item));
+    };
+    const cancelAllUploads = () => {
+        for (const id of uploadControllers.current.keys()) cancelUpload(id);
+    };
     const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
     const [isUploadPanelMinimized, setIsUploadPanelMinimized] = useState(false);
     const [indexingStatus, setIndexingStatus] = useState<{
@@ -788,7 +815,7 @@ function DashboardContent() {
     // Refs to keep track of currentEventPhotos and uploadQueue to avoid stale closure bugs in Supabase Realtime callbacks
     const currentEventPhotosRef = useRef<Photo[]>([]);
     const uploadQueueRef = useRef<UploadQueueItem[]>([]);
-    
+
     useEffect(() => {
         currentEventPhotosRef.current = currentEventPhotos;
     }, [currentEventPhotos]);
@@ -798,9 +825,9 @@ function DashboardContent() {
     }, [uploadQueue]);
 
     const handleThumbnailLoaded = useCallback((photoId: string, storageKey: string) => {
-        setUploadQueue(prev => prev.map(qItem => 
-            (qItem.photoId === photoId || qItem.storageKey === storageKey) && qItem.status !== "success"
-                ? { ...qItem, status: "success", progress: 100 } 
+        setUploadQueue(prev => prev.map(qItem =>
+            (qItem.photoId === photoId || qItem.storageKey === storageKey) && qItem.mediaType !== "video" && qItem.status !== "success"
+                ? { ...qItem, status: "success", progress: 100 }
                 : qItem
         ));
     }, []);
@@ -893,6 +920,22 @@ function DashboardContent() {
     const [renamingEvent, setRenamingEvent] = useState<Event | null>(null);
     const [editDetailsMode, setEditDetailsMode] = useState<"title" | "date">("title");
     const [shareModalEvent, setShareModalEvent] = useState<Event | null>(null);
+    const [savingVisibility, setSavingVisibility] = useState(false);
+    const [visibilityError, setVisibilityError] = useState("");
+    const changeEventVisibility = async (isPublic: boolean) => {
+        if (!shareModalEvent || savingVisibility) return;
+        if (isPublic && !window.confirm("Anyone with the link will be able to view this event and its sub-galleries without approval. Make public?")) return;
+        setSavingVisibility(true); setVisibilityError("");
+        try {
+            const { error } = await supabase.rpc("set_event_public_viewing", { event_id: shareModalEvent.id, public_viewing: isPublic });
+            if (error) throw error;
+            setShareModalEvent(previous => previous ? { ...previous, isPublic } : previous);
+            setUserEvents(previous => previous.map(item => item.id === shareModalEvent.id ? { ...item, isPublic } : item));
+        } catch (error: any) {
+            setVisibilityError(error.message || "Unable to change event visibility");
+        } finally { setSavingVisibility(false); }
+    };
+
     const [showPlanDetailsModal, setShowPlanDetailsModal] = useState(false);
     const [newTitle, setNewTitle] = useState("");
     const [newDate, setNewDate] = useState("");
@@ -910,7 +953,7 @@ function DashboardContent() {
         // Allow all logged in users to access the dashboard
         // Plan roles: free (default), basic, standard, premium, elite, admin
         const isAuthorized = !!user;
-        
+
         if (!loading && user && !isAuthorized) {
             router.push("/profile");
         }
@@ -920,7 +963,7 @@ function DashboardContent() {
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             const hasActiveUploads = uploadQueue.some(
-                item => item.status === "uploading" || item.status === "pending" || item.status === "processing"
+                item => item.status === "uploading" || item.status === "pending" || item.status === "processing" || item.status === "finalizing" || item.status === "cancelling"
             );
             if (hasActiveUploads) {
                 e.preventDefault();
@@ -934,6 +977,51 @@ function DashboardContent() {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
     }, [uploadQueue]);
+
+    // Video readiness comes from its processing record, never thumbnail or face-index completion.
+    const pendingVideoIds = uploadQueue.filter(item => item.mediaType === "video" && item.status === "processing" && item.photoId).map(item => item.photoId!).join(",");
+    useEffect(() => {
+        if (!pendingVideoIds) return;
+        let cancelled = false;
+        let timer: ReturnType<typeof setTimeout>;
+        const checkVideos = async () => {
+            try {
+                const ids = pendingVideoIds.split(",");
+                const records: any[] = [];
+                for (let start = 0; start < ids.length; start += 50) {
+                    const { data, error } = await supabase.from("photos").select("*").in("id", ids.slice(start, start + 50));
+                    if (error) throw error;
+                    records.push(...(data || []));
+                }
+                if (cancelled) return;
+                const byId = new Map(records.map(row => [row.id, row]));
+                setUploadQueue(previous => previous.map(item => {
+                    if (item.mediaType !== "video" || item.status !== "processing") return item;
+                    const row = byId.get(item.photoId);
+                    if (row?.status === "failed") return { ...item, status: "error", progress: 90, error: row.processing_error || "Video processing failed" };
+                    if (row?.status === "processed" && row.url) return { ...item, status: "success", progress: 100 };
+                    return item;
+                }));
+                const ready = records.filter(row => row.status === "processed" && row.url && row.event_id === selectedEventId);
+                if (ready.length) setCurrentEventPhotos(previous => {
+                    const updates = ready.map(row => ({
+                        id: row.id, eventId: row.event_id, storageKey: row.storage_key,
+                        url: row.url, thumbnailUrl: row.thumbnail_url, width: row.width, height: row.height,
+                        mediaType: "video" as const, resourceType: "video" as const, status: "processed" as const,
+                        uploadedAt: row.uploaded_at, size: row.size, tags: row.tags || [], userId: row.user_id,
+                    }));
+                    const updatedIds = new Set(updates.map(row => row.id));
+                    return [...updates, ...previous.filter(row => !updatedIds.has(row.id))];
+                });
+            } catch (error) {
+                console.warn("[VideoProcessing] Waiting for processing status", error);
+            } finally {
+                if (!cancelled) timer = setTimeout(checkVideos, 5000);
+            }
+        };
+        void checkVideos();
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [pendingVideoIds, selectedEventId]);
 
     // Poll face indexing status when items are in queue
     useEffect(() => {
@@ -958,9 +1046,9 @@ function DashboardContent() {
                     if (data.status === "complete" && !hasActiveUploads) {
                         clearInterval(pollInterval);
                         // Mark all processing/pending items in the queue as success
-                        setUploadQueue(prev => prev.map(item => 
-                            (item.status === "processing" || item.status === "pending" || item.status === "uploading")
-                                ? { ...item, status: "success", progress: 100 } 
+                        setUploadQueue(prev => prev.map(item =>
+                            item.mediaType !== "video" && (item.status === "processing" || item.status === "pending" || item.status === "uploading")
+                                ? { ...item, status: "success", progress: 100 }
                                 : item
                         ));
                     }
@@ -1041,7 +1129,7 @@ function DashboardContent() {
                     }
                 }
             } else {
-                // If event events aren't loaded yet, we might need to rely on the ID alone 
+                // If event events aren't loaded yet, we might need to rely on the ID alone
                 // and let the fetch logic handle it, but for now we set the generic IDs
                 if (levelParam === "galleries") {
                     // We need the object for some UI, but ID is enough for fetching
@@ -1307,9 +1395,9 @@ function DashboardContent() {
 
     const fetchEventPhotos = async () => {
         if (!selectedEventId) return;
-        
+
         let currentEvent = userEvents.find(e => e.id === selectedEventId);
-        
+
         // Robust fetch: Ensure we have the full event object (especially legacyId and createdBy)
         // If we don't have it or it's missing the legacyId (common for migrated events in the list pool)
         // we fetch it deeply from Supabase database.
@@ -1325,15 +1413,24 @@ function DashboardContent() {
         setLoadingPhotos(true);
         try {
             if (selectedEventId === selectedMainEventId) {
-                const groupEventIds = Array.from(new Set([selectedMainEventId, ...eventDetailGalleries.map(g => g.id)].filter(Boolean)));
+                const groupEventIds = Array.from(new Set([
+                    selectedMainEventId,
+                    selectedMainEventLegacyId,
+                    currentEvent?.legacyId,
+                    ...eventDetailGalleries.flatMap(g => [g.id, g.legacyId]),
+                ].filter(Boolean) as string[]));
                 if (groupEventIds.length > 0) {
                     const favPhotos = await getFavouritePhotosForEvents(groupEventIds);
                     if (favPhotos.length > 0) {
+                        const favouriteIds = favPhotos.map(p => p.id).filter(Boolean);
                         setCurrentEventPhotos(favPhotos as Photo[]);
                         const photoCount = favPhotos.filter(p => p.mediaType !== "video" && p.resourceType !== "video").length;
                         const videoCount = favPhotos.filter(p => p.mediaType === "video" || p.resourceType === "video").length;
                         setCurrentEventMediaCounts({ photos: photoCount, videos: videoCount });
-                        setCurrentEventRetainedMediaIds(new Set(favPhotos.map(p => p.id)));
+                        setCurrentEventRetainedMediaIds(new Set(favouriteIds));
+                        setEventFavouritePhotoIds(new Set(favouriteIds));
+                        setEventFavouriteCount(favouriteIds.length);
+                        setEventFavouritePreview((favPhotos[0] || null) as Photo | null);
                         setPhotoPage(0);
                         setHasMorePhotos(false);
                         return;
@@ -1464,10 +1561,16 @@ function DashboardContent() {
                 { event: '*', schema: 'public', table: 'photos' },
                 (payload) => {
                     console.log(`[Dashboard Realtime] Received DB change:`, payload);
-                    
+
                     if (payload.eventType === 'INSERT') {
                         // For INSERT events, event_id is always present in the payload
                         if (payload.new.event_id === selectedEventId) {
+                            const isVideo = payload.new.media_type === 'video' || payload.new.resource_type === 'video';
+                            // Strict requirement: Videos must NOT show on host/dashboard until 100% processed
+                            if (isVideo && payload.new.status !== 'processed') {
+                                return;
+                            }
+
                             const newPhoto: Photo = {
                                 id: payload.new.id,
                                 eventId: payload.new.event_id,
@@ -1481,7 +1584,8 @@ function DashboardContent() {
                                 size: payload.new.size,
                                 format: payload.new.format,
                                 mediaType: payload.new.media_type,
-                                resourceType: payload.new.resource_type
+                                resourceType: payload.new.resource_type,
+                                status: payload.new.status
                             };
 
                             // Add to grid state directly in real-time so it shows immediately!
@@ -1491,44 +1595,50 @@ function DashboardContent() {
                             });
                         }
                     } else if (payload.eventType === 'UPDATE') {
-                        // Use currentEventPhotosRef and uploadQueueRef to avoid stale closure state snapshots
-                        const isOurPhoto = currentEventPhotosRef.current.some(p => p.id === payload.new.id) ||
+                        // Use currentEventPhotosRef and uploadQueueRef to avoid stale closure state snapshots,
+                        // and fallback to checking the event_id directly if React state hasn't flushed yet.
+                        const isOurPhoto = (payload.new.event_id === selectedEventId) ||
+                                           currentEventPhotosRef.current.some(p => p.id === payload.new.id) ||
                                            uploadQueueRef.current.some(qItem => qItem.photoId === payload.new.id);
-                        
+
                         if (!isOurPhoto) return;
 
                         setCurrentEventPhotos(prev => {
                             const exists = prev.some(p => p.id === payload.new.id);
-                            
-                            // 1. If it doesn't exist yet (UPDATE arrived before INSERT state re-rendered),
-                            // we build the Photo record and insert it directly in its completed state.
+
+                            // 1. If it doesn't exist yet (e.g. video finished transcoding),
+                            // we build the Photo record and insert it once status is 'processed'.
                             if (!exists) {
-                                const queueItem = uploadQueueRef.current.find(q => q.photoId === payload.new.id);
-                                if (queueItem) {
-                                    const mediaDomain = process.env.NEXT_PUBLIC_MEDIA_DOMAIN || 'media.evebash.com';
-                                    const resolvedStorageKey = payload.new.storage_key || queueItem.storageKey || "";
-                                    const completedPhoto: Photo = {
-                                        id: payload.new.id,
-                                        eventId: selectedEventId,
-                                        storageKey: resolvedStorageKey,
-                                        url: payload.new.url || `https://${mediaDomain}/${resolvedStorageKey}`,
-                                        thumbnailUrl: payload.new.thumbnail_url ?? `https://${mediaDomain}/${resolvedStorageKey}-thumbnail.webp`,
-                                        width: payload.new.width,
-                                        height: payload.new.height,
-                                        uploadedAt: payload.new.uploaded_at || new Date().toISOString(),
-                                        mediaType: payload.new.media_type || "photo",
-                                        resourceType: payload.new.resource_type || "image"
-                                    };
-                                    return [completedPhoto, ...prev];
+                                const isVideo = payload.new.media_type === 'video' || payload.new.resource_type === 'video';
+                                if (isVideo && payload.new.status !== 'processed') {
+                                    return prev;
                                 }
-                                return prev;
+
+                                const queueItem = uploadQueueRef.current.find(q => q.photoId === payload.new.id);
+                                const mediaDomain = process.env.NEXT_PUBLIC_MEDIA_DOMAIN || 'media.evebash.com';
+                                const resolvedStorageKey = payload.new.storage_key || queueItem?.storageKey || "";
+                                const completedPhoto: Photo = {
+                                    id: payload.new.id,
+                                    eventId: selectedEventId,
+                                    storageKey: resolvedStorageKey,
+                                    url: payload.new.url || `https://${mediaDomain}/${resolvedStorageKey}`,
+                                    thumbnailUrl: payload.new.thumbnail_url ?? `https://${mediaDomain}/${resolvedStorageKey}-thumbnail.webp`,
+                                    width: payload.new.width,
+                                    height: payload.new.height,
+                                    uploadedAt: payload.new.uploaded_at || new Date().toISOString(),
+                                    mediaType: payload.new.media_type || (isVideo ? "video" : "photo"),
+                                    resourceType: payload.new.resource_type || (isVideo ? "video" : "image"),
+                                    status: payload.new.status || "processed"
+                                };
+                                return [completedPhoto, ...prev];
                             }
 
-                            // 2. If it already exists in the grid, update its thumbnail and sizes
+                            // 2. If it already exists in the grid, update its thumbnail, url, and status
                             return prev.map(p => {
                                 if (p.id === payload.new.id) {
                                     return {
                                         ...p,
+                                        status: payload.new.status ?? p.status,
                                         thumbnailUrl: payload.new.thumbnail_url ?? p.thumbnailUrl,
                                         width: payload.new.width || p.width,
                                         height: payload.new.height || p.height,
@@ -1539,10 +1649,10 @@ function DashboardContent() {
                             });
                         });
 
-                        if (payload.new.thumbnail_url) {
-                            setUploadQueue(prev => prev.map(qItem => 
-                                (qItem.photoId === payload.new.id || qItem.storageKey === payload.new.storage_key)
-                                    ? { ...qItem, status: "success", progress: 100 } 
+                        if (payload.new.status === 'processed' || payload.new.thumbnail_url) {
+                            setUploadQueue(prev => prev.map(qItem =>
+                                (qItem.photoId === payload.new.id || qItem.storageKey === payload.new.storage_key) && qItem.mediaType !== "video"
+                                    ? { ...qItem, status: "success", progress: 100 }
                                     : qItem
                             ));
                         }
@@ -1954,7 +2064,7 @@ function DashboardContent() {
             const eventCount = await getUserEventCount(creatorUid);
             const currentPlan = getPlanDetails(user.role);
             const maxEvents = currentPlan.eventLimit;
-            
+
             if (eventCount >= maxEvents) {
                 setMessage(`You've reached your ${currentPlan.eventLabel}-event limit for the ${currentPlan.name}. Upgrade your plan to create more events.`);
                 setStatus("error");
@@ -2047,6 +2157,19 @@ function DashboardContent() {
             }
         }
 
+        // Pre-upload format validation for video files
+        if (galleryMediaTab === "videos") {
+            for (const file of selectedFiles) {
+                const validation = validateVideoFile(file);
+                if (!validation.valid) {
+                    setMessage(validation.error ?? "Invalid video file.");
+                    setStatus("error");
+                    setTimeout(() => setStatus("idle"), 6000);
+                    return;
+                }
+            }
+        }
+
         // --- ROLE-BASED LIMITS: Storage Cap ---
         if (user.role !== "admin" && !user.delegatedBy) {
             const currentPlan = getPlanDetails(user.role);
@@ -2055,7 +2178,7 @@ function DashboardContent() {
             if (user.phone) identifiers.push(user.phone);
             const currentUsage = await getUserTotalStorage(identifiers);
             const selectedUploadSize = selectedFiles.reduce((total, file) => total + file.size, 0);
-            
+
             if (currentUsage >= currentPlan.storageBytes) {
                 setMessage(`You've reached your ${currentPlan.storageLabel} storage limit. Upgrade your plan for more storage.`);
                 setStatus("error");
@@ -2080,11 +2203,12 @@ function DashboardContent() {
             return {
                 id: `${Date.now()}-${idx}-${Math.random()}`,
                 fileName: file.name,
-                status: "uploading" as const,
+                status: "pending" as const,
                 progress: 0,
                 mediaType: isVideo ? ("video" as const) : ("photo" as const),
             };
         });
+        newQueueItems.forEach(item => uploadControllers.current.set(item.id, new AbortController()));
         setUploadQueue(prev => [...prev, ...newQueueItems]);
         setIsUploadPanelOpen(true);
         setIsUploadPanelMinimized(false);
@@ -2152,9 +2276,13 @@ function DashboardContent() {
                     }
 
                     if (res.ok) {
-                        // Immediately prepend new photos to grid state so they render instantly
+                        // Immediately prepend new photos to grid state (videos stay hidden until backend transcode completes)
                         setCurrentEventPhotos(prev => {
                             const newPhotos = itemsToFlush
+                                .filter(item => {
+                                    const isVideo = item.photo.mediaType === "video" || item.photo.resourceType === "video";
+                                    return !isVideo || item.photo.status === "processed";
+                                })
                                 .map(item => item.photo)
                                 .filter(p => !prev.some(existing => existing.id === p.id));
                             return [...newPhotos, ...prev];
@@ -2163,25 +2291,25 @@ function DashboardContent() {
                         const itemIds = new Set(itemsToFlush.map(item => item.queueItemId));
                         setUploadQueue(prev => prev.map(qItem => {
                             if (itemIds.has(qItem.id)) {
-                                const isVideo = qItem.mediaType === "video";
-                                return { 
-                                    ...qItem, 
-                                    status: isVideo ? "success" : "processing", 
-                                    progress: isVideo ? 100 : 90 
+                                if (qItem.status === "success" || qItem.status === "error") return qItem;
+                                return {
+                                    ...qItem,
+                                    status: "processing",
+                                    progress: 90
                                 };
                             }
                             return qItem;
                         }));
                     } else {
                         const itemIds = new Set(itemsToFlush.map(item => item.queueItemId));
-                        setUploadQueue(prev => prev.map(qItem => 
+                        setUploadQueue(prev => prev.map(qItem =>
                             itemIds.has(qItem.id) ? { ...qItem, status: "error", progress: 100, error: "Failed to save photo metadata" } : qItem
                         ));
                     }
                 } catch (e: any) {
                     console.error("[Dashboard] Batch flush error:", e);
                     const itemIds = new Set(itemsToFlush.map(item => item.queueItemId));
-                    setUploadQueue(prev => prev.map(qItem => 
+                    setUploadQueue(prev => prev.map(qItem =>
                         itemIds.has(qItem.id) ? { ...qItem, status: "error", progress: 100, error: e.message || "Failed to save photo metadata" } : qItem
                     ));
                 }
@@ -2194,11 +2322,13 @@ function DashboardContent() {
                 const file = selectedFiles[index];
                 const queueItemId = newQueueItems[index].id;
 
+                const controller = uploadControllers.current.get(queueItemId)!;
                 activeCount++;
                 // Update status to uploading in UI when task actually starts
-                setUploadQueue(prev => prev.map(item => item.id === queueItemId ? { ...item, status: "uploading" } : item));
+                setUploadQueue(prev => prev.map(item => item.id === queueItemId && !controller.signal.aborted ? { ...item, status: "uploading" } : item));
 
                 try {
+                    controller.signal.throwIfAborted();
                     console.log(`[Dashboard] Uploading file ${index + 1}/${selectedFiles.length}: ${file.name} (lane: ${workerId})`);
                     // Upload the original file — skip single-save so we can chunk it
                     const uploadResult = await uploadEventImage(
@@ -2210,9 +2340,14 @@ function DashboardContent() {
                         (percent) => {
                             setUploadQueue(prev => prev.map(item =>
                                 item.id === queueItemId && item.status === "uploading"
-                                    ? { ...item, progress: Math.min(99, Math.round(percent)) }
+                                    ? { ...item, progress: Math.min(90, Math.round(percent * 0.9)) }
                                     : item
                             ));
+                        },
+                        controller.signal,
+                        () => {
+                            uploadControllers.current.delete(queueItemId);
+                            setUploadQueue(previous => previous.map(item => item.id === queueItemId ? { ...item, status: "finalizing" } : item));
                         }
                     );
 
@@ -2236,15 +2371,15 @@ function DashboardContent() {
                     };
 
                     // Store storageKey and photoId in the queue item so Realtime updates can map to it
-                    setUploadQueue(prev => prev.map(item => 
-                        item.id === queueItemId 
-                            ? { ...item, storageKey: uploadResult.publicId, photoId: uniqueId } 
+                    setUploadQueue(prev => prev.map(item =>
+                        item.id === queueItemId
+                            ? { ...item, storageKey: uploadResult.publicId, photoId: uniqueId }
                             : item
                     ));
 
-                    // If this was a chunked upload (>100MB) AND a video, upload/chunk/complete
-                    // already triggered the transcode — skip it in save-photo-batch
-                    const transcodeTriggered = isVideoFile && file.size > 100 * 1024 * 1024;
+                    // If this was a video (routed via uploadLargeFileInChunks), upload/chunk/complete
+                    // already dispatched the transcode task — skip duplicate trigger in save-photo-batch
+                    const transcodeTriggered = isVideoFile;
                     chunkBuffer.push({ photo, queueItemId, transcodeTriggered });
                     // Flush immediately after each upload so resizing starts right away (non-blocking)
                     flushChunkBuffer();
@@ -2252,17 +2387,20 @@ function DashboardContent() {
                     // Store for background indexing
                     uploadResults.push({ file, photo });
                 } catch (fileErr: any) {
-                    console.error(`[Dashboard] File upload error for ${file.name}:`, fileErr);
-                    setUploadQueue(prev => prev.map(item => item.id === queueItemId ? { ...item, status: "error", progress: 100, error: fileErr.message || "Failed" } : item));
+                    if (fileErr.name !== "AbortError") {
+                        console.error(`[Dashboard] File upload error for ${file.name}:`, fileErr);
+                    }
+                    setUploadQueue(prev => prev.map(item => item.id === queueItemId ? { ...item, status: fileErr.name === "AbortError" ? "cancelled" : "error", progress: 0, error: fileErr.name === "AbortError" ? undefined : fileErr.message || "Failed" } : item));
                 } finally {
+                    uploadControllers.current.delete(queueItemId);
                     activeCount--;
                     completedCount++;
-                    
+
                     // If this is the absolute last photo of the entire batch to complete (success or fail), flush any remaining items
                     if (completedCount === selectedFiles.length) {
                         flushChunkBuffer();
                     }
-                    
+
                     // Process next file in the queue
                     await runNext(workerId);
                 }
@@ -2311,11 +2449,21 @@ function DashboardContent() {
                 syncCoverImageForEvent(selectedEventId, firstUploadedUrl);
             }
 
-            setStatus("success");
-            setMessage(galleryMediaTab === "videos" ? "Videos added! ✨" : "Gallery updated! ✨");
+            const hasVideoUploads = uploadResults.some(item => item.photo.mediaType === "video" || item.photo.resourceType === "video");
+            if (hasVideoUploads) {
+                // Transfer completion is not video completion. Keep the queue visible
+                // until the processing poll marks each video ready or failed.
+                setIsUploadPanelOpen(true);
+                setIsUploadPanelMinimized(false);
+                setStatus("idle");
+                setMessage("");
+            } else {
+                setStatus("success");
+                setMessage("Gallery updated! ✨");
+                setTimeout(() => setStatus("idle"), 2000);
+            }
             fetchUserEvents();
             fetchEventPhotos();
-            setTimeout(() => setStatus("idle"), 2000);
         } catch (err: any) {
             console.error("[Dashboard] Auto-upload error:", err);
             setStatus("error");
@@ -2809,7 +2957,7 @@ function DashboardContent() {
 
         const params = new URLSearchParams(searchParams);
         params.set("view", "manage");
-        // Maintain current level if valid, otherwise assume photos for this specific action context? 
+        // Maintain current level if valid, otherwise assume photos for this specific action context?
         // Actually, adding images usually implies looking at photos.
         params.set("level", "photos");
         params.set("mode", "add-image");
@@ -2987,7 +3135,7 @@ function DashboardContent() {
         try {
             const eventToDelete = userEvents.find(e => e.id === eventId) || eventDetailGalleries.find(e => e.id === eventId);
             const isGallery = eventToDelete?.type === "sub";
-            
+
             const success = await deleteEvent(eventId);
             if (success) {
                 setStatus("success");
@@ -3088,13 +3236,13 @@ function DashboardContent() {
                 return next;
             });
             setStatus("success");
-            setMessage(result.favourited ? "Added to Favourite gallery." : "Removed from Favourite gallery.");
+            setMessage(result.favourited ? "Added to Primary Gallery." : "Removed from Primary Gallery.");
             await refreshEventFavourites(selectedMainEventId);
             setTimeout(() => { setStatus("idle"); setMessage(""); }, 2000);
         } catch (error) {
             console.warn("Error updating favourite photo:", error);
             setStatus("error");
-            setMessage("Failed to update Favourite gallery.");
+            setMessage("Failed to update Primary Gallery.");
         }
     };
 
@@ -3151,9 +3299,33 @@ function DashboardContent() {
     const activeEventDetailEvent = isInlineEventDetailGalleryEditor ? (activeSubEvent || selectedMainEvent) : selectedMainEvent;
     const activeGalleryOriginalMessage = activeEventDetailEvent?.description || "";
     const hasGalleryMessageChanges = galleryMessageText !== activeGalleryOriginalMessage;
-    const photoItems = currentEventPhotos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video");
-    const videoItems = currentEventPhotos.filter(photo => photo.mediaType === "video" || photo.resourceType === "video");
-    const activeGalleryItems = galleryMediaTab === "videos" ? videoItems : photoItems;
+    const photoItems = currentEventPhotos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video" && photo.status !== "uploading");
+    const videoItems = currentEventPhotos.filter(photo => (photo.mediaType === "video" || photo.resourceType === "video") && photo.status === "processed");
+    const selectedMediaItems = galleryMediaTab === "videos" ? videoItems : photoItems;
+    const isPrimaryGalleryView = !!selectedMainEvent && selectedEventId === selectedMainEvent.id;
+    const sourceGalleryOptions = [selectedMainEvent, ...eventDetailGalleries]
+        .filter((gallery): gallery is Event => !!gallery)
+        .map(gallery => ({
+            id: gallery.id,
+            label: gallery.id === selectedMainEvent?.id ? "Main event" : gallery.title,
+            legacyId: gallery.legacyId,
+            count: selectedMediaItems.filter(photo => photo.eventId === gallery.id || (!!gallery.legacyId && photo.eventId === gallery.legacyId)).length,
+        }))
+        .filter(option => option.count > 0);
+    const effectiveSourceGalleryFilter = sourceGalleryOptions.some(option => option.id === sourceGalleryFilter)
+        ? sourceGalleryFilter
+        : "all";
+    const isFavouriteFilterActive = !isPrimaryGalleryView && showOnlyFavourites;
+    const sourceFilteredMediaItems = isPrimaryGalleryView && effectiveSourceGalleryFilter !== "all"
+        ? selectedMediaItems.filter(photo => {
+            const source = sourceGalleryOptions.find(option => option.id === effectiveSourceGalleryFilter);
+            return photo.eventId === source?.id || (!!source?.legacyId && photo.eventId === source.legacyId);
+        })
+        : selectedMediaItems;
+    const activeGalleryItems = isFavouriteFilterActive
+        ? sourceFilteredMediaItems.filter(photo => eventFavouritePhotoIds.has(photo.id))
+        : sourceFilteredMediaItems;
+    const activeFavouriteCount = selectedMediaItems.filter(photo => eventFavouritePhotoIds.has(photo.id)).length;
     const stripUrlQuery = (value?: string | null) => (value || "").split("?")[0];
     const createdEvents = userEvents.filter(evt => evt.createdBy && ownEventIdentifiers.has(evt.createdBy));
     const legacySharedEvents = userEvents.filter(evt => !evt.createdBy || !ownEventIdentifiers.has(evt.createdBy));
@@ -3170,6 +3342,11 @@ function DashboardContent() {
             return groups;
         }, {})
     );
+    const hostConsoleMetrics = [
+        { label: "Hosted", value: userEvents.length, icon: Calendar },
+        { label: "Shared", value: sharedEvents.length, icon: Users },
+        { label: "Requests", value: pendingGuestRequests.length, icon: UserPlus },
+    ];
     const eventDetailPendingLogs = eventDetailLogs.filter(log => log.status === "pending");
     const eventDetailAdminLogs = eventDetailLogs.filter(log => log.status === "approved" && !!log.canAdmin);
     const eventDetailMemberLogs = eventDetailLogs.filter(log => log.status === "approved" && !log.canAdmin);
@@ -3238,7 +3415,7 @@ function DashboardContent() {
                 ? [{ label: "Denied", icon: X, className: "border-rose-400/30 bg-rose-400/10 text-rose-300" }]
                 : [
                     { label: "View", icon: Eye, className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300" },
-                    ...(hasAdminAccess ? [{ label: "Admin", icon: ShieldCheck, className: "border-amber-400/30 bg-amber-400/10 text-amber-300" }] : []),
+                    ...(hasAdminAccess ? [{ label: "Admin", icon: ShieldCheck, className: "border-[#CA9C68]/30 bg-[#CA9C68]/10 text-[#CA9C68]" }] : []),
                     ...(hasUploadAccess ? [{ label: "Upload", icon: Camera, className: "border-purple-400/30 bg-purple-400/10 text-purple-300" }] : []),
                     ...(hasCommentAccess ? [{ label: "Comment", icon: MessageCircle, className: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300" }] : []),
                 ];
@@ -3252,10 +3429,10 @@ function DashboardContent() {
                 onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") setSelectedGuestLog(log);
                 }}
-                className="flex cursor-pointer flex-col gap-3 rounded-[1.5rem] border border-slate-700 bg-slate-900/50 p-4 transition-colors hover:border-amber-400/50 hover:bg-slate-900 lg:flex-row lg:items-center"
+                className="flex cursor-pointer flex-col gap-3 rounded-[1.5rem] border border-slate-700 bg-slate-900/50 p-4 transition-colors hover:border-[#CA9C68]/50 hover:bg-slate-900 lg:flex-row lg:items-center"
             >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-400/10 text-sm font-black text-amber-300">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#CA9C68]/10 text-sm font-black text-[#CA9C68]">
                         {(log.name || "G").charAt(0)}
                     </div>
                     <div className="min-w-0">
@@ -3345,7 +3522,7 @@ function DashboardContent() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent transition-all" />
                 {evt.category && (
-                    <div className="absolute left-5 top-5 z-10 rounded-lg border border-amber-300/30 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-300 backdrop-blur-sm">
+                    <div className="absolute left-5 top-5 z-10 rounded-lg border border-[#CA9C68]/30 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#CA9C68] backdrop-blur-sm">
                         {evt.category}
                     </div>
                 )}
@@ -3468,7 +3645,7 @@ function DashboardContent() {
                 )}
                 <h3 className="text-2xl font-bold italic tracking-tight mb-4">{evt.title}</h3>
                 <div className="mb-3 flex items-center text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                    <Calendar className="mr-2 h-3.5 w-3.5 text-amber-300" />
+                    <Calendar className="mr-2 h-3.5 w-3.5 text-[#CA9C68]" />
                     <span>{formatEventDate(evt.date)}</span>
                 </div>
                 <div className="flex items-center text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-3 group-hover:translate-y-0 duration-300">
@@ -3494,20 +3671,20 @@ function DashboardContent() {
         if (!user?.delegatedBy || !workspaceOwner) return null;
 
         return (
-            <div className="bg-amber-900/30 rounded-3xl p-6 border border-amber-500/30 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="bg-[#CA9C68]/30 rounded-3xl p-6 border border-[#CA9C68]/30 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-amber-900/50 rounded-2xl flex items-center justify-center text-amber-400">
+                    <div className="w-12 h-12 bg-[#CA9C68]/50 rounded-2xl flex items-center justify-center text-[#CA9C68]">
                         <Users size={24} />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-slate-200 font-serif">Managed Workspace</h3>
                         <p className="text-sm text-stone-700 font-sans">
-                            You are managing the account for <span className="text-amber-400 font-bold">{workspaceOwner.email}</span>
+                            You are managing the account for <span className="text-[#CA9C68] font-bold">{workspaceOwner.email}</span>
                         </p>
                     </div>
                 </div>
                 <div className="hidden sm:block">
-                    <span className="px-4 py-1.5 bg-slate-800 text-amber-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/50 shadow-sm">
+                    <span className="px-4 py-1.5 bg-slate-800 text-[#CA9C68] rounded-full text-[10px] font-black uppercase tracking-widest border border-[#CA9C68]/50 shadow-sm">
                         {user.roleType === 'primary' ? 'Full Manager' : 'Event Admin'}
                     </span>
                 </div>
@@ -3534,24 +3711,25 @@ function DashboardContent() {
 
 
 
+    const hasUnfinishedUploads = uploadQueue.some(item => item.status === "pending" || item.status === "uploading" || item.status === "processing" || item.status === "finalizing" || item.status === "cancelling");
     const totalItems = uploadQueue.length;
-    const completedItems = uploadQueue.filter(item => item.status === "success" || item.status === "error").length;
+    const completedItems = uploadQueue.filter(item => item.status === "success" || item.status === "error" || item.status === "cancelled").length;
     const processingItems = uploadQueue.filter(item => item.status === "processing").length;
-    const uploadingItems = uploadQueue.filter(item => item.status === "uploading").length;
+    const uploadingItems = uploadQueue.filter(item => item.status === "uploading" || item.status === "pending" || item.status === "finalizing" || item.status === "cancelling").length;
 
     let overallStatusText = "";
     if (uploadingItems > 0) {
         overallStatusText = `Uploading ${uploadingItems} of ${totalItems} ${uploadingItems === 1 ? 'file' : 'files'}...`;
     } else if (processingItems > 0) {
-        overallStatusText = `Resizing ${processingItems} ${processingItems === 1 ? 'file' : 'files'}...`;
+        overallStatusText = `Processing ${processingItems} ${processingItems === 1 ? 'file' : 'files'}...`;
     } else if (indexingStatus && indexingStatus.status === "processing") {
         overallStatusText = `AI Indexing: ${indexingStatus.indexed}/${indexingStatus.total} (${indexingStatus.percentComplete}%)`;
-    } else if (completedItems === totalItems || (indexingStatus && indexingStatus.status === "complete")) {
-        const withoutFaces = indexingStatus?.photosWithoutFaces || 0;
-        const withFaces = indexingStatus?.photosWithFaces || 0;
-        overallStatusText = withoutFaces > 0
-            ? `✓ AI Indexing complete! ${indexingStatus?.total || totalItems} photos (${withFaces} with faces, ${withoutFaces} without faces)`
-            : `✓ AI Indexing complete! ${totalItems} photos searchable`;
+    } else if (completedItems === totalItems) {
+        const failedItems = uploadQueue.filter(item => item.status === "error").length;
+        const cancelledItems = uploadQueue.filter(item => item.status === "cancelled").length;
+        overallStatusText = failedItems > 0 || cancelledItems > 0
+            ? `${totalItems - failedItems - cancelledItems} ready · ${failedItems} failed · ${cancelledItems} cancelled`
+            : `✓ 100% complete · ${totalItems} files ready`;
     } else {
         overallStatusText = "Upload status";
     }
@@ -3574,7 +3752,7 @@ function DashboardContent() {
                             exit={{ opacity: 0, y: -10 }}
                             className="space-y-8"
                         >
-                            <div className="bg-slate-800/80 rounded-[2rem] p-5 sm:p-8 shadow-xl border border-slate-700/50 backdrop-blur-sm">
+                            <div className="relative overflow-hidden rounded-3xl border border-[#2B2F2E] bg-[#13191F] p-5 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
                                 <div className="flex flex-col gap-5 mb-6 lg:flex-row lg:items-center lg:justify-between">
                                     <div className="flex items-center gap-4">
                                         <Tooltip text="Plan Details">
@@ -3583,7 +3761,7 @@ function DashboardContent() {
                                                     fetchStorageStats();
                                                     setShowPlanDetailsModal(true);
                                                 }}
-                                                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/10 text-amber-300 transition-colors hover:bg-amber-400/20"
+                                                className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#CA9C68]/35 bg-[#CA9C68]/10 text-[#CA9C68] transition-colors hover:bg-[#CA9C68]/20"
                                                 aria-label="Plan Details"
                                             >
                                                 <svg
@@ -3605,15 +3783,16 @@ function DashboardContent() {
                                             </button>
                                         </Tooltip>
                                         <div>
-                                            <h2 className="text-3xl font-bold text-white">Host Event</h2>
-                                            <p className="text-slate-400 text-sm font-sans">Manage events and guests</p>
+                                            <p className="mb-1 font-sans text-[10px] font-black uppercase tracking-[0.24em] text-[#CA9C68]">Control Room</p>
+                                            <h2 className="text-3xl font-bold text-white">Host Console</h2>
+                                            <p className="text-sm text-slate-400 font-sans">Event operations</p>
                                         </div>
                                     </div>
 
                                     <div className="flex flex-wrap gap-2">
                                         <button
                                             onClick={() => setIsCreateModalOpen(true)}
-                                            className="flex items-center gap-2 rounded-2xl bg-amber-400 px-4 py-3 text-sm font-black text-slate-950 transition-colors hover:bg-amber-300"
+                                            className="flex items-center gap-2 rounded-xl bg-[#CA9C68] px-4 py-3 text-sm font-black text-slate-950 transition-colors hover:bg-[#D7AE7D]"
                                         >
                                             <Plus className="w-4 h-4" />
                                             Create Event
@@ -3621,29 +3800,43 @@ function DashboardContent() {
                                     </div>
                                 </div>
 
-                                <div className="flex w-full gap-2 overflow-x-auto rounded-2xl bg-slate-900/50 p-1 sm:w-fit">
-                                    <button 
-                                        onClick={() => setActiveTab('hosted')} 
-                                        className={`flex min-w-28 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'hosted' ? 'bg-slate-700 text-amber-300 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                                    {hostConsoleMetrics.map(({ label, value, icon: MetricIcon }) => (
+                                        <div key={label} className="flex items-center justify-between rounded-xl border border-[#2B2F2E] bg-[#0D1318]/80 px-4 py-3">
+                                            <div>
+                                                <p className="font-sans text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                                                <p className="mt-1 font-sans text-2xl font-black text-white">{value}</p>
+                                            </div>
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#CA9C68]/25 bg-[#CA9C68]/10 text-[#CA9C68]">
+                                                <MetricIcon className="h-4 w-4" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex w-full gap-2 overflow-x-auto rounded-xl border border-[#2B2F2E] bg-[#0D1318]/80 p-1 sm:w-fit">
+                                    <button
+                                        onClick={() => setActiveTab('hosted')}
+                                        className={`flex min-w-28 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'hosted' ? 'border-[#CA9C68]/40 bg-[#CA9C68]/10 text-[#CA9C68]' : 'border-transparent text-slate-400 hover:bg-[#1B211F] hover:text-white'}`}
                                     >
                                         <Camera className="h-4 w-4" />
                                         Host
                                     </button>
-                                    <button 
-                                        onClick={() => setActiveTab('shared')} 
-                                        className={`flex min-w-28 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'shared' ? 'bg-slate-700 text-amber-300 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                    <button
+                                        onClick={() => setActiveTab('shared')}
+                                        className={`flex min-w-28 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'shared' ? 'border-[#CA9C68]/40 bg-[#CA9C68]/10 text-[#CA9C68]' : 'border-transparent text-slate-400 hover:bg-[#1B211F] hover:text-white'}`}
                                     >
                                         <Users className="h-4 w-4" />
                                         Shared
                                     </button>
-                                    <button 
-                                        onClick={() => setActiveTab('request')} 
-                                        className={`relative flex min-w-28 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'request' ? 'bg-slate-700 text-amber-300 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                    <button
+                                        onClick={() => setActiveTab('request')}
+                                        className={`relative flex min-w-28 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold transition-all ${activeTab === 'request' ? 'border-[#CA9C68]/40 bg-[#CA9C68]/10 text-[#CA9C68]' : 'border-transparent text-slate-400 hover:bg-[#1B211F] hover:text-white'}`}
                                     >
                                         <UserPlus className="h-4 w-4" />
                                         Requests
                                         {pendingGuestRequests.length > 0 && (
-                                            <span className="ml-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-950">
+                                            <span className="ml-1 rounded-full bg-[#CA9C68] px-2 py-0.5 text-[10px] font-black text-slate-950">
                                                 {pendingGuestRequests.length}
                                             </span>
                                         )}
@@ -3671,14 +3864,14 @@ function DashboardContent() {
                                                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Event</p>
                                                                 <h3 className="truncate text-lg font-black text-white">{eventTitle}</h3>
                                                             </div>
-                                                            <span className="shrink-0 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-950">
+                                                            <span className="shrink-0 rounded-full bg-[#CA9C68] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-950">
                                                                 {logs.length} {logs.length === 1 ? "Request" : "Requests"}
                                                             </span>
                                                         </div>
                                                         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                                                             {logs.map((log) => (
                                                                 <div key={log.id} className="flex flex-col gap-4 rounded-[1.2rem] border border-white/10 bg-black p-4 sm:flex-row sm:items-center">
-                                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-lg font-black text-slate-950">
+                                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#CA9C68] text-lg font-black text-slate-950">
                                                                         {(log.name || "G").charAt(0).toUpperCase()}
                                                                     </div>
                                                                     <div className="min-w-0 flex-1">
@@ -3710,38 +3903,38 @@ function DashboardContent() {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                                    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                                         {(activeTab === 'hosted' ? userEvents : sharedEvents).map((event) => {
                                             const ownerDetails = getEventOwnerDetails(event);
                                             return (
-                                                <div 
+                                                <div
                                                     key={event.id}
                                                     onClick={() => {
                                                         router.push(`/host?view=manage&level=event-details&eventId=${event.id}`);
                                                     }}
                                                     className={cn(
-                                                        "group relative cursor-pointer overflow-hidden rounded-[1.5rem] bg-black",
+                                                        "group relative cursor-pointer overflow-hidden rounded-2xl border border-[#2B2F2E] bg-[#0D1318]",
                                                         activeTab === "shared" ? "h-80" : "h-64"
                                                     )}
                                                 >
                                                     <div className={cn("relative overflow-hidden", activeTab === "shared" ? "h-64" : "h-full")}>
-                                                        <img 
+                                                        <img
                                                             src={resolveEventCoverImage(event.coverImage, 'thumbnail')}
                                                             alt={event.title}
                                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                                         />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent"></div>
                                                         {event.category && (
-                                                            <div className="absolute left-4 top-4 rounded-lg border border-amber-300/30 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-300 backdrop-blur-sm">
+                                                            <div className="absolute left-4 top-4 rounded-lg border border-[#CA9C68]/30 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#CA9C68] backdrop-blur-sm">
                                                                 {event.category}
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    <div className="absolute bottom-0 left-0 right-0 bg-black p-5">
+                                                    <div className="absolute bottom-0 left-0 right-0 border-t border-[#2B2F2E] bg-[#0D1318]/95 p-5 backdrop-blur-sm">
                                                         <h3 className="text-white font-bold text-lg leading-tight mb-1 truncate">{event.title}</h3>
                                                         <div className="mt-2 flex items-center text-xs font-bold text-slate-400">
-                                                            <Calendar className="w-3 h-3 mr-1.5 text-amber-300" />
+                                                            <Calendar className="w-3 h-3 mr-1.5 text-[#CA9C68]" />
                                                             <span>{event.date}</span>
                                                         </div>
                                                         {activeTab === "shared" && (
@@ -3759,7 +3952,7 @@ function DashboardContent() {
                                                 <p className="font-medium text-lg mb-2">{activeTab === 'hosted' ? 'No events yet' : 'Nothing shared'}</p>
                                                 <p className="text-sm text-center">{activeTab === 'hosted' ? 'Create your first album to see it here.' : 'Events shared with you will appear here.'}</p>
                                                 {activeTab === 'hosted' && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => setIsCreateModalOpen(true)}
                                                         className="mt-4 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-full text-sm font-bold transition-colors"
                                                     >
@@ -3773,7 +3966,7 @@ function DashboardContent() {
                             </div>
 
 {/* HOST GUIDE SECTION */}
-                            <div className="mt-16 bg-slate-800/80 rounded-[2rem] p-6 sm:p-8 shadow-xl border border-slate-700/50 backdrop-blur-sm">
+                            <div className="mt-16 rounded-3xl border border-[#2B2F2E] bg-[#10171C]/90 p-6 shadow-xl shadow-black/25 backdrop-blur-sm sm:p-8">
                                 <div className="mb-8">
                                     <h2 className="text-3xl font-bold text-white">Host Your Perfect Event</h2>
                                     <p className="text-slate-400 mt-2">Everything you need to capture memories flawlessly.</p>
@@ -3781,27 +3974,27 @@ function DashboardContent() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                                     {/* Benefit 1 */}
-                                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700/50">
-                                        <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center mb-4">
-                                            <ImageIcon className="w-6 h-6 text-sky-400" />
+                                    <div className="rounded-xl border border-[#2B2F2E] bg-[#0D1318] p-6">
+                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[#CA9C68]/20 bg-[#CA9C68]/10">
+                                            <ImageIcon className="h-6 w-6 text-[#CA9C68]" />
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">Stunning Galleries</h3>
                                         <p className="text-slate-400 text-sm">Create unlimited, high-resolution albums to preserve every beautiful memory.</p>
                                     </div>
-                                    
+
                                     {/* Benefit 2 */}
-                                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700/50">
-                                        <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center mb-4">
-                                            <Users className="w-6 h-6 text-sky-400" />
+                                    <div className="rounded-xl border border-[#2B2F2E] bg-[#0D1318] p-6">
+                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[#CA9C68]/20 bg-[#CA9C68]/10">
+                                            <Users className="h-6 w-6 text-[#CA9C68]" />
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">Guest Sharing</h3>
                                         <p className="text-slate-400 text-sm">Easily invite guests via QR codes and securely share photos directly with them.</p>
                                     </div>
 
                                     {/* Benefit 3 */}
-                                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700/50">
-                                        <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center mb-4">
-                                            <Video className="w-6 h-6 text-sky-400" />
+                                    <div className="rounded-xl border border-[#2B2F2E] bg-[#0D1318] p-6">
+                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-[#CA9C68]/20 bg-[#CA9C68]/10">
+                                            <Video className="h-6 w-6 text-[#CA9C68]" />
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2">Live Streaming</h3>
                                         <p className="text-slate-400 text-sm">Broadcast your special moments live to loved ones who could not attend in person.</p>
@@ -3809,7 +4002,7 @@ function DashboardContent() {
                                 </div>
 
                                 {/* SECTION 4: HOW TO HOST (YouTube Card) */}
-                                <div 
+                                <div
                                     onClick={() => window.open('https://www.youtube.com/@EveBashApp', '_blank')}
                                     className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-indigo-900 to-indigo-950 p-6 cursor-pointer shadow-lg shadow-indigo-900/20 group border border-indigo-500/20"
                                 >
@@ -3974,7 +4167,7 @@ function DashboardContent() {
                                                 <h3 className="text-3xl font-bold text-white sm:text-4xl">{activeEventDetailEvent?.title || selectedMainEvent.title}</h3>
                                                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                     <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
-                                                        <Calendar className="h-4 w-4 text-amber-300" />
+                                                        <Calendar className="h-4 w-4 text-[#CA9C68]" />
                                                         <span>{formatEventDate(activeEventDetailEvent?.date || selectedMainEvent.date)}</span>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
@@ -4012,7 +4205,7 @@ function DashboardContent() {
                                         >
                                             <span className={cn(
                                                 "flex h-10 w-10 items-center justify-center rounded-2xl",
-                                                activeEventDetailTab === "galleries" ? "bg-amber-400 text-slate-950" : "bg-amber-400/10 text-amber-300"
+                                                activeEventDetailTab === "galleries" ? "bg-[#CA9C68] text-slate-950" : "bg-[#CA9C68]/10 text-[#CA9C68]"
                                             )}>
                                                 <Camera className="h-5 w-5" />
                                             </span>
@@ -4031,7 +4224,7 @@ function DashboardContent() {
                                         >
                                             <span className={cn(
                                                 "flex h-10 w-10 items-center justify-center rounded-2xl",
-                                                activeEventDetailTab === "permissions" ? "bg-amber-400 text-slate-950" : "bg-amber-400/10 text-amber-300"
+                                                activeEventDetailTab === "permissions" ? "bg-[#CA9C68] text-slate-950" : "bg-[#CA9C68]/10 text-[#CA9C68]"
                                             )}>
                                                 <ShieldCheck className="h-5 w-5" />
                                             </span>
@@ -4040,7 +4233,7 @@ function DashboardContent() {
                                                 <span className="mt-1 block text-xs font-bold text-slate-400">Guest access</span>
                                             </span>
                                             {eventDetailLogs.filter(log => log.status === "pending").length > 0 && (
-                                                <span className="absolute right-4 top-4 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-950">
+                                                <span className="absolute right-4 top-4 rounded-full bg-[#CA9C68] px-2 py-0.5 text-[10px] font-black text-slate-950">
                                                     {eventDetailLogs.filter(log => log.status === "pending").length}
                                                 </span>
                                             )}
@@ -4055,7 +4248,7 @@ function DashboardContent() {
                                         >
                                             <span className={cn(
                                                 "flex h-10 w-10 items-center justify-center rounded-2xl",
-                                                activeEventDetailTab === "design" ? "bg-amber-400 text-slate-950" : "bg-amber-400/10 text-amber-300"
+                                                activeEventDetailTab === "design" ? "bg-[#CA9C68] text-slate-950" : "bg-[#CA9C68]/10 text-[#CA9C68]"
                                             )}>
                                                 <LayoutDashboard className="h-5 w-5" />
                                             </span>
@@ -4074,7 +4267,7 @@ function DashboardContent() {
                                         >
                                             <span className={cn(
                                                 "flex h-10 w-10 items-center justify-center rounded-2xl",
-                                                activeEventDetailTab === "partners" ? "bg-amber-400 text-slate-950" : "bg-amber-400/10 text-amber-300"
+                                                activeEventDetailTab === "partners" ? "bg-[#CA9C68] text-slate-950" : "bg-[#CA9C68]/10 text-[#CA9C68]"
                                             )}>
                                                 <Users className="h-5 w-5" />
                                             </span>
@@ -4098,7 +4291,7 @@ function DashboardContent() {
                                                     </div>
                                                     <button
                                                         onClick={() => setIsCreateSubGalleryModalOpen(true)}
-                                                        className="flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-950 transition-transform hover:-translate-y-0.5"
+                                                        className="flex items-center gap-2 rounded-full bg-[#CA9C68] px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-950 transition-transform hover:-translate-y-0.5"
                                                     >
                                                         <Plus className="h-4 w-4" />
                                                         <span>Add Sub-Gallery</span>
@@ -4107,13 +4300,13 @@ function DashboardContent() {
 
                                                 <div className="space-y-6">
                                                     <section className="space-y-3">
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">Primary Gallery</p>
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#CA9C68]">Primary Gallery</p>
                                                         <div className="flex flex-wrap gap-4">
-                                                            <div 
+                                                            <div
                                                                 className={cn(
-                                                                    "group relative overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-amber-400/50 w-full sm:w-[280px] aspect-square flex-shrink-0",
+                                                                    "group relative overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-[#CA9C68]/50 w-full sm:w-[280px] aspect-square flex-shrink-0",
                                                                     selectedEventId === selectedMainEvent.id && manageMode === "add-image"
-                                                                        ? "border-amber-400/70 shadow-amber-950/10"
+                                                                        ? "border-[#CA9C68]/70 shadow-[#13191F]/10"
                                                                         : "border-slate-700 shadow-slate-950/10"
                                                                 )}
                                                                 onClick={() => openUploadForEvent(selectedMainEvent.id, selectedMainEvent.title)}
@@ -4124,7 +4317,7 @@ function DashboardContent() {
                                                                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                                 />
                                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
-                                                                
+
                                                                 <div className="absolute inset-0 p-3 flex flex-col justify-between">
                                                                     <div className="flex">
                                                                         <div className="flex items-center gap-1 rounded-lg bg-black/65 border border-white/20 px-2 py-1">
@@ -4132,7 +4325,7 @@ function DashboardContent() {
                                                                             <span className="text-[9px] font-bold tracking-wider text-white/90">PRIMARY</span>
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     <div className="flex items-end justify-between gap-2">
                                                                         <div className="min-w-0 flex-1">
                                                                             <h5 className="text-[13px] font-bold text-white drop-shadow-md line-clamp-2 leading-tight">{selectedMainEvent.title || 'Home'}</h5>
@@ -4148,7 +4341,7 @@ function DashboardContent() {
 
                                                     <section className="space-y-3">
                                                         <div className="flex items-center justify-between gap-3">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">Sub-Galleries</p>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#CA9C68]">Sub-Galleries</p>
                                                         </div>
 
                                                         {loadingEventDetail ? (
@@ -4162,9 +4355,9 @@ function DashboardContent() {
                                                                     <div
                                                                         key={gallery.id}
                                                                         className={cn(
-                                                                            "group relative aspect-square overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-amber-400/50",
+                                                                            "group relative aspect-square overflow-hidden rounded-[1.5rem] border shadow-lg transition-all cursor-pointer hover:border-[#CA9C68]/50",
                                                                             selectedEventId === gallery.id && manageMode === "add-image"
-                                                                                ? "border-amber-400/70 shadow-amber-950/10"
+                                                                                ? "border-[#CA9C68]/70 shadow-[#13191F]/10"
                                                                                 : "border-slate-700 shadow-slate-950/10"
                                                                         )}
                                                                         onClick={() => openUploadForEvent(gallery.id, gallery.title)}
@@ -4175,7 +4368,7 @@ function DashboardContent() {
                                                                             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                                         />
                                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
-                                                                        
+
                                                                         <div className="absolute inset-0 p-3 flex flex-col justify-between">
                                                                             <div className="flex justify-between items-start">
                                                                                 <div className="flex items-center gap-1 rounded-lg bg-black/65 border border-white/20 px-2 py-1">
@@ -4191,7 +4384,7 @@ function DashboardContent() {
                                                                                     </button>
                                                                                 </div>
                                                                             </div>
-                                                                            
+
                                                                             <div className="flex items-end justify-between gap-2">
                                                                                 <div className="min-w-0 flex-1">
                                                                                     <h5 className="text-[13px] font-bold text-white drop-shadow-md line-clamp-2 leading-tight">{gallery.title}</h5>
@@ -4250,7 +4443,7 @@ function DashboardContent() {
 
                                                         {eventDetailAdminLogs.length > 0 && (
                                                             <section className="space-y-3">
-                                                                <h5 className="text-sm font-black uppercase tracking-[0.18em] text-amber-300">
+                                                                <h5 className="text-sm font-black uppercase tracking-[0.18em] text-[#CA9C68]">
                                                                     Admins ({eventDetailAdminLogs.length})
                                                                 </h5>
                                                                 {eventDetailAdminLogs.map(renderEventDetailPermissionCard)}
@@ -4278,23 +4471,23 @@ function DashboardContent() {
                                             <div className="space-y-4">
                                                 <h4 className="text-xl font-black text-white mb-2">Event Design</h4>
 
-                                                <div 
+                                                <div
                                                     onClick={() => setShowCategoryModal(true)}
-                                                    className="flex items-center justify-between rounded-[1.2rem] border border-slate-700 bg-slate-900/50 p-4 cursor-pointer hover:border-amber-400/50 transition-colors"
+                                                    className="flex items-center justify-between rounded-[1.2rem] border border-slate-700 bg-slate-900/50 p-4 cursor-pointer hover:border-[#CA9C68]/50 transition-colors"
                                                 >
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Event Type</p>
                                                         <p className="text-base font-bold text-white">{selectedMainEvent.category || 'Select Type'}</p>
                                                     </div>
-                                                    <ChevronRight className="h-4 w-4 text-amber-400" />
+                                                    <ChevronRight className="h-4 w-4 text-[#CA9C68]" />
                                                 </div>
 
-                                                <div 
+                                                <div
                                                     onClick={() => {
                                                         setTemplateTargetEvent(selectedMainEvent);
                                                         setShowTemplateModal(true);
                                                     }}
-                                                    className="flex items-center justify-between rounded-[1.2rem] border border-slate-700 bg-slate-900/50 p-4 cursor-pointer hover:border-amber-400/50 transition-colors"
+                                                    className="flex items-center justify-between rounded-[1.2rem] border border-slate-700 bg-slate-900/50 p-4 cursor-pointer hover:border-[#CA9C68]/50 transition-colors"
                                                 >
                                                     <div>
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Change Template</p>
@@ -4302,46 +4495,53 @@ function DashboardContent() {
                                                             {selectedMainEvent.templateId ? TEMPLATE_THEMES.find(t => t.id === selectedMainEvent.templateId)?.label : 'Hero (Default)'}
                                                         </p>
                                                     </div>
-                                                    <ChevronRight className="h-4 w-4 text-amber-400" />
+                                                    <ChevronRight className="h-4 w-4 text-[#CA9C68]" />
                                                 </div>
 
-                                                <div 
+                                                <div
                                                     onClick={() => window.open(`/event/${selectedMainEvent.id}`, '_blank')}
-                                                    className="flex items-center justify-between rounded-[1.2rem] border border-amber-500/30 bg-amber-500/10 p-4 cursor-pointer hover:bg-amber-500/20 transition-colors mt-2"
+                                                    className="flex items-center justify-between rounded-[1.2rem] border border-[#CA9C68]/30 bg-[#CA9C68]/10 p-4 cursor-pointer hover:bg-[#CA9C68]/20 transition-colors mt-2"
                                                 >
                                                     <div>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">Preview Guest Theme</p>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#CA9C68] mb-1">Preview Guest Theme</p>
                                                         <p className="text-xs font-medium text-slate-300 mt-1">
                                                             See how guests view your {selectedMainEvent.templateId ? TEMPLATE_THEMES.find(t => t.id === selectedMainEvent.templateId)?.label : 'Hero'} theme
                                                         </p>
                                                     </div>
-                                                    <Eye className="h-4 w-4 text-amber-500" />
+                                                    <Eye className="h-4 w-4 text-[#CA9C68]" />
                                                 </div>
                                             </div>
                                         )}
 
                                         {activeEventDetailTab === "partners" && (
-                                            <div className="space-y-5">
-                                                <div>
-                                                    <h4 className="text-xl font-black text-white">Partners</h4>
-                                                    <p className="text-sm font-bold text-slate-400">Linked vendors and event partners for this event.</p>
-                                                </div>
-
-                                                {(selectedMainEvent.vendors?.length || 0) > 0 ? (
-                                                    <div className="grid gap-3 sm:grid-cols-2">
-                                                        {selectedMainEvent.vendors?.map((vendorId) => (
-                                                            <div key={vendorId} className="rounded-[1.5rem] border border-slate-700 bg-slate-900/50 p-4">
-                                                                <p className="text-sm font-black text-white">Vendor</p>
-                                                                <p className="mt-1 break-all text-xs font-bold text-slate-400">{vendorId}</p>
+                                            <div className="space-y-6">
+                                                <div className="rounded-[1.8rem] border border-[#CA9C68]/20 bg-slate-900/60 p-6 text-left shadow-xl backdrop-blur-md sm:p-8">
+                                                    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#CA9C68]/30 bg-[#CA9C68]/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-[#CA9C68]">
+                                                        <Users className="h-4 w-4 text-[#CA9C68]" />
+                                                        <span>Event Partners · Phase 2</span>
+                                                    </div>
+                                                    <h4 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                                                        Coming Soon
+                                                    </h4>
+                                                    <p className="mt-3 text-sm font-medium leading-relaxed text-slate-300 sm:text-base">
+                                                        The Event Partners feature is linked with EB Business & EB Network. In Phase 2, hosts will be able to link verified photographers, caterers, planners, and venues directly to their event.
+                                                    </p>
+                                                    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                                                        {[
+                                                            { title: "Link Verified Vendors", desc: "Attach official vendor profiles to your event dashboard.", icon: Users },
+                                                            { title: "EB Business Integration", desc: "Directly showcase service providers registered on EB Business.", icon: Store },
+                                                            { title: "Partner Showcase", desc: "Highlight credited partners to your guests on the event page.", icon: Star },
+                                                        ].map(({ title, desc, icon: Icon }) => (
+                                                            <div key={title} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                                                                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#CA9C68]/10 text-[#CA9C68]">
+                                                                    <Icon className="h-4 w-4" />
+                                                                </div>
+                                                                <h5 className="text-xs font-black uppercase tracking-wider text-white">{title}</h5>
+                                                                <p className="mt-1.5 text-xs font-medium text-slate-400 leading-normal">{desc}</p>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                ) : (
-                                                    <div className="rounded-[1.5rem] border border-dashed border-slate-700 p-8 text-center">
-                                                        <Users className="mx-auto mb-3 h-8 w-8 text-slate-500" />
-                                                        <p className="text-sm font-bold text-slate-400">No partners linked to this event yet.</p>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -4454,8 +4654,8 @@ function DashboardContent() {
                                                             className={cn(
                                                                 "flex items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-black transition-colors",
                                                                 isSelected
-                                                                    ? "border-amber-400 bg-amber-400 text-slate-950"
-                                                                    : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-amber-400/60"
+                                                                    ? "border-[#CA9C68] bg-[#CA9C68] text-slate-950"
+                                                                    : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-[#CA9C68]/60"
                                                             )}
                                                         >
                                                             <Icon className="h-4 w-4" />
@@ -4482,18 +4682,18 @@ function DashboardContent() {
                                                             style={{ borderColor: isActive ? template.accent : undefined }}
                                                         >
                                                             <div className="flex items-center gap-3 flex-1">
-                                                                <div 
+                                                                <div
                                                                     className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-700 shadow-sm"
                                                                     style={{ backgroundColor: template.background?.light || '#fff' }}
                                                                 >
-                                                                    <div 
+                                                                    <div
                                                                         className="w-3.5 h-3.5 rounded-full shadow-sm"
                                                                         style={{ backgroundColor: template.accent || '#000' }}
                                                                     />
                                                                 </div>
-                                                                
+
                                                                 <div className="flex-1 mr-2">
-                                                                    <div 
+                                                                    <div
                                                                         className="text-sm font-bold font-outfit"
                                                                         style={{ color: isActive ? template.accent : '#334155' }}
                                                                     >
@@ -4506,7 +4706,7 @@ function DashboardContent() {
                                                             </div>
 
                                                             {isActive && (
-                                                                <div 
+                                                                <div
                                                                     className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 shadow-sm"
                                                                     style={{ backgroundColor: template.accent }}
                                                                 >
@@ -4573,14 +4773,14 @@ function DashboardContent() {
                                                 </button>
                                             </div>
 
-                                            <form 
+                                            <form
                                                 onSubmit={async (e) => {
                                                     // Pass true to skip the success modal
                                                     const success = await handleCreateEventOnly(e, true);
                                                     if (success) {
                                                         setIsCreateSubGalleryModalOpen(false);
                                                     }
-                                                }} 
+                                                }}
                                                 className="space-y-6"
                                             >
                                                 <div>
@@ -4589,7 +4789,7 @@ function DashboardContent() {
                                                         value={eventName}
                                                         onChange={(e) => setEventName(e.target.value)}
                                                         placeholder="Sub-gallery name"
-                                                        className="w-full px-5 py-4 bg-[#262626] border border-white/5 rounded-2xl focus:ring-1 focus:ring-amber-500 transition-all outline-none text-base text-white placeholder-slate-400"
+                                                        className="w-full px-5 py-4 bg-[#262626] border border-white/5 rounded-2xl focus:ring-1 focus:ring-[#CA9C68] transition-all outline-none text-base text-white placeholder-slate-400"
                                                         required
                                                         autoFocus
                                                     />
@@ -4602,10 +4802,10 @@ function DashboardContent() {
                                                     <button
                                                         type="button"
                                                         onClick={() => openDatePicker("create")}
-                                                        className="flex w-full items-center justify-between px-5 py-4 bg-[#262626] border border-white/5 rounded-2xl focus:ring-1 focus:ring-amber-500 transition-all outline-none text-base text-left"
+                                                        className="flex w-full items-center justify-between px-5 py-4 bg-[#262626] border border-white/5 rounded-2xl focus:ring-1 focus:ring-[#CA9C68] transition-all outline-none text-base text-left"
                                                     >
                                                         <div className="flex items-center">
-                                                            <Calendar className="w-5 h-5 text-amber-500 mr-3" />
+                                                            <Calendar className="w-5 h-5 text-[#CA9C68] mr-3" />
                                                             <span className={eventDate ? "text-white" : "text-slate-400"}>
                                                                 {eventDate || "Select event date"}
                                                             </span>
@@ -4619,8 +4819,8 @@ function DashboardContent() {
                                                     disabled={status === "uploading"}
                                                     className={cn(
                                                         "w-full py-4 mt-2 rounded-2xl font-bold text-[15px] transition-all flex items-center justify-center space-x-3 active:scale-95",
-                                                        status === "uploading" 
-                                                            ? "bg-[#806316]/50 text-black/50 cursor-not-allowed" 
+                                                        status === "uploading"
+                                                            ? "bg-[#806316]/50 text-black/50 cursor-not-allowed"
                                                             : "bg-[#806316] text-[#2c2203] hover:bg-[#96741b]"
                                                     )}
                                                 >
@@ -4662,14 +4862,14 @@ function DashboardContent() {
                                     onDrop={handleGalleryDrop}
                                     className={cn(
                                         "relative max-w-7xl mx-auto bg-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-700 transition-colors",
-                                        isDraggingPhotos && "border-amber-400 bg-slate-800/95",
+                                        isDraggingPhotos && "border-[#CA9C68] bg-slate-800/95",
                                         isInlineEventDetailGalleryEditor && "mt-8"
                                     )}
                                 >
                                     {isDraggingPhotos && (
-                                        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-[2.5rem] border-2 border-dashed border-amber-400 bg-slate-950/70 backdrop-blur-sm">
+                                        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-[2.5rem] border-2 border-dashed border-[#CA9C68] bg-slate-950/70 backdrop-blur-sm">
                                             <div className="flex flex-col items-center text-center">
-                                                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-lg">
+                                                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#CA9C68] text-slate-950 shadow-lg">
                                                     <Upload className="h-8 w-8" />
                                                 </div>
                                                 <p className="text-lg font-black text-white">
@@ -4777,7 +4977,7 @@ function DashboardContent() {
                                                 type="button"
                                                 onClick={handleHostDownloadZip}
                                                 disabled={isHostZipping || currentEventPhotos.length === 0}
-                                                className="flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-amber-300 transition-all hover:bg-amber-400 hover:text-slate-950 disabled:opacity-40"
+                                                className="flex items-center gap-2 rounded-2xl border border-[#CA9C68]/40 bg-[#CA9C68]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#CA9C68] transition-all hover:bg-[#CA9C68] hover:text-slate-950 disabled:opacity-40"
                                             >
                                                 {isHostZipping ? (
                                                     <>
@@ -4858,7 +5058,7 @@ function DashboardContent() {
                                     )}
 
                                     {isInlineEventDetailGalleryEditor && activeEventDetailEvent && (
-                                        <div className="mb-8 rounded-3xl border border-amber-400/25 bg-white/[0.04] p-5">
+                                        <div className="mb-8 rounded-3xl border border-[#CA9C68]/25 bg-white/[0.04] p-5">
                                             <div className="mb-3 flex items-end justify-between gap-4">
                                                 <div>
                                                     <p className="text-sm font-black tracking-wide text-white">Welcome Message</p>
@@ -4878,7 +5078,7 @@ function DashboardContent() {
                                                 onChange={(event) => setGalleryMessageText(event.target.value.slice(0, 200))}
                                                 placeholder="Write a brief, elegant welcome note..."
                                                 maxLength={200}
-                                                className="min-h-24 w-full resize-none rounded-2xl border border-amber-400/20 bg-slate-950/50 p-4 text-sm font-semibold leading-6 text-white outline-none transition-colors placeholder:text-slate-500 focus:border-amber-400/60"
+                                                className="min-h-24 w-full resize-none rounded-2xl border border-[#CA9C68]/20 bg-slate-950/50 p-4 text-sm font-semibold leading-6 text-white outline-none transition-colors placeholder:text-slate-500 focus:border-[#CA9C68]/60"
                                             />
                                             <div className="mt-3 flex justify-end">
                                                 <button
@@ -4887,7 +5087,7 @@ function DashboardContent() {
                                                     className={cn(
                                                         "flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest transition-all active:scale-95",
                                                         hasGalleryMessageChanges && status !== "uploading"
-                                                            ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
+                                                            ? "bg-[#CA9C68] text-slate-950 hover:bg-[#D7AE7D]"
                                                             : "bg-slate-800 text-slate-500"
                                                     )}
                                                 >
@@ -4912,7 +5112,7 @@ function DashboardContent() {
                                                     onClick={() => setGalleryMediaTab(id)}
                                                     className={cn(
                                                         "inline-flex w-1/2 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-colors",
-                                                        active ? "bg-amber-400 text-slate-950" : "text-slate-300 hover:bg-slate-800"
+                                                        active ? "bg-[#CA9C68] text-slate-950" : "text-slate-300 hover:bg-slate-800"
                                                     )}
                                                 >
                                                     <Icon className="h-4 w-4" />
@@ -4921,6 +5121,52 @@ function DashboardContent() {
                                             );
                                         })}
                                     </div>
+                                    {isPrimaryGalleryView ? (
+                                    <label className="mb-6 flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/45 px-4 py-3">
+                                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-800 text-[#CA9C68]">
+                                            <Layers3 className="h-4 w-4" />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-sm font-bold text-slate-200">Source gallery</span>
+                                            <span className="mt-0.5 block text-xs text-slate-400">Filter Primary Gallery media by origin</span>
+                                        </span>
+                                        <select
+                                            value={effectiveSourceGalleryFilter}
+                                            onChange={(event) => setSourceGalleryFilter(event.target.value)}
+                                            className="max-w-[14rem] rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-[#CA9C68]"
+                                            aria-label="Filter by source gallery"
+                                        >
+                                            <option value="all">All galleries ({selectedMediaItems.length})</option>
+                                            {sourceGalleryOptions.map(option => (
+                                                <option key={option.id} value={option.id}>{option.label} ({option.count})</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    ) : (
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={showOnlyFavourites}
+                                        onClick={() => setShowOnlyFavourites(current => !current)}
+                                        className={cn(
+                                            "mb-6 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                                            showOnlyFavourites
+                                                ? "border-[#CA9C68]/70 bg-[#CA9C68]/10"
+                                                : "border-slate-700 bg-slate-900/45 hover:border-slate-500 hover:bg-slate-900/70"
+                                        )}
+                                    >
+                                        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", showOnlyFavourites ? "bg-[#CA9C68] text-slate-950" : "bg-slate-800 text-slate-300")}>
+                                            <Star className={cn("h-4 w-4", showOnlyFavourites && "fill-current")} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className={cn("block text-sm font-bold", showOnlyFavourites ? "text-[#E2B77F]" : "text-slate-200")}>Favourites only</span>
+                                            <span className="mt-0.5 block text-xs text-slate-400">{activeFavouriteCount} in {galleryMediaTab === "videos" ? "Videos" : "Photos"}</span>
+                                        </span>
+                                        <span className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", showOnlyFavourites ? "bg-[#CA9C68]" : "bg-slate-700")}>
+                                            <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform", showOnlyFavourites ? "translate-x-5" : "translate-x-0.5")} />
+                                        </span>
+                                    </button>
+                                    )}
 
                                     {isInlineEventDetailGalleryEditor && activeEventDetailEvent && activeEventDetailEvent.id !== selectedMainEvent?.id && (
                                         <div className="mb-6 flex justify-end">
@@ -4965,7 +5211,7 @@ function DashboardContent() {
                                                     >
                                                         {/* Inner Clipping Container for Photo */}
                                                         <div className="absolute inset-0 overflow-hidden">
-                                                            <GridMediaCell 
+                                                            <GridMediaCell
                                                                 photo={photo}
                                                                 gridSrc={gridSrc}
                                                                 isVideo={isVideo}
@@ -4973,9 +5219,9 @@ function DashboardContent() {
                                                             />
                                                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                             {shouldBlurMediaForPlan && (
-                                                                <div className="pointer-events-none absolute left-1/2 top-14 z-20 w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-2xl border border-amber-300/50 bg-slate-950/95 px-3 py-2 text-center text-[10px] font-black uppercase leading-4 tracking-[0.08em] text-amber-100 shadow-2xl shadow-black/50 backdrop-blur-md">
+                                                                <div className="pointer-events-none absolute left-1/2 top-14 z-20 w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-2xl border border-[#CA9C68]/50 bg-slate-950/95 px-3 py-2 text-center text-[10px] font-black uppercase leading-4 tracking-[0.08em] text-[#F5E7D4] shadow-2xl shadow-black/50 backdrop-blur-md">
                                                                     Plan expired<br />
-                                                                    <span className="text-[9px] text-amber-200/90">May be deleted after grace period</span>
+                                                                    <span className="text-[9px] text-[#D7AE7D]/90">May be deleted after grace period</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -4995,9 +5241,8 @@ function DashboardContent() {
                                                             </Tooltip>
                                                         </div>
                                                         )}
-                                                        {!isVideo && (
-                                                            <div className="absolute top-3 right-14 z-10">
-                                                                <Tooltip text={isFavourite ? "Remove from Favourite" : "Add to Favourite"}>
+                                                        <div className="absolute top-3 right-14 z-10">
+                                                            <Tooltip text={isFavourite ? "Remove from Primary Gallery" : "Add to Primary Gallery"}>
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -5006,15 +5251,14 @@ function DashboardContent() {
                                                                         className={cn(
                                                                             "p-2.5 backdrop-blur-md rounded-xl shadow-lg transition-all active:scale-95",
                                                                             isFavourite
-                                                                                ? "bg-amber-400 text-slate-950 opacity-100"
-                                                                                : "bg-slate-800/90 text-white opacity-0 group-hover:opacity-100 hover:bg-amber-400 hover:text-slate-950"
+                                                                                ? "bg-[#CA9C68] text-slate-950 opacity-100"
+                                                                                : "bg-slate-800/90 text-white opacity-0 group-hover:opacity-100 hover:bg-[#CA9C68] hover:text-slate-950"
                                                                         )}
                                                                     >
                                                                         <Star className={cn("w-4 h-4", isFavourite && "fill-current")} />
                                                                     </button>
-                                                                </Tooltip>
-                                                            </div>
-                                                        )}
+                                                            </Tooltip>
+                                                        </div>
                                                         <div className="absolute top-3 right-3 z-10">
                                                             <Tooltip text={isVideo ? "Delete Video" : "Delete Image"}>
                                                                 <button
@@ -5028,7 +5272,7 @@ function DashboardContent() {
                                                                 </button>
                                                             </Tooltip>
                                                         </div>
-                                                        {activeGalleryItems.length > 1 && (
+                                                        {!isFavouriteFilterActive && activeGalleryItems.length > 1 && (
                                                             <div className="absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-full border border-slate-700 bg-slate-950/80 text-white shadow-lg backdrop-blur-md">
                                                                 <button
                                                                     type="button"
@@ -5069,7 +5313,7 @@ function DashboardContent() {
                                             )}
 
                                             {/* Add Image Button */}
-                                            <motion.label
+                                            {!isFavouriteFilterActive && <motion.label
                                                 layout
                                                 className={cn(
                                                     "relative aspect-square rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-slate-900/50 group",
@@ -5100,12 +5344,12 @@ function DashboardContent() {
                                                         </span>
                                                     </div>
                                                 )}
-                                            </motion.label>
+                                            </motion.label>}
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
                                             {/* Add Image Option as List Item */}
-                                            <motion.label
+                                            {!isFavouriteFilterActive && <motion.label
                                                 className={cn(
                                                     "flex items-center p-6 border-2 border-dashed rounded-3xl cursor-pointer transition-all hover:bg-slate-900/50 group",
                                                     status === "uploading" ? "border-sky-500/50 bg-sky-500/5" : "border-slate-700"
@@ -5134,7 +5378,7 @@ function DashboardContent() {
                                                         {galleryMediaTab === "videos" ? "Click to upload videos, or drag them here" : "Click to upload memories, or drag images here"}
                                                     </p>
                                                 </div>
-                                            </motion.label>
+                                            </motion.label>}
 
                                             <div className="bg-slate-800 rounded-[2.5rem] border border-slate-700 overflow-hidden shadow-sm">
                                                 <div className="overflow-x-auto">
@@ -5200,7 +5444,7 @@ function DashboardContent() {
                                                                                     });
                                                                                 }}
                                                                             >
-                                                                                <GridMediaCell 
+                                                                                <GridMediaCell
                                                                                     photo={photo}
                                                                                     gridSrc={gridSrc}
                                                                                     isVideo={isVideo}
@@ -5208,9 +5452,9 @@ function DashboardContent() {
                                                                                     onThumbnailLoaded={handleThumbnailLoaded}
                                                                                 />
                                                                                 {shouldBlurMediaForPlan && (
-                                                                                    <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-amber-300/50 bg-slate-950/95 px-2 py-2 text-center text-[9px] font-black uppercase leading-4 tracking-[0.08em] text-amber-100 shadow-2xl shadow-black/50 backdrop-blur-md">
+                                                                                    <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#CA9C68]/50 bg-slate-950/95 px-2 py-2 text-center text-[9px] font-black uppercase leading-4 tracking-[0.08em] text-[#F5E7D4] shadow-2xl shadow-black/50 backdrop-blur-md">
                                                                                         Plan expired<br />
-                                                                                        <span className="text-[8px] text-amber-200/90">May be deleted after grace period</span>
+                                                                                        <span className="text-[8px] text-[#D7AE7D]/90">May be deleted after grace period</span>
                                                                                     </div>
                                                                                 )}
                                                                             </div>
@@ -5255,7 +5499,7 @@ function DashboardContent() {
                                                                         </td>
                                                                         <td className="px-8 py-6 text-right">
                                                                             <div className="flex items-center justify-end space-x-2">
-                                                                                {activeGalleryItems.length > 1 && (
+                                                                                {!isFavouriteFilterActive && activeGalleryItems.length > 1 && (
                                                                                     <div className="flex overflow-hidden rounded-xl border border-slate-700 bg-slate-800">
                                                                                         <button
                                                                                             type="button"
@@ -5287,22 +5531,20 @@ function DashboardContent() {
                                                                                     </button>
                                                                                 </Tooltip>
                                                                                 )}
-                                                                                {!isVideo && (
-                                                                                    <Tooltip text={isFavourite ? "Remove from Favourite" : "Add to Favourite"}>
+                                                                                <Tooltip text={isFavourite ? "Remove from Primary Gallery" : "Add to Primary Gallery"}>
                                                                                         <button
                                                                                             onClick={() => handleToggleEventFavourite(photo.id)}
                                                                                             className={cn(
                                                                                                 "p-2.5 rounded-xl border transition-all active:scale-95",
                                                                                                 isFavourite
-                                                                                                    ? "border-amber-400 bg-amber-400 text-slate-950"
-                                                                                                    : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-amber-400 hover:text-slate-950"
+                                                                                                    ? "border-[#CA9C68] bg-[#CA9C68] text-slate-950"
+                                                                                                    : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-[#CA9C68] hover:text-slate-950"
                                                                                             )}
                                                                                         >
                                                                                             <Star className={cn("w-4 h-4", isFavourite && "fill-current")} />
                                                                                         </button>
-                                                                                    </Tooltip>
-                                                                                )}
-                                                                                <Tooltip text="Delete Image">
+                                                                                </Tooltip>
+                                                                                <Tooltip text={isVideo ? "Delete Video" : "Delete Image"}>
                                                                                     <button
                                                                                         onClick={() => handleDeletePhoto(photo.id)}
                                                                                         className="p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 transition-all active:scale-95 hover:bg-red-50 hover:text-red-500"
@@ -5321,7 +5563,9 @@ function DashboardContent() {
                                                 {activeGalleryItems.length === 0 && !loadingPhotos && (
                                                     <div className="p-12 text-center">
                                                         <p className="text-slate-400 italic">
-                                                            {galleryMediaTab === "videos" ? "No videos in this gallery yet." : "No photos in this gallery yet."}
+                                                            {isFavouriteFilterActive
+                                                                ? `No favourite ${galleryMediaTab === "videos" ? "videos" : "photos"} in this gallery yet.`
+                                                                : galleryMediaTab === "videos" ? "No videos in this gallery yet." : "No photos in this gallery yet."}
                                                         </p>
                                                     </div>
                                                 )}
@@ -5331,8 +5575,8 @@ function DashboardContent() {
 
                                     {hasMorePhotos && (
                                         <div className="flex justify-center mt-12 mb-8">
-                                            <button 
-                                                onClick={loadMorePhotos} 
+                                            <button
+                                                onClick={loadMorePhotos}
                                                 disabled={loadingPhotos}
                                                 className="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full font-bold shadow-lg flex items-center space-x-2 transition-all border border-slate-700"
                                             >
@@ -5473,7 +5717,7 @@ function DashboardContent() {
                                                                 {isMainExpanded && (eventAdmins.length > 0 || eventLogs.length > 0) && (
                                                                     <div className="absolute left-7 top-14 bottom-6 w-px bg-stone-100"></div>
                                                                 )}
-                                                                
+
                                                                 <div className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-slate-900/50/50 hover:bg-slate-800/50 rounded-[1.5rem] transition-all border border-slate-700/50 group/event">
                                                                     <div className="flex items-center flex-1">
                                                                         <button
@@ -5503,7 +5747,7 @@ function DashboardContent() {
                                                                                     <span className="text-xs text-teal-600 font-bold">• {eventAdmins.length} Admin{eventAdmins.length > 1 ? "s" : ""}</span>
                                                                                 )}
                                                                                 {eventLogs.length > 0 && (
-                                                                                    <span className="text-xs text-amber-400 font-bold">• {eventLogs.length} Visit{eventLogs.length > 1 ? "s" : ""}</span>
+                                                                                    <span className="text-xs text-[#CA9C68] font-bold">• {eventLogs.length} Visit{eventLogs.length > 1 ? "s" : ""}</span>
                                                                                 )}
                                                                                 {pendingCount > 0 && (
                                                                                     <span className="text-xs text-rose-500 font-bold">• {pendingCount} Pending</span>
@@ -5535,7 +5779,7 @@ function DashboardContent() {
                                                                     <div className="pl-12 pr-4 py-3 space-y-5">
                                                                         {/* Event Admins */}
                                                                         <div className="mb-2">
-                                                                            <div 
+                                                                            <div
                                                                                 className="flex items-center space-x-1 text-xs font-bold text-teal-600 uppercase tracking-widest mb-2 px-1 cursor-pointer hover:text-teal-700 transition-colors w-fit"
                                                                                 onClick={() => toggleEventAdmins(event.id)}
                                                                             >
@@ -5582,8 +5826,8 @@ function DashboardContent() {
 
                                                                         {/* Event Guests */}
                                                                         <div className="mb-2">
-                                                                            <div 
-                                                                                className="flex items-center space-x-1 text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 px-1 cursor-pointer hover:text-amber-400 transition-colors w-fit"
+                                                                            <div
+                                                                                className="flex items-center space-x-1 text-xs font-bold text-[#CA9C68] uppercase tracking-widest mb-2 px-1 cursor-pointer hover:text-[#CA9C68] transition-colors w-fit"
                                                                                 onClick={() => toggleEventGuests(event.id)}
                                                                             >
                                                                                 {expandedEventGuests.has(event.id) ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -5591,7 +5835,7 @@ function DashboardContent() {
                                                                                 <span>Guest Users ({eventLogs.length})</span>
                                                                             </div>
                                                                             {expandedEventGuests.has(event.id) && (
-                                                                                <div className="mt-2 space-y-2 pl-4 border-l border-amber-500/30 ml-2">
+                                                                                <div className="mt-2 space-y-2 pl-4 border-l border-[#CA9C68]/30 ml-2">
                                                                                     {eventLogs.length > 0 ? (
                                                                                         [...eventLogs].sort((a, b) => b.loginAt?.seconds - a.loginAt?.seconds).map(log => {
                                                                                             const loginDate = log.loginAt ? new Date(log.loginAt.seconds * 1000).toLocaleString('en-IN', {
@@ -5600,10 +5844,10 @@ function DashboardContent() {
 
                                                                                             const isEmailMethod = log.phone?.includes('@');
                                                                                             const displayMethod = isEmailMethod ? "Email" : "Mobile";
-                                                                                            
+
                                                                                             // Find matching registered user to allow admin promotion
-                                                                                            const matchingUser = allUsers.find(u => 
-                                                                                                (isEmailMethod && u.email === log.phone) || 
+                                                                                            const matchingUser = allUsers.find(u =>
+                                                                                                (isEmailMethod && u.email === log.phone) ||
                                                                                                 (!isEmailMethod && u.phone === log.phone)
                                                                                             );
 
@@ -5613,8 +5857,8 @@ function DashboardContent() {
 
                                                                                             return (
                                                                                                 <div key={log.id} className="flex items-center p-3 bg-slate-800 border border-slate-700 rounded-xl group/g hover:border-slate-700 transition-all">
-                                                                                                    <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center mr-3">
-                                                                                                        <span className="text-xs font-bold text-amber-400">{(log.name || 'G').charAt(0)}</span>
+                                                                                                    <div className="w-10 h-10 rounded-lg bg-[#CA9C68]/30 flex items-center justify-center mr-3">
+                                                                                                        <span className="text-xs font-bold text-[#CA9C68]">{(log.name || 'G').charAt(0)}</span>
                                                                                                     </div>
                                                                                                     <div>
                                                                                                         <p className="font-bold text-slate-200 text-sm">{log.name || 'Anonymous'}</p>
@@ -5661,7 +5905,7 @@ function DashboardContent() {
                                                                                                                                 Make Primary Admin
                                                                                                                             </button>
                                                                                                                         )}
-                                                                                                                        <button 
+                                                                                                                        <button
                                                                                                                             onClick={() => handleUpdateUserRole(matchingUser.id, "revoke")}
                                                                                                                             className="px-4 py-2 bg-rose-50 text-rose-600 text-xs font-bold uppercase rounded-lg hover:bg-rose-100 transition-all"
                                                                                                                         >
@@ -5670,13 +5914,13 @@ function DashboardContent() {
                                                                                                                     </>
                                                                                                                 ) : (
                                                                                                                     <>
-                                                                                                                        <button 
+                                                                                                                        <button
                                                                                                                             onClick={() => handleUpdateUserRole(matchingUser.id, "user", "event", [event.id])}
                                                                                                                             className="px-4 py-2 bg-slate-900 text-white text-xs font-bold uppercase rounded-lg hover:bg-slate-800 transition-all"
                                                                                                                         >
                                                                                                                             Make Event Admin
                                                                                                                         </button>
-                                                                                                                        <button 
+                                                                                                                        <button
                                                                                                                             onClick={() => handleUpdateUserRole(matchingUser.id, "user", "primary", [])}
                                                                                                                             className="px-4 py-2 bg-sky-500/10 text-sky-400 text-xs font-bold uppercase rounded-lg hover:bg-royal-gold/20 transition-all"
                                                                                                                         >
@@ -5688,7 +5932,7 @@ function DashboardContent() {
                                                                                                         )}
 
                                                                                                         <div className="h-4 w-px bg-stone-200 mx-1"></div>
-                                                                                                        <button 
+                                                                                                        <button
                                                                                                             onClick={() => handleGuestDelete(log.id)}
                                                                                                             className="p-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                                                                             title="Remove Guest"
@@ -5748,13 +5992,13 @@ function DashboardContent() {
                                 className="w-full max-w-md rounded-[2.5rem] bg-slate-900 border border-slate-800 p-6 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
                             >
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-royal-gold to-rose-400" />
-                                
+
                                 <div className="flex items-center justify-between mb-6 mt-2">
                                     <div>
                                         <h2 className="text-2xl font-black text-white">Event Type</h2>
                                         <p className="text-sm font-medium text-slate-400 mt-1">Choose a category for your gallery</p>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => setShowCategoryModal(false)}
                                         className="rounded-full bg-slate-800 p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
                                     >
@@ -5769,14 +6013,14 @@ function DashboardContent() {
                                         const getCatColor = (n: string) => {
                                             if (n === 'Wedding') return '#ff4b72';
                                             if (n === 'Birthday') return '#3b82f6';
-                                            if (n === 'Anniversary') return '#eab308';
+                                            if (n === 'Anniversary') return '#CA9C68';
                                             if (n === 'Corporate') return '#10b981';
                                             if (n === 'Sports') return '#06b6d4';
                                             if (n === 'College') return '#6366f1';
                                             return '#64748b'; // Other
                                         };
                                         const color = getCatColor(name);
-                                        
+
                                         return (
                                             <button
                                                 key={name}
@@ -5786,13 +6030,13 @@ function DashboardContent() {
                                                 }}
                                                 className={cn(
                                                     "w-full flex items-center justify-between p-4 rounded-2xl border transition-all",
-                                                    isActive 
-                                                        ? "border-amber-400 bg-amber-400/10" 
+                                                    isActive
+                                                        ? "border-[#CA9C68] bg-[#CA9C68]/10"
                                                         : "border-slate-800 bg-slate-800/50 hover:border-slate-700 hover:bg-slate-800"
                                                 )}
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div 
+                                                    <div
                                                         className="flex h-10 w-10 items-center justify-center rounded-xl"
                                                         style={{ backgroundColor: `${color}20` }}
                                                     >
@@ -5800,13 +6044,13 @@ function DashboardContent() {
                                                     </div>
                                                     <span className={cn(
                                                         "text-base font-bold",
-                                                        isActive ? "text-amber-400" : "text-slate-200"
+                                                        isActive ? "text-[#CA9C68]" : "text-slate-200"
                                                     )}>
                                                         {name}
                                                     </span>
                                                 </div>
                                                 {isActive && (
-                                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-slate-950">
+                                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#CA9C68] text-slate-950">
                                                         <Check className="h-4 w-4" />
                                                     </div>
                                                 )}
@@ -5843,14 +6087,14 @@ function DashboardContent() {
                                         <h2 className="text-3xl font-serif text-white mb-2">Choose Style</h2>
                                         <p className="text-slate-700 font-sans">Select a design template for this event.</p>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setShowTemplateModal(false);
                                             setTemplateTargetEvent(null);
                                         }}
                                         className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors shrink-0 mt-1"
                                     >
-                                        <X className="w-5 h-5 text-amber-400" />
+                                        <X className="w-5 h-5 text-[#CA9C68]" />
                                     </button>
                                 </div>
 
@@ -5868,18 +6112,18 @@ function DashboardContent() {
                                                 style={{ borderColor: isActive ? template.accent : undefined }}
                                             >
                                                 <div className="flex items-center gap-3 flex-1">
-                                                    <div 
+                                                    <div
                                                         className="w-10 h-10 rounded-full flex items-center justify-center border border-white/10"
                                                         style={{ backgroundColor: template.background?.dark || '#000' }}
                                                     >
-                                                        <div 
+                                                        <div
                                                             className="w-3.5 h-3.5 rounded-full"
                                                             style={{ backgroundColor: template.accent || '#fff' }}
                                                         />
                                                     </div>
-                                                    
+
                                                     <div className="flex-1 mr-2">
-                                                        <div 
+                                                        <div
                                                             className="text-sm font-bold font-outfit"
                                                             style={{ color: isActive ? template.accent : '#fff' }}
                                                         >
@@ -5892,7 +6136,7 @@ function DashboardContent() {
                                                 </div>
 
                                                 {isActive && (
-                                                    <div 
+                                                    <div
                                                         className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                                                         style={{ backgroundColor: template.accent }}
                                                     >
@@ -6058,7 +6302,7 @@ function DashboardContent() {
                                                 "mt-5 rounded-2xl border p-4 text-sm font-semibold leading-6",
                                                 subscriptionStatus.tone === "danger"
                                                     ? "border-rose-400/25 bg-rose-400/10 text-rose-100"
-                                                    : "border-amber-400/25 bg-amber-400/10 text-amber-100"
+                                                    : "border-[#CA9C68]/25 bg-[#CA9C68]/10 text-[#F5E7D4]"
                                             )}
                                         >
                                             <div className="mb-1 text-[10px] font-black uppercase tracking-[0.16em]">
@@ -6073,7 +6317,7 @@ function DashboardContent() {
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="h-2 w-2 rounded-full bg-amber-300" />
+                                                <span className="h-2 w-2 rounded-full bg-[#D7AE7D]" />
                                                 <span className="text-sm font-black text-slate-100">Storage</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm">
@@ -6081,14 +6325,14 @@ function DashboardContent() {
                                                 <span className="font-semibold text-slate-500">
                                                     / {planDetails.storageLabel}
                                                 </span>
-                                                <span className="rounded-full bg-amber-400/10 px-2 py-1 text-[10px] font-black text-amber-300">
+                                                <span className="rounded-full bg-[#CA9C68]/10 px-2 py-1 text-[10px] font-black text-[#CA9C68]">
                                                     {planDetails.storageBytes === Infinity ? "∞" : `${Math.round(storagePercent)}%`}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="h-2 overflow-hidden rounded-full bg-slate-950">
                                             <div
-                                                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-200"
+                                                className="h-full rounded-full bg-gradient-to-r from-[#CA9C68] to-[#D7AE7D]"
                                                 style={{ width: `${planDetails.storageBytes === Infinity ? 5 : storagePercent}%` }}
                                             />
                                         </div>
@@ -6126,7 +6370,7 @@ function DashboardContent() {
                                             setShowPlanDetailsModal(false);
                                             router.push("/pricing");
                                         }}
-                                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-4 text-sm font-black uppercase tracking-wide text-slate-950 transition-colors hover:bg-amber-300"
+                                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#CA9C68] px-5 py-4 text-sm font-black uppercase tracking-wide text-slate-950 transition-colors hover:bg-[#D7AE7D]"
                                     >
                                         Manage Plan
                                         <ArrowRight className="h-4 w-4" />
@@ -6151,9 +6395,23 @@ function DashboardContent() {
                                 initial={{ opacity: 0, scale: 0.92, y: 18 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.92, y: 18 }}
-                                className="relative w-full max-w-md rounded-[2rem] border border-amber-400/25 bg-slate-800 px-7 py-9 text-center shadow-2xl sm:px-10"
+                                className="relative w-full max-w-md rounded-[2rem] border border-[#CA9C68]/25 bg-slate-800 px-7 py-9 text-center shadow-2xl sm:px-10"
                             >
                                 <h3 className="text-3xl font-black tracking-tight text-white">Share Event</h3>
+                                {!shareModalEvent.parentId && (shareModalEvent.createdBy === user?.uid || shareModalEvent.createdBy === user?.email) && (
+                                    <div className="mt-5 rounded-xl border border-slate-600 p-4 text-left">
+                                        <label className="flex items-center justify-between gap-3 text-sm font-bold text-white">
+                                            Event visibility
+                                            <select aria-label="Event visibility" value={shareModalEvent.isPublic ? "public" : "private"} disabled={savingVisibility} onChange={event => void changeEventVisibility(event.target.value === "public")} className="rounded-lg bg-slate-900 p-2 disabled:opacity-50">
+                                                <option value="private">Private</option><option value="public">Public</option>
+                                            </select>
+                                        </label>
+                                        <p className="mt-2 text-xs text-slate-300">{shareModalEvent.isPublic ? "Anyone with the link can view this event and its sub-galleries. Viewing does not grant upload or editing access." : "Guests need approval to view this event through its shared link."}</p>
+                                        {savingVisibility && <p role="status" className="mt-2 text-xs text-slate-300">Saving…</p>}
+                                        {visibilityError && <p role="alert" className="mt-2 text-xs text-rose-300">{visibilityError}</p>}
+                                    </div>
+                                )}
+
 
                                 <div className="mx-auto mt-7 w-full max-w-[250px] rounded-[2rem] bg-white p-6 shadow-xl">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -6167,15 +6425,15 @@ function DashboardContent() {
 
                                 <div className="mt-8">
                                     <p className="text-sm font-black uppercase tracking-widest text-slate-400">Unique Join ID</p>
-                                    <div className="mx-auto mt-4 inline-flex min-w-56 items-center justify-center rounded-2xl border border-amber-400/40 px-8 py-4">
-                                        <span className="text-3xl font-black uppercase tracking-[0.25em] text-amber-400">{shareModalJoinId}</span>
+                                    <div className="mx-auto mt-4 inline-flex min-w-56 items-center justify-center rounded-2xl border border-[#CA9C68]/40 px-8 py-4">
+                                        <span className="text-3xl font-black uppercase tracking-[0.25em] text-[#CA9C68]">{shareModalJoinId}</span>
                                     </div>
                                 </div>
 
                                 <button
                                     type="button"
                                     onClick={handleShareInvitation}
-                                    className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-amber-400 px-6 py-5 text-sm font-black uppercase tracking-wide text-slate-950 shadow-lg transition-all hover:bg-amber-300 active:scale-[0.98]"
+                                    className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#CA9C68] px-6 py-5 text-sm font-black uppercase tracking-wide text-slate-950 shadow-lg transition-all hover:bg-[#D7AE7D] active:scale-[0.98]"
                                 >
                                     <Share2 className="h-5 w-5" />
                                     <span>Share Invitation</span>
@@ -6203,7 +6461,7 @@ function DashboardContent() {
                             className="fixed left-1/2 top-24 z-[80] flex w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 flex-col gap-3 rounded-[1.5rem] border border-white/15 bg-slate-950/90 p-3 text-white shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between"
                         >
                             <div className="flex flex-col gap-1 px-2">
-                                <span className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">Drag image</span>
+                                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#CA9C68]">Drag image</span>
                                 <span className="truncate text-sm font-bold text-slate-300">{coverPositionEvent.title}</span>
                             </div>
 
@@ -6240,7 +6498,7 @@ function DashboardContent() {
                                 <button
                                     type="button"
                                     onClick={handleSaveCoverPosition}
-                                    className="rounded-full bg-amber-400 px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-950 transition hover:bg-amber-300"
+                                    className="rounded-full bg-[#CA9C68] px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-950 transition hover:bg-[#D7AE7D]"
                                 >
                                     Save
                                 </button>
@@ -6399,11 +6657,14 @@ function DashboardContent() {
                         return {
                             ...viewingPhoto,
                             src: livePhoto?.url || viewingPhoto.src,
+                            raw_url: (livePhoto as any)?.raw_url || (viewingPhoto as any)?.raw_url,
                             thumbnailUrl: livePhoto?.thumbnailUrl || viewingPhoto.thumbnailUrl,
                         };
                     })() : null}
                     onClose={() => setViewingPhoto(null)}
-                    theme={getWebLightboxTheme(selectedMainEvent?.templateId)}
+                    keepPageHeaderVisible
+                    hideFilename
+                    compactMedia
                     onRotate={(direction) => viewingPhoto?.id ? handleRotatePhoto(viewingPhoto.id, direction) : undefined}
                     isFavourite={!!viewingPhoto?.id && eventFavouritePhotoIds.has(viewingPhoto.id)}
                     onToggleFavourite={
@@ -6478,7 +6739,7 @@ function DashboardContent() {
                                             await handleSetAsCover(photoActionItem.url);
                                             setPhotoActionItem(null);
                                         }}
-                                        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-amber-400 px-5 py-4 text-left font-black text-slate-950 transition-transform active:scale-[0.98]"
+                                        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-[#CA9C68] px-5 py-4 text-left font-black text-slate-950 transition-transform active:scale-[0.98]"
                                     >
                                         <ImageIcon className="h-5 w-5 shrink-0" />
                                         <span>Make Gallery Thumbnail</span>
@@ -6489,7 +6750,7 @@ function DashboardContent() {
                                                 await handleSetAsCover(photoActionItem.url, selectedMainEvent.id, true);
                                                 setPhotoActionItem(null);
                                             }}
-                                            className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-left font-black text-amber-300 transition-transform active:scale-[0.98]"
+                                            className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-[#CA9C68]/30 bg-[#CA9C68]/10 px-5 py-4 text-left font-black text-[#CA9C68] transition-transform active:scale-[0.98]"
                                         >
                                             <Star className="h-5 w-5 shrink-0" />
                                             <span>Make Event Thumbnail</span>
@@ -6513,7 +6774,7 @@ function DashboardContent() {
                             >
                                 <div className="bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-amber-400 text-xl font-black text-slate-950">
+                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-[#CA9C68] text-xl font-black text-slate-950">
                                             {selectedGuestProfile?.profileImage ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={selectedGuestProfile.profileImage} alt="" className="h-full w-full object-cover" />
@@ -6562,7 +6823,7 @@ function DashboardContent() {
                                     </div>
 
                                     <div>
-                                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-amber-300">Member Privileges</p>
+                                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#CA9C68]">Member Privileges</p>
                                         <div className="space-y-3">
                                             {[
                                                 { key: "viewAccess", label: "View Access", desc: "Can open and view this event gallery", icon: Eye },
@@ -6589,12 +6850,12 @@ function DashboardContent() {
                                                         }}
                                                         className={cn(
                                                             "flex w-full items-center gap-4 rounded-[1.25rem] border p-4 text-left transition-colors",
-                                                            isActive ? "border-amber-400/45 bg-amber-400/10" : "border-slate-800 bg-slate-900/70 hover:border-slate-700"
+                                                            isActive ? "border-[#CA9C68]/45 bg-[#CA9C68]/10" : "border-slate-800 bg-slate-900/70 hover:border-slate-700"
                                                         )}
                                                     >
                                                         <span className={cn(
                                                             "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                                                            isActive ? "bg-amber-400/15 text-amber-300" : "bg-slate-800 text-slate-400"
+                                                            isActive ? "bg-[#CA9C68]/15 text-[#CA9C68]" : "bg-slate-800 text-slate-400"
                                                         )}>
                                                             <Icon className="h-5 w-5" />
                                                         </span>
@@ -6604,7 +6865,7 @@ function DashboardContent() {
                                                         </span>
                                                         <span className={cn(
                                                             "relative h-7 w-12 rounded-full transition-colors",
-                                                            isActive ? "bg-amber-400" : "bg-slate-700"
+                                                            isActive ? "bg-[#CA9C68]" : "bg-slate-700"
                                                         )}>
                                                             <span className={cn(
                                                                 "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
@@ -6620,7 +6881,7 @@ function DashboardContent() {
                                     <button
                                         type="button"
                                         onClick={() => setSelectedGuestLog(null)}
-                                        className="w-full rounded-2xl bg-amber-400 px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-950"
+                                        className="w-full rounded-2xl bg-[#CA9C68] px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-950"
                                     >
                                         Save Permissions
                                     </button>
@@ -6651,7 +6912,7 @@ function DashboardContent() {
                                         setStatus("idle");
                                         setMessage("");
                                     }}
-                                    className="mt-7 w-full rounded-2xl bg-amber-400 px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-950 transition-colors hover:bg-amber-300"
+                                    className="mt-7 w-full rounded-2xl bg-[#CA9C68] px-5 py-4 text-sm font-black uppercase tracking-widest text-slate-950 transition-colors hover:bg-[#D7AE7D]"
                                 >
                                     OK
                                 </button>
@@ -6671,10 +6932,10 @@ function DashboardContent() {
                                 className="bg-slate-800 rounded-[2.5rem] p-8 md:p-12 w-full max-w-lg shadow-2xl relative overflow-hidden my-8"
                             >
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sky-400 via-sky-200 to-sky-400"></div>
-                                
+
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-3xl font-bold tracking-tight text-white">Create Event</h3>
-                                    <button 
+                                    <button
                                         onClick={() => setIsCreateModalOpen(false)}
                                         className="p-2 hover:bg-slate-900/50 rounded-full transition-colors"
                                     >
@@ -6725,8 +6986,8 @@ function DashboardContent() {
                                                         className={cn(
                                                             "flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-black transition-colors",
                                                             isSelected
-                                                                ? "border-amber-400 bg-amber-400 text-slate-950"
-                                                                : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-amber-400/50 hover:text-white"
+                                                                ? "border-[#CA9C68] bg-[#CA9C68] text-slate-950"
+                                                                : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-[#CA9C68]/50 hover:text-white"
                                                         )}
                                                     >
                                                         <Icon className="h-4 w-4 shrink-0" />
@@ -6742,19 +7003,19 @@ function DashboardContent() {
                                         <button
                                             type="button"
                                             onClick={() => openDatePicker("create")}
-                                            className="flex w-full items-center justify-between rounded-2xl border border-slate-700 bg-slate-900/50 px-6 py-5 text-left text-lg font-medium text-white transition-colors hover:border-amber-400/50"
+                                            className="flex w-full items-center justify-between rounded-2xl border border-slate-700 bg-slate-900/50 px-6 py-5 text-left text-lg font-medium text-white transition-colors hover:border-[#CA9C68]/50"
                                         >
                                             <span className={eventDate ? "text-white" : "text-slate-500"}>
                                                 {eventDate || "Select event date"}
                                             </span>
-                                            <Calendar className="h-5 w-5 text-amber-300" />
+                                            <Calendar className="h-5 w-5 text-[#CA9C68]" />
                                         </button>
                                     </div>
 
                                     <button
                                         type="submit"
                                         disabled={status === "uploading"}
-                                        className="w-full py-5 bg-amber-400 text-slate-950 rounded-2xl font-black hover:bg-amber-300 transition-all shadow-xl active:scale-[0.98] disabled:bg-stone-200 disabled:shadow-none flex items-center justify-center gap-3 text-lg"
+                                        className="w-full py-5 bg-[#CA9C68] text-slate-950 rounded-2xl font-black hover:bg-[#D7AE7D] transition-all shadow-xl active:scale-[0.98] disabled:bg-stone-200 disabled:shadow-none flex items-center justify-center gap-3 text-lg"
                                     >
                                         {status === "uploading" ? (
                                             <>
@@ -6784,10 +7045,10 @@ function DashboardContent() {
                         >
                             <div className={cn(
                                 "px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm text-center border backdrop-blur-xl",
-                                status === "success" 
-                                    ? "bg-emerald-500/20 text-emerald-100 border-emerald-500/30" 
-                                    : status === "error" 
-                                        ? "bg-rose-500/20 text-rose-100 border-rose-500/30" 
+                                status === "success"
+                                    ? "bg-emerald-500/20 text-emerald-100 border-emerald-500/30"
+                                    : status === "error"
+                                        ? "bg-rose-500/20 text-rose-100 border-rose-500/30"
                                         : "bg-sky-500/20 text-sky-100 border-sky-500/30"
                             )}>
                                 {message}
@@ -6798,7 +7059,7 @@ function DashboardContent() {
 
                 {/* Floating Upload Queue Panel (Google Drive style) */}
                 <AnimatePresence>
-                    {isUploadPanelOpen && uploadQueue.length > 0 && (
+                    {(isUploadPanelOpen || hasUnfinishedUploads) && uploadQueue.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 50, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -6810,7 +7071,7 @@ function DashboardContent() {
                             <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
                                 <div className="flex items-center gap-2 min-w-0">
                                     {(uploadingItems > 0 || processingItems > 0) ? (
-                                        <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
+                                        <Loader2 className="w-4 h-4 animate-spin text-[#CA9C68] shrink-0" />
                                     ) : (
                                         <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                                     )}
@@ -6819,6 +7080,9 @@ function DashboardContent() {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
+                                    {uploadQueue.some(item => item.status === "pending" || item.status === "uploading") && (
+                                        <button type="button" onClick={cancelAllUploads} className="px-2 py-1 text-xs text-rose-300 hover:text-white">Cancel all uploads</button>
+                                    )}
                                     {completedItems === totalItems && (
                                         <button
                                             onClick={() => setUploadQueue([])}
@@ -6840,8 +7104,9 @@ function DashboardContent() {
                                     </button>
                                     <button
                                         onClick={() => setIsUploadPanelOpen(false)}
-                                        className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
-                                        title="Close"
+                                        disabled={hasUnfinishedUploads}
+                                        className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title={hasUnfinishedUploads ? "Video uploads and processing must finish before closing" : "Close"}
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
@@ -6851,14 +7116,14 @@ function DashboardContent() {
                             {/* Overall progress bar at the very bottom of minimized header */}
                             {isUploadPanelMinimized && (uploadingItems > 0 || processingItems > 0 || (indexingStatus && indexingStatus.status === "processing")) && (
                                 <div className="w-full h-1 bg-slate-900 overflow-hidden relative">
-                                    <div 
-                                        className="h-full bg-gradient-to-r from-amber-500 to-sky-500 transition-all duration-300"
-                                        style={{ 
+                                    <div
+                                        className="h-full bg-gradient-to-r from-[#CA9C68] to-sky-500 transition-all duration-300"
+                                        style={{
                                             width: `${
-                                                indexingStatus && indexingStatus.status === "processing"
+                                                processingItems === 0 && uploadingItems === 0 && indexingStatus && indexingStatus.status === "processing"
                                                     ? indexingStatus.percentComplete
                                                     : (uploadQueue.reduce((acc, curr) => acc + curr.progress, 0) / (totalItems * 100)) * 100
-                                            }%` 
+                                            }%`
                                         }}
                                     ></div>
                                 </div>
@@ -6884,7 +7149,7 @@ function DashboardContent() {
                                                         {item.mediaType === "video" ? (
                                                             <Video className="w-5 h-5 text-sky-400" />
                                                         ) : (
-                                                            <ImageIcon className="w-5 h-5 text-amber-500" />
+                                                            <ImageIcon className="w-5 h-5 text-[#CA9C68]" />
                                                         )}
                                                     </div>
 
@@ -6900,18 +7165,21 @@ function DashboardContent() {
                                                                 </span>
                                                             )}
                                                             {item.status === "uploading" && (
-                                                                <span className="text-[10px] font-bold text-amber-400 shrink-0">
+                                                                <span className="text-[10px] font-bold text-[#CA9C68] shrink-0">
                                                                     {item.progress}%
                                                                 </span>
                                                             )}
+                                                            {(item.status === "finalizing" || item.status === "cancelling" || item.status === "cancelled") && (
+                                                                <span className="text-[10px] text-slate-300">{item.status === "finalizing" ? "Finalizing..." : item.status === "cancelling" ? "Cancelling..." : "Cancelled"}</span>
+                                                            )}
                                                             {item.status === "processing" && (
                                                                 <span className="text-[10px] font-bold text-sky-400 shrink-0 animate-pulse">
-                                                                    {indexingStatus && indexingStatus.status === "processing" ? "Indexing..." : "Resizing..."}
+                                                                    {item.mediaType === "video" ? "Processing video..." : indexingStatus && indexingStatus.status === "processing" ? "Indexing..." : "Resizing..."}
                                                                 </span>
                                                             )}
                                                             {item.status === "success" && (
                                                                 <span className="text-[10px] font-bold text-emerald-400 shrink-0">
-                                                                    Done
+                                                                    {item.mediaType === "video" ? "100% · Ready" : "Done"}
                                                                 </span>
                                                             )}
                                                             {item.status === "error" && (
@@ -6927,21 +7195,24 @@ function DashboardContent() {
                                                                 className={cn(
                                                                     "h-full rounded-full transition-all duration-300",
                                                                     item.status === "pending" ? "bg-slate-700" :
-                                                                    item.status === "uploading" ? "bg-amber-400" :
+                                                                    item.status === "uploading" ? "bg-[#CA9C68]" :
                                                                     item.status === "processing" ? "bg-sky-400 animate-pulse" :
                                                                     item.status === "success" ? "bg-emerald-400" : "bg-rose-400"
                                                                 )}
-                                                                style={{ 
-                                                                    width: item.status === "pending" ? "0%" : item.status === "processing" ? "90%" : `${item.progress}%` 
+                                                                style={{
+                                                                    width: item.status === "pending" ? "0%" : item.status === "processing" ? "90%" : `${item.progress}%`
                                                                 }}
                                                             ></div>
                                                         </div>
                                                     </div>
 
+                                                    {(item.status === "pending" || item.status === "uploading") && (
+                                                        <button type="button" onClick={() => cancelUpload(item.id)} title={`Cancel upload: ${item.fileName}`} aria-label={`Cancel upload: ${item.fileName}`} className="rounded p-2 text-rose-300 hover:bg-rose-500/10"><X className="h-4 w-4" /></button>
+                                                    )}
                                                     {/* Status Icon */}
                                                     <div className="shrink-0">
                                                         {item.status === "uploading" && (
-                                                            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                                                            <Loader2 className="w-4 h-4 animate-spin text-[#CA9C68]" />
                                                         )}
                                                         {item.status === "processing" && (
                                                             <Loader2 className="w-4 h-4 animate-spin text-sky-400" />

@@ -74,7 +74,7 @@ export default function BusinessDetailScreen() {
   const [hasSeenAnnouncements, setHasSeenAnnouncements] = useState(false);
   const [eventsLikedCount, setEventsLikedCount] = useState<number>(0);
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  
+
   // Enquiry form state
   const [enquiryName, setEnquiryName] = useState('');
   const [enquiryDate, setEnquiryDate] = useState('');
@@ -109,7 +109,7 @@ export default function BusinessDetailScreen() {
     try {
       // 1. Fetch user's existing rating if they have rated before
       const existingUserRating = await getUserRatingForBusiness(user.uid, businessId);
-      
+
       const currentRating = business.rating || 5.0;
       const weight = 8; // Weighted average historical anchor
       let roundedRating = currentRating;
@@ -125,7 +125,7 @@ export default function BusinessDetailScreen() {
         const calculatedRating = ((currentRating * weight) + selectedRating) / (weight + 1);
         roundedRating = Math.round(calculatedRating * 10) / 10;
       }
-      
+
       // 2. Securely persist user rating log with optional text review comment
       const saveSuccess = await saveUserRating(user.uid, businessId, selectedRating, reviewComment, user.name);
       if (!saveSuccess) {
@@ -140,11 +140,11 @@ export default function BusinessDetailScreen() {
           ...business,
           rating: roundedRating
         });
-        
+
         // Refresh reviews list in background
         getReviewsForBusiness(businessId).then(list => setReviews(list)).catch(err => console.log('Reviews refresh failed', err));
         setReviewComment(''); // Clear review comment input state
-        
+
         const message = existingUserRating !== null
           ? `Your rating has been successfully updated to ${selectedRating} stars!`
           : `Your ${selectedRating}-star rating has been submitted successfully.`;
@@ -168,22 +168,22 @@ export default function BusinessDetailScreen() {
         if (businessId) {
           // 1. Fetch core business data as fast as possible
           let data = await getBusinessById(businessId);
-          
+
           if (data) {
             // Generate a unique deterministic vendorCode based on the business ID prefix
             if (!data.vendorCode) {
               const docIdCode = businessId.substring(0, 6).toUpperCase();
               const vendorCode = `VEN-${docIdCode}`;
               data = { ...data, vendorCode };
-              
+
               if (user && (user.uid === data.createdBy || user.email === data.ownerEmail)) {
                 // Background update (non-blocking)
-                updateBusiness(businessId, { vendorCode }).catch(err => 
+                updateBusiness(businessId, { vendorCode }).catch(err =>
                   console.warn("Silent ignore: Failed to save vendorCode to db", err)
                 );
               }
             }
-            
+
             setBusiness(data);
             if (data.createdBy) {
               getUserById(data.createdBy)
@@ -192,7 +192,7 @@ export default function BusinessDetailScreen() {
             } else {
               setCreatorProfile(null);
             }
-            
+
             // Track profile view — fire-and-forget, non-blocking, skip for the business owner
             if (user?.uid !== data.createdBy) {
               incrementBusinessViewCount(businessId).catch(() => {});
@@ -210,11 +210,11 @@ export default function BusinessDetailScreen() {
               }
             }
           }
-          
+
           // 2. DISMISS LOADING STATE IMMEDIATELY!
           // The screen transitions instantly, delivering an elite, responsive UX.
           setLoading(false);
-          
+
           // 3. Perform background updates (completely non-blocking)
           if (data) {
             // Fetch dynamic events count in background
@@ -226,14 +226,14 @@ export default function BusinessDetailScreen() {
             getAnnouncementsForBusiness(businessId).then(list => {
               setAnnouncementsList(list);
             }).catch(err => console.log('Background announcements fetch failed', err));
-            
+
             // Fetch dynamic reviews in background
             setLoadingReviews(true);
             getReviewsForBusiness(businessId).then(list => {
               setReviews(list);
             }).catch(err => console.log('Background reviews fetch failed', err))
               .finally(() => setLoadingReviews(false));
-            
+
             // Request permission & fetch location coordinates in background (eliminates GPS lock latency)
             Location.requestForegroundPermissionsAsync().then(({ status }) => {
               if (status === 'granted') {
@@ -250,7 +250,7 @@ export default function BusinessDetailScreen() {
             }).catch(err => {
               console.log('Background location fetch failed:', err);
             });
-            
+
             // Reverse geocode locality in background if needed
             if (data.location && (data.location.latitude || data.location.longitude)) {
               Location.reverseGeocodeAsync({
@@ -316,7 +316,7 @@ export default function BusinessDetailScreen() {
       Alert.alert('Missing Info', 'Please provide your name and event date.');
       return;
     }
-    
+
     if (!business) return;
 
     setIsSubmitting(true);
@@ -410,8 +410,8 @@ export default function BusinessDetailScreen() {
     );
   }
 
-  const galleryImages = business.coverImages && business.coverImages.length > 0 
-    ? business.coverImages 
+  const galleryImages = business.coverImages && business.coverImages.length > 0
+    ? business.coverImages
     : [business.coverImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop'];
   const creatorProfileId = creatorProfile?.id || business.createdBy;
   const creatorName = creatorProfile?.name || business.ownerName || 'Owner name not set';
@@ -428,11 +428,11 @@ export default function BusinessDetailScreen() {
 
   const highlights = [
     { id: '1', title: `${getExperienceYears()}+ Years`, subtitle: 'Experience', icon: 'clock.fill', color: '#6366f1' },
-    { 
-      id: '2', 
-      title: `${eventsLikedCount}`, 
-      subtitle: 'Events', 
-      icon: 'sparkles.fill', 
+    {
+      id: '2',
+      title: `${eventsLikedCount}`,
+      subtitle: 'Events',
+      icon: 'sparkles.fill',
       color: '#f97316',
       renderIcon: (color: string, size: number) => (
         <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -454,7 +454,7 @@ export default function BusinessDetailScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* ── HERO GALLERY ── */}
         <View style={styles.heroContainer}>
@@ -477,9 +477,9 @@ export default function BusinessDetailScreen() {
               />
             ))}
           </ScrollView>
-          
+
           <LinearGradient
-            colors={['rgba(2, 6, 23, 0.4)', 'transparent', 'rgba(2, 6, 23, 0.8)']}
+            colors={['rgba(19, 25, 31, 0.4)', 'transparent', 'rgba(19, 25, 31, 0.8)']}
             style={styles.heroGradient}
           />
 
@@ -505,8 +505,8 @@ export default function BusinessDetailScreen() {
             <TouchableOpacity style={styles.glassBtn} onPress={handleShare}>
               <IconSymbol name="square.and.arrow.up" size={18} color="#ffffff" />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.glassBtn, isFavorited && styles.glassBtnActive]} 
+            <TouchableOpacity
+              style={[styles.glassBtn, isFavorited && styles.glassBtnActive]}
               disabled={isShortlisting || !user?.uid}
               onPress={async () => {
                 if (!user?.uid || !businessId) return;
@@ -523,10 +523,10 @@ export default function BusinessDetailScreen() {
                 }
               }}
             >
-              <IconSymbol 
-                name={isFavorited ? "heart.fill" : "heart"} 
-                size={18} 
-                color={isFavorited ? "#ef4444" : "#ffffff"} 
+              <IconSymbol
+                name={isFavorited ? "heart.fill" : "heart"}
+                size={18}
+                color={isFavorited ? "#ef4444" : "#ffffff"}
               />
             </TouchableOpacity>
           </View>
@@ -539,9 +539,9 @@ export default function BusinessDetailScreen() {
               {business.name}
             </Text>
           </View>
-          
+
           <View style={styles.locationRow}>
-            <IconSymbol name="mappin.and.ellipse" size={14} color="#94a3b8" />
+            <IconSymbol name="mappin.and.ellipse" size={14} color="#CDB89E" />
             <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
               {business.location.address || locality || 'New Delhi'}
             </Text>
@@ -552,7 +552,7 @@ export default function BusinessDetailScreen() {
               </>
             )}
           </View>
-          
+
           <View style={styles.badgesRow}>
             {(() => {
               const colors = getBusinessTypeColor(business.type);
@@ -563,7 +563,7 @@ export default function BusinessDetailScreen() {
               );
             })()}
             {business.vendorCode && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.categoryBadge, { borderColor: 'rgba(56, 189, 248, 0.35)', backgroundColor: 'rgba(56, 189, 248, 0.12)', flexDirection: 'row', alignItems: 'center', gap: 4 }]}
                 onPress={async () => {
                   if (business.vendorCode) {
@@ -576,15 +576,15 @@ export default function BusinessDetailScreen() {
                 <IconSymbol name="doc.on.doc.fill" size={10} color="#38bdf8" />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              style={styles.ratingBadge} 
+            <TouchableOpacity
+              style={styles.ratingBadge}
               activeOpacity={0.7}
               onPress={() => {
                 setSelectedRating(5); // Default to 5 stars on open
                 setShowRatingModal(true);
               }}
             >
-              <IconSymbol name="star.fill" size={10} color="#d4af37" />
+              <IconSymbol name="star.fill" size={10} color="#CA9C68" />
               <Text style={styles.ratingText}>{business.rating}</Text>
             </TouchableOpacity>
           </View>
@@ -605,20 +605,20 @@ export default function BusinessDetailScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
+
 
           {/* ── TAB NAVIGATION ── */}
           <View style={styles.tabContainer}>
             {['About', 'Portfolio', 'Announcements', 'Reviews'].map((tab) => {
-              const showDot = tab === 'Announcements' && 
-                business?.announcements && 
-                business.announcements.length > 0 && 
-                !hasSeenAnnouncements && 
+              const showDot = tab === 'Announcements' &&
+                business?.announcements &&
+                business.announcements.length > 0 &&
+                !hasSeenAnnouncements &&
                 activeTab !== 'Announcements';
 
               return (
-                <TouchableOpacity 
-                  key={tab} 
+                <TouchableOpacity
+                  key={tab}
                   style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
                   onPress={() => {
                     setActiveTab(tab);
@@ -628,7 +628,7 @@ export default function BusinessDetailScreen() {
                   }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Text 
+                    <Text
                       style={[styles.tabText, activeTab === tab && styles.tabTextActive]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
@@ -669,7 +669,7 @@ export default function BusinessDetailScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>About</Text>
                 <Text style={styles.descriptionText}>
-                  {business.description || 
+                  {business.description ||
                     `Experience the exceptional services of ${business.name}. With a focus on quality and client satisfaction, we bring your vision to life with professional expertise in ${business.type.toLowerCase()}.`}
                 </Text>
               </View>
@@ -696,18 +696,18 @@ export default function BusinessDetailScreen() {
                     {faqsList.map((faq, i) => {
                       const isExpanded = expandedFaqIndex === i;
                       return (
-                        <TouchableOpacity 
-                          key={i} 
+                        <TouchableOpacity
+                          key={i}
                           style={[styles.faqItem, isExpanded && styles.faqItemExpanded]}
                           activeOpacity={0.75}
                           onPress={() => setExpandedFaqIndex(isExpanded ? null : i)}
                         >
                           <View style={styles.faqHeader}>
                             <Text style={styles.faqQuestion}>{faq.q}</Text>
-                            <IconSymbol 
-                              name={isExpanded ? "chevron.up" : "chevron.down"} 
-                              size={16} 
-                              color={isExpanded ? INDIGO : '#94a3b8'} 
+                            <IconSymbol
+                              name={isExpanded ? "chevron.up" : "chevron.down"}
+                              size={16}
+                              color={isExpanded ? INDIGO : '#CDB89E'}
                             />
                           </View>
                           {isExpanded && (
@@ -783,24 +783,24 @@ export default function BusinessDetailScreen() {
                   const matchedActivity = announcementsList.find(
                     (act: any) => act.content?.trim() === item?.trim()
                   );
-                  
-                  const dateStr = matchedActivity && matchedActivity.createdAt 
+
+                  const dateStr = matchedActivity && matchedActivity.createdAt
                     ? new Date(matchedActivity.createdAt.seconds * 1000).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
                       })
                     : 'Recently';
-                  
+
                   return (
                     <View key={index} style={[styles.announcementCard, index === 0 && styles.announcementCardLatest]}>
                       {index === 0 && (
                         <View style={styles.latestBanner}>
-                          <IconSymbol name="sparkles" size={10} color="#101010" />
+                          <IconSymbol name="sparkles" size={10} color="#1B211F" />
                           <Text style={styles.latestBannerText}>LATEST UPDATE</Text>
                         </View>
                       )}
-                      
+
                       <View style={styles.announcementHeader}>
                         <View style={styles.announcementIconWrapper}>
                           <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -816,7 +816,7 @@ export default function BusinessDetailScreen() {
                           <Text style={styles.announcementDateText}>{dateStr}</Text>
                         </View>
                       </View>
-                      
+
                       <Text style={styles.announcementBodyText}>{item}</Text>
                     </View>
                   );
@@ -863,8 +863,8 @@ export default function BusinessDetailScreen() {
                   </View>
                   <Text style={styles.emptyStateTitle}>No reviews yet</Text>
                   <Text style={styles.emptyStateDesc}>Be the first to share your experience with this vendor and help the community!</Text>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.firstReviewBtn}
                     onPress={() => setShowRatingModal(true)}
                   >
@@ -878,8 +878,8 @@ export default function BusinessDetailScreen() {
                     const date = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
                     formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                   }
-                  
-                  const initials = item.userName 
+
+                  const initials = item.userName
                     ? item.userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
                     : 'U';
 
@@ -897,11 +897,11 @@ export default function BusinessDetailScreen() {
                           {[1, 2, 3, 4, 5].map((s) => {
                             const isFilled = s <= item.rating;
                             return (
-                              <IconSymbol 
-                                key={s} 
-                                name={isFilled ? "star.fill" : "star"} 
-                                size={12} 
-                                color={isFilled ? "#eab308" : "#334155"} 
+                              <IconSymbol
+                                key={s}
+                                name={isFilled ? "star.fill" : "star"}
+                                size={12}
+                                color={isFilled ? "#eab308" : "#594C3D"}
                               />
                             );
                           })}
@@ -924,7 +924,7 @@ export default function BusinessDetailScreen() {
       {/* ── BOTTOM CTA ── */}
       <View style={styles.bottomBar}>
         <View style={styles.ctaContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.secondaryCTA}
             onPress={() => {
               setShowEnquiryForm(true);
@@ -956,9 +956,9 @@ export default function BusinessDetailScreen() {
         animationType="slide"
         onRequestClose={() => setShowContactOptions(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setShowContactOptions(false)}
         >
           <View style={styles.optionsContainer}>
@@ -969,7 +969,7 @@ export default function BusinessDetailScreen() {
                 <Text style={styles.optionsSub}>Select your preferred mode</Text>
               </View>
               <TouchableOpacity onPress={() => setShowContactOptions(false)} style={styles.closeBtn}>
-                <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                <IconSymbol name="xmark" size={20} color="#CDB89E" />
               </TouchableOpacity>
             </View>
 
@@ -982,7 +982,7 @@ export default function BusinessDetailScreen() {
                   <Text style={styles.optionLabel}>Call Directly</Text>
                   <Text style={styles.optionSubText}>{business.ownerPhone}</Text>
                 </View>
-                <IconSymbol name="chevron.right" size={14} color="#334155" />
+                <IconSymbol name="chevron.right" size={14} color="#594C3D" />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.optionItem} onPress={handleWhatsApp}>
@@ -993,11 +993,11 @@ export default function BusinessDetailScreen() {
                   <Text style={styles.optionLabel}>WhatsApp Message</Text>
                   <Text style={styles.optionSubText}>Instant response usually</Text>
                 </View>
-                <IconSymbol name="chevron.right" size={14} color="#334155" />
+                <IconSymbol name="chevron.right" size={14} color="#594C3D" />
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.optionItem} 
+              <TouchableOpacity
+                style={styles.optionItem}
                 onPress={() => {
                   setShowContactOptions(false);
                   setShowEnquiryForm(true);
@@ -1010,7 +1010,7 @@ export default function BusinessDetailScreen() {
                   <Text style={styles.optionLabel}>Enquire through App</Text>
                   <Text style={styles.optionSubText}>Share event details</Text>
                 </View>
-                <IconSymbol name="chevron.right" size={14} color="#334155" />
+                <IconSymbol name="chevron.right" size={14} color="#594C3D" />
               </TouchableOpacity>
             </View>
           </View>
@@ -1024,7 +1024,7 @@ export default function BusinessDetailScreen() {
         transparent={true}
         onRequestClose={() => setShowEnquiryForm(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.formModalOverlay}
         >
@@ -1035,7 +1035,7 @@ export default function BusinessDetailScreen() {
                 <Text style={styles.formSub}>Inquiry for {business.name}</Text>
               </View>
               <TouchableOpacity style={styles.closeFormBtn} onPress={() => setShowEnquiryForm(false)}>
-                <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                <IconSymbol name="xmark" size={20} color="#CDB89E" />
               </TouchableOpacity>
             </View>
 
@@ -1078,53 +1078,53 @@ export default function BusinessDetailScreen() {
               <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                 <Text style={styles.inputLabel}>How should the vendor contact you?</Text>
                 <View style={styles.contactMethodRow}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.contactMethodBtn, preferredContact === 'chat' && styles.contactMethodBtnActive]}
                     onPress={() => setPreferredContact('chat')}
                   >
-                    <IconSymbol name="bubble.left.fill" size={14} color={preferredContact === 'chat' ? INDIGO : '#94a3b8'} />
+                    <IconSymbol name="bubble.left.fill" size={14} color={preferredContact === 'chat' ? INDIGO : '#CDB89E'} />
                     <Text style={[styles.contactMethodText, preferredContact === 'chat' && styles.contactMethodTextActive]}>In-App Chat (Private)</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.contactMethodBtn, preferredContact === 'whatsapp' && styles.contactMethodBtnActive]}
                     onPress={() => setPreferredContact('whatsapp')}
                   >
-                    <IconSymbol name="message.fill" size={14} color={preferredContact === 'whatsapp' ? INDIGO : '#94a3b8'} />
+                    <IconSymbol name="message.fill" size={14} color={preferredContact === 'whatsapp' ? INDIGO : '#CDB89E'} />
                     <Text style={[styles.contactMethodText, preferredContact === 'whatsapp' && styles.contactMethodTextActive]}>WhatsApp</Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={[styles.contactMethodRow, { marginTop: 8 }]}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.contactMethodBtn, preferredContact === 'call' && styles.contactMethodBtnActive]}
                     onPress={() => setPreferredContact('call')}
                   >
-                    <IconSymbol name="phone.fill" size={14} color={preferredContact === 'call' ? INDIGO : '#94a3b8'} />
+                    <IconSymbol name="phone.fill" size={14} color={preferredContact === 'call' ? INDIGO : '#CDB89E'} />
                     <Text style={[styles.contactMethodText, preferredContact === 'call' && styles.contactMethodTextActive]}>Phone Call</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.contactMethodBtn, preferredContact === 'email' && styles.contactMethodBtnActive]}
                     onPress={() => setPreferredContact('email')}
                   >
-                    <IconSymbol name="envelope.fill" size={14} color={preferredContact === 'email' ? INDIGO : '#94a3b8'} />
+                    <IconSymbol name="envelope.fill" size={14} color={preferredContact === 'email' ? INDIGO : '#CDB89E'} />
                     <Text style={[styles.contactMethodText, preferredContact === 'email' && styles.contactMethodTextActive]}>Email</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.submitEnquiryBtn, isSubmitting && styles.btnDisabled]}
                 onPress={handleEnquirySubmit}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#050505" />
+                  <ActivityIndicator color="#13191F" />
                 ) : (
                   <>
                     <Text style={styles.submitEnquiryBtnText}>Send Inquiry</Text>
-                    <IconSymbol name="paperplane.fill" size={16} color="#050505" />
+                    <IconSymbol name="paperplane.fill" size={16} color="#13191F" />
                   </>
                 )}
               </TouchableOpacity>
@@ -1144,20 +1144,20 @@ export default function BusinessDetailScreen() {
           <View style={styles.ratingContainer}>
             <View style={styles.ratingModalHeader}>
               <Text style={styles.ratingModalTitle}>Submit Rating</Text>
-              <TouchableOpacity 
-                style={styles.closeRatingBtn} 
+              <TouchableOpacity
+                style={styles.closeRatingBtn}
                 onPress={() => setShowRatingModal(false)}
               >
-                <IconSymbol name="xmark" size={18} color="#94a3b8" />
+                <IconSymbol name="xmark" size={18} color="#CDB89E" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.ratingModalContent}>
               <Text style={styles.ratingBizName}>{business.name}</Text>
-              
+
               {/* Huge score indicator for clear visual feedback */}
               <Text style={styles.ratingScoreNumber}>{selectedRating}.0</Text>
-              
+
               {/* Stars selection row */}
               <View style={styles.starsSelectRow}>
                 {[1, 2, 3, 4, 5].map((starValue) => {
@@ -1169,10 +1169,10 @@ export default function BusinessDetailScreen() {
                       onPress={() => setSelectedRating(starValue)}
                       style={styles.starWrapper}
                     >
-                      <IconSymbol 
-                        name={isFilled ? "star.fill" : "star"} 
-                        size={38} 
-                        color={isFilled ? "#eab308" : "#334155"} 
+                      <IconSymbol
+                        name={isFilled ? "star.fill" : "star"}
+                        size={38}
+                        color={isFilled ? "#eab308" : "#594C3D"}
                       />
                     </TouchableOpacity>
                   );
@@ -1212,7 +1212,7 @@ export default function BusinessDetailScreen() {
                 disabled={submittingRating}
               >
                 {submittingRating ? (
-                  <ActivityIndicator color="#101010" />
+                  <ActivityIndicator color="#1B211F" />
                 ) : (
                   <Text style={styles.submitRatingBtnText}>Submit Rating</Text>
                 )}
@@ -1228,7 +1228,7 @@ export default function BusinessDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   centerContent: {
     justifyContent: 'center',
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
   heroContainer: {
     width: width,
     height: width * 0.85,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   heroImage: {
     width: width,
@@ -1280,7 +1280,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(2, 6, 23, 0.4)',
+    backgroundColor: 'rgba(19, 25, 31, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1297,7 +1297,7 @@ const styles = StyleSheet.create({
   contentSection: {
     paddingHorizontal: 24,
     marginTop: -30,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingTop: 32,
@@ -1331,7 +1331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
     borderWidth: 2,
-    borderColor: '#050505',
+    borderColor: '#13191F',
   },
   locationRow: {
     flexDirection: 'row',
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_400Regular',
     flexShrink: 1,
   },
@@ -1377,25 +1377,25 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#334155',
+    backgroundColor: '#594C3D',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    backgroundColor: 'rgba(202, 156, 104, 0.12)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     gap: 4,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderColor: 'rgba(202, 156, 104, 0.25)',
     flexShrink: 0,
   },
   creatorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: '#1f2937',
     borderRadius: 18,
@@ -1471,7 +1471,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_700Bold',
   },
   announcementCard: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     padding: 20,
     borderRadius: 24,
     borderWidth: 1,
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
   },
   announcementCardLatest: {
     borderColor: 'rgba(239, 68, 68, 0.3)',
-    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backgroundColor: 'rgba(27, 33, 31, 0.95)',
   },
   latestBanner: {
     position: 'absolute',
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
   highlightCard: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     paddingVertical: 12,
     paddingHorizontal: 6,
     borderRadius: 14,
@@ -1609,7 +1609,7 @@ const styles = StyleSheet.create({
   },
   highlightSubtitle: {
     fontSize: 9,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_500Medium',
     textAlign: 'center',
   },
@@ -1628,7 +1628,7 @@ const styles = StyleSheet.create({
   tabItemActive: {},
   tabText: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Outfit_600SemiBold',
   },
   tabTextActive: {
@@ -1659,7 +1659,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 15,
-    color: '#94a3b8',
+    color: '#CDB89E',
     lineHeight: 24,
     fontFamily: 'Inter_400Regular',
   },
@@ -1685,7 +1685,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
   },
   faqItem: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -1710,7 +1710,7 @@ const styles = StyleSheet.create({
   },
   faqAnswer: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_400Regular',
     lineHeight: 20,
     marginTop: 10,
@@ -1740,11 +1740,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   publicPortfolioCover: {
     height: 230,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -1786,7 +1786,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   publicPortfolioDate: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontFamily: 'Inter_700Bold',
   },
@@ -1799,7 +1799,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyPortfolioText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
   },
@@ -1815,7 +1815,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   reviewCard: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
@@ -1921,7 +1921,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    backgroundColor: 'rgba(19, 25, 31, 0.85)',
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 32 : 16,
@@ -1971,11 +1971,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.7)',
+    backgroundColor: 'rgba(19, 25, 31, 0.7)',
     justifyContent: 'flex-end',
   },
   optionsContainer: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -2002,7 +2002,7 @@ const styles = StyleSheet.create({
   },
   optionsSub: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_400Regular',
     marginTop: 4,
   },
@@ -2050,11 +2050,11 @@ const styles = StyleSheet.create({
   },
   formModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.7)',
+    backgroundColor: 'rgba(19, 25, 31, 0.7)',
     justifyContent: 'flex-end',
   },
   enquiryFormContainer: {
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -2074,7 +2074,7 @@ const styles = StyleSheet.create({
   },
   formSub: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_400Regular',
     marginTop: 4,
   },
@@ -2082,7 +2082,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2100,7 +2100,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   formInput: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 16,
     padding: 16,
     color: '#ffffff',
@@ -2137,7 +2137,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 16,
     fontFamily: 'Inter_500Medium',
     marginBottom: 16,
@@ -2154,12 +2154,12 @@ const styles = StyleSheet.create({
   },
   ratingModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    backgroundColor: 'rgba(19, 25, 31, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   ratingContainer: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -2269,7 +2269,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 12,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
@@ -2278,7 +2278,7 @@ const styles = StyleSheet.create({
     borderColor: INDIGO,
   },
   contactMethodText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontFamily: 'Outfit_600SemiBold',
   },

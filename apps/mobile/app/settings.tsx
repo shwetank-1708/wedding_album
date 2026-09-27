@@ -321,16 +321,16 @@ export default function SettingsScreen() {
               activeOpacity={0.7}
               onPress={() => setPasswordModalVisible(true)}
             >
-              <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-                <IconSymbol name="lock.fill" size={18} color="#d4af37" />
+              <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+                <IconSymbol name="lock.fill" size={18} color="#CA9C68" />
               </View>
               <Text style={styles.actionText}>Change Password</Text>
               <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
             </TouchableOpacity>
           ) : (
             <View style={[styles.actionItemRow, { opacity: 0.5 }]}>
-              <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.05)' }]}>
-                <IconSymbol name="lock.fill" size={18} color="#94a3b8" />
+              <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.05)' }]}>
+                <IconSymbol name="lock.fill" size={18} color="#CDB89E" />
               </View>
               <Text style={[styles.actionText, { color: colors.slate400 }]}>Change Password (Phone Login)</Text>
             </View>
@@ -497,8 +497,8 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
             onPress={() => setFeedbackModalVisible(true)}
           >
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name="bell.fill" size={18} color="#d4af37" />
+            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+              <IconSymbol name="bell.fill" size={18} color="#CA9C68" />
             </View>
             <Text style={styles.actionText}>Report a Bug / Send Feedback</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
@@ -514,8 +514,8 @@ export default function SettingsScreen() {
               { text: 'Copy Email', onPress: () => Alert.alert('Copied', 'Email copied to clipboard.') }
             ])}
           >
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name="envelope.fill" size={16} color="#d4af37" />
+            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+              <IconSymbol name="envelope.fill" size={16} color="#CA9C68" />
             </View>
             <Text style={styles.actionText}>Contact Customer Support</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
@@ -538,7 +538,7 @@ export default function SettingsScreen() {
                   <IconSymbol
                     name={isExpanded ? "chevron.down" : "chevron.right"}
                     size={16}
-                    color="#d4af37"
+                    color="#CA9C68"
                   />
                 </TouchableOpacity>
                 {isExpanded && (
@@ -556,8 +556,8 @@ export default function SettingsScreen() {
         <Text style={styles.sectionLabel}>About & Legal</Text>
         <View style={styles.settingsCard}>
           <TouchableOpacity style={styles.actionItemRow} activeOpacity={0.7} onPress={() => router.push('/' as any)}>
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name="house.fill" size={18} color="#d4af37" />
+            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+              <IconSymbol name="house.fill" size={18} color="#CA9C68" />
             </View>
             <Text style={styles.actionText}>About EveBash</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
@@ -566,8 +566,8 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
 
           <TouchableOpacity style={styles.actionItemRow} activeOpacity={0.7} onPress={() => openLegalModal('terms')}>
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name="doc.on.doc.fill" size={18} color="#d4af37" />
+            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+              <IconSymbol name="doc.on.doc.fill" size={18} color="#CA9C68" />
             </View>
             <Text style={styles.actionText}>Terms of Service</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
@@ -576,8 +576,8 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
 
           <TouchableOpacity style={styles.actionItemRow} activeOpacity={0.7} onPress={() => openLegalModal('privacy')}>
-            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-              <IconSymbol name="shield.fill" size={18} color="#d4af37" />
+            <View style={[styles.infoIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+              <IconSymbol name="shield.fill" size={18} color="#CA9C68" />
             </View>
             <Text style={styles.actionText}>Privacy Policy</Text>
             <IconSymbol name="chevron.right" size={16} color={colors.slate400} />
@@ -650,7 +650,7 @@ export default function SettingsScreen() {
                 disabled={updatingPassword}
               >
                 {updatingPassword ? (
-                  <ActivityIndicator size="small" color="#050505" />
+                  <ActivityIndicator size="small" color="#13191F" />
                 ) : (
                   <Text style={styles.saveBtnText}>Save Password</Text>
                 )}
@@ -761,7 +761,7 @@ export default function SettingsScreen() {
                 disabled={submittingFeedback}
               >
                 {submittingFeedback ? (
-                  <ActivityIndicator size="small" color="#050505" />
+                  <ActivityIndicator size="small" color="#13191F" />
                 ) : (
                   <Text style={styles.saveBtnText}>Send Feedback</Text>
                 )}
@@ -916,7 +916,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -968,7 +968,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.slate400,
   },
   segmentPillTextActive: {
-    color: '#050505',
+    color: '#13191F',
     fontFamily: 'Inter_700Bold',
   },
   progressContainer: {
@@ -1026,7 +1026,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   // MODALS STYLING
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.75)',
+    backgroundColor: 'rgba(19, 25, 31, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -1123,8 +1123,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   categoryPillActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderColor: '#d4af37',
+    backgroundColor: 'rgba(202, 156, 104, 0.15)',
+    borderColor: '#CA9C68',
   },
   categoryPillText: {
     fontSize: 12,
@@ -1132,7 +1132,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.slate400,
   },
   categoryPillTextActive: {
-    color: '#d4af37',
+    color: '#CA9C68',
   },
   modalActions: {
     flexDirection: 'row',
@@ -1162,6 +1162,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   saveBtnText: {
     fontSize: 14,
     fontFamily: 'Outfit_700Bold',
-    color: '#050505',
+    color: '#13191F',
   },
 });

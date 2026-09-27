@@ -3,7 +3,7 @@
     "name": "EveBash",
     "slug": "evebash",
     "version": "1.2.4",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "evebash",
     "userInterfaceStyle": "automatic",

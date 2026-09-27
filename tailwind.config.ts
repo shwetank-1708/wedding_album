@@ -11,16 +11,16 @@ const config: Config = {
             colors: {
                 // Semantic light theme colors
                 primary: {
-                    50: "#f0f9ff",
-                    100: "#e0f2fe",
-                    200: "#bae6fd",
-                    300: "#7dd3fc",
-                    400: "#38bdf8",
-                    500: "#0ea5e9", // Sky 500
-                    600: "#0284c7",
-                    700: "#0369a1",
-                    800: "#075985",
-                    900: "#0c4a6e",
+                    50: "#FFF7EB",
+                    100: "#F7E8D4",
+                    200: "#EBD0AC",
+                    300: "#DEB57E",
+                    400: "#CA9C68",
+                    500: "#B88955",
+                    600: "#906D4B",
+                    700: "#594C3D",
+                    800: "#2B2F2E",
+                    900: "#13191F",
                 },
                 secondary: {
                     50: "#f8fafc",
@@ -35,24 +35,26 @@ const config: Config = {
                     900: "#0f172a",
                 },
                 royal: {
-                    maroon: "#4A0E0E", // Deeper, browner maroon per reference
-                    gold: "#D4AF37",
-                    cream: "#FFFDD0",
-                    green: "#005D4B",
+                    maroon: "#594C3D",
+                    gold: "#CA9C68",
+                    cream: "#FFF7EB",
+                    green: "#2B2F2E",
                 },
                 gold: {
-                    100: "#F9F1D8",
-                    200: "#F0DEAA",
-                    300: "#E6CB7D",
-                    400: "#DDB853",
-                    500: "#D4A52A", // Primary Gold
-                    600: "#AA8422",
-                    700: "#806319",
+                    100: "#F7E8D4",
+                    200: "#EBD0AC",
+                    300: "#DEB57E",
+                    400: "#CA9C68",
+                    500: "#B88955",
+                    600: "#906D4B",
+                    700: "#594C3D",
                 },
             },
             fontFamily: {
-                serif: ["var(--font-playfair)", "serif"],
-                sans: ["var(--font-lato)", "sans-serif"],
+                serif: ["var(--font-inter)", "sans-serif"],
+                sans: ["var(--font-inter)", "sans-serif"],
+                lato: ["var(--font-inter)", "sans-serif"],
+                playfair: ["var(--font-inter)", "sans-serif"],
             },
             animation: {
                 'fade-in-up': 'fadeInUp 0.8s ease-out forwards',

@@ -117,7 +117,7 @@ export default function TenantAdminDashboard() {
                         <h2 className="text-xl font-medium text-stone-800">Pending Requests</h2>
                         <button
                             onClick={fetchRequests}
-                            className="text-sm text-[#800000] hover:text-[#D4AF37] transition-colors font-medium flex items-center gap-2"
+                            className="text-sm text-[#800000] hover:text-[#CA9C68] transition-colors font-medium flex items-center gap-2"
                         >
                             Refresh List
                         </button>

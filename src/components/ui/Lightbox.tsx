@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { onPhotoInteractions, toggleLike, addComment, deletePhotoComment } from "@/lib/database";
 import { useAuth } from "@/context/AuthContext";
@@ -28,6 +28,8 @@ interface LightboxProps {
     photo: {
         id: string;
         src: string;
+        raw_url?: string;
+        rawUrl?: string;
         storageKey?: string;
         alt?: string;
         width?: number;
@@ -47,11 +49,43 @@ interface LightboxProps {
     onLikeChange?: () => void;
     isFavourite?: boolean;
     onToggleFavourite?: () => Promise<void> | void;
+    keepPageHeaderVisible?: boolean;
+    hideFilename?: boolean;
+    compactMedia?: boolean;
+}
+
+type InteractionTimestamp = string | { seconds: number } | null;
+
+interface PhotoInteractionLike {
+    id: string;
+    userId: string;
+    userName: string;
+    profileImage?: string | null;
+    createdAt?: InteractionTimestamp;
+}
+
+interface PhotoInteractionComment {
+    id: string;
+    userId: string;
+    userName: string;
+    profileImage?: string | null;
+    text: string;
+    parentId?: string | null;
+    createdAt?: InteractionTimestamp;
 }
 
 function addAlpha(color: string, alpha: string) {
     if (/^#[0-9a-fA-F]{6}$/.test(color)) return `${color}${alpha}`;
     return color;
+}
+
+function formatInteractionTime(createdAt?: InteractionTimestamp) {
+    if (!createdAt) return "Now";
+
+    const date = typeof createdAt === "string" ? new Date(createdAt) : new Date(createdAt.seconds * 1000);
+    if (Number.isNaN(date.getTime())) return "Now";
+
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export function Lightbox({
@@ -66,14 +100,17 @@ export function Lightbox({
     theme,
     onLikeChange,
     isFavourite = false,
-    onToggleFavourite
+    onToggleFavourite,
+    keepPageHeaderVisible = false,
+    hideFilename = false,
+    compactMedia = false
 }: LightboxProps) {
     const { user } = useAuth();
-    const [likes, setLikes] = useState<any[]>([]);
-    const [comments, setComments] = useState<any[]>([]);
+    const [likes, setLikes] = useState<PhotoInteractionLike[]>([]);
+    const [comments, setComments] = useState<PhotoInteractionComment[]>([]);
     const [showComments, setShowComments] = useState(true);
     const [newComment, setNewComment] = useState("");
-    const [replyingTo, setReplyingTo] = useState<any | null>(null);
+    const [replyingTo, setReplyingTo] = useState<PhotoInteractionComment | null>(null);
     const [isLiking, setIsLiking] = useState(false);
     const [isCommenting, setIsCommenting] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
@@ -99,6 +136,7 @@ export function Lightbox({
     const commentInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const commentsPanelRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
 
     // Get identifier and name
     const getIdentity = () => {
@@ -133,6 +171,8 @@ export function Lightbox({
         radius: theme?.radius ?? 18,
         useSerif: theme?.useSerif ?? true,
     };
+    const compactMediaHeightClass = "max-h-[48dvh] sm:max-h-[54dvh] md:max-h-[60dvh] xl:max-h-[64dvh]";
+    const fullMediaHeightClass = "max-h-[60vh] md:max-h-[85vh]";
 
     useEffect(() => {
         if (photo?.id && isOpen) {
@@ -239,6 +279,34 @@ export function Lightbox({
         }
     };
 
+    const seekVideoBySeconds = useCallback((offsetSeconds: number) => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const maxTime = duration > 0 ? duration : Number.MAX_SAFE_INTEGER;
+        const nextTime = Math.min(maxTime, Math.max(0, video.currentTime + offsetSeconds));
+        video.currentTime = nextTime;
+    }, []);
+
+    const handlePreviousKeyboardControl = useCallback(() => {
+        if (isVideo) {
+            seekVideoBySeconds(-5);
+            return;
+        }
+
+        onPrev?.();
+    }, [isVideo, onPrev, seekVideoBySeconds]);
+
+    const handleNextKeyboardControl = useCallback(() => {
+        if (isVideo) {
+            seekVideoBySeconds(5);
+            return;
+        }
+
+        onNext?.();
+    }, [isVideo, onNext, seekVideoBySeconds]);
+
     // Handle Keyboard events
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -248,22 +316,32 @@ export function Lightbox({
             const isTyping = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA";
             if (isTyping) return;
 
-            if (e.key === "ArrowRight") onNext?.();
-            if (e.key === "ArrowLeft") onPrev?.();
+            if (e.key === "ArrowRight") {
+                e.preventDefault();
+                handleNextKeyboardControl();
+            }
+            if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                handlePreviousKeyboardControl();
+            }
         };
 
         if (isOpen) {
             window.addEventListener("keydown", handleKeyDown);
             document.body.style.overflow = "hidden";
             document.body.setAttribute("data-lightbox-open", "true");
+            if (keepPageHeaderVisible) {
+                document.body.setAttribute("data-lightbox-keep-page-header", "true");
+            }
         }
 
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             document.body.style.overflow = "unset";
             document.body.removeAttribute("data-lightbox-open");
+            document.body.removeAttribute("data-lightbox-keep-page-header");
         };
-    }, [isOpen, onClose, onNext, onPrev, showComments]);
+    }, [isOpen, onClose, handleNextKeyboardControl, handlePreviousKeyboardControl, keepPageHeaderVisible]);
 
     if (!photo) return null;
 
@@ -277,7 +355,8 @@ export function Lightbox({
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                     className={cn(
-                        "fixed inset-0 z-[100] overflow-y-auto [-webkit-overflow-scrolling:touch]",
+                        "fixed overflow-y-auto [-webkit-overflow-scrolling:touch]",
+                        keepPageHeaderVisible ? "inset-x-0 bottom-0 top-20 z-40" : "inset-0 z-[100]",
                         className
                     )}
                     style={{ backgroundColor: viewerTheme.background, color: viewerTheme.text }}
@@ -287,13 +366,18 @@ export function Lightbox({
 
                     {/* TOP ACTION BAR */}
                     <div
-                        className="fixed top-0 inset-x-0 h-20 z-[60] flex items-center justify-between px-6 pointer-events-none"
+                        className={cn(
+                            "fixed inset-x-0 z-[60] flex items-center justify-between px-6 pointer-events-none",
+                            keepPageHeaderVisible ? "top-20 h-14" : "top-0 h-20"
+                        )}
                         style={{ background: `linear-gradient(to bottom, ${addAlpha(viewerTheme.background, "cc")}, transparent)` }}
                     >
                         <div className="flex items-center space-x-2 pointer-events-auto">
-                            <span className="text-sm font-medium tracking-wide drop-shadow-md" style={{ color: viewerTheme.muted }}>
-                                {imageLoading ? "Loading..." : (photo.filename || "Photo")}
-                            </span>
+                            {!hideFilename && (
+                                <span className="text-sm font-medium tracking-wide drop-shadow-md" style={{ color: viewerTheme.muted }}>
+                                    {imageLoading ? "Loading..." : (photo.filename || "Photo")}
+                                </span>
+                            )}
                         </div>
 
                         <div className="flex items-center space-x-1 pointer-events-auto">
@@ -302,8 +386,8 @@ export function Lightbox({
                                     onClick={handleToggleFavourite}
                                     disabled={isTogglingFavourite}
                                     className="p-2.5 rounded-full transition-all disabled:opacity-40"
-                                    style={{ color: isFavourite ? "#fbbf24" : viewerTheme.muted }}
-                                    title={isFavourite ? "Remove from Favourite" : "Add to Favourite"}
+                                    style={{ color: isFavourite ? "#CA9C68" : viewerTheme.muted }}
+                                    title={isFavourite ? "Remove from Primary Gallery" : "Add to Primary Gallery"}
                                 >
                                     {isTogglingFavourite ? (
                                         <Loader2 size={20} className="animate-spin" />
@@ -354,15 +438,30 @@ export function Lightbox({
                         </div>
                     </div>
 
-                    <div className="relative w-full min-h-[100dvh] flex flex-col items-center justify-start pt-24 pb-32 z-20 pointer-events-none">
+                    <div
+                        className={cn(
+                            "relative w-full flex flex-col items-center justify-start z-20 pointer-events-none",
+                            keepPageHeaderVisible ? "min-h-[calc(100dvh-5rem)] pt-6 pb-20 md:pt-8 md:pb-24" : "min-h-[100dvh] pt-24 pb-32"
+                        )}
+                    >
                         {/* Main Image Area */}
-                        <div className="relative w-full flex items-center justify-center px-4 md:px-16 mb-10 mt-auto">
+                        <div
+                            className={cn(
+                                "relative w-full flex items-center justify-center px-4 md:px-16",
+                                keepPageHeaderVisible ? "mb-6 mt-0" : "mb-10 mt-auto"
+                            )}
+                        >
                             {/* Navigation Buttons */}
                             {onPrev && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onPrev(); }}
-                                    className="fixed left-2 md:left-6 top-1/2 -translate-y-1/2 p-2 md:p-4 rounded-full transition-all z-[70] pointer-events-auto backdrop-blur-sm md:backdrop-blur-none border"
+                                    className={cn(
+                                        "fixed left-2 md:left-6 -translate-y-1/2 p-2 md:p-4 rounded-full transition-all z-[70] pointer-events-auto backdrop-blur-sm md:backdrop-blur-none border",
+                                        keepPageHeaderVisible ? "top-[calc(50%+2.5rem)]" : "top-1/2"
+                                    )}
                                     style={{ color: viewerTheme.muted, backgroundColor: viewerTheme.accentBg, borderColor: viewerTheme.border }}
+                                    title="Previous media"
+                                    aria-label="Previous media"
                                 >
                                     <ChevronLeft size={32} className="md:w-11 md:h-11" />
                                 </button>
@@ -371,15 +470,20 @@ export function Lightbox({
                             {onNext && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onNext(); }}
-                                    className="fixed right-2 md:right-6 top-1/2 -translate-y-1/2 p-2 md:p-4 rounded-full transition-all z-[70] pointer-events-auto backdrop-blur-sm md:backdrop-blur-none border"
+                                    className={cn(
+                                        "fixed right-2 md:right-6 -translate-y-1/2 p-2 md:p-4 rounded-full transition-all z-[70] pointer-events-auto backdrop-blur-sm md:backdrop-blur-none border",
+                                        keepPageHeaderVisible ? "top-[calc(50%+2.5rem)]" : "top-1/2"
+                                    )}
                                     style={{ color: viewerTheme.muted, backgroundColor: viewerTheme.accentBg, borderColor: viewerTheme.border }}
+                                    title="Next media"
+                                    aria-label="Next media"
                                 >
                                     <ChevronRight size={32} className="md:w-11 md:h-11" />
                                 </button>
                             )}
 
                             <motion.div
-                                key={photo.src}
+                                key={photo.id || photo.src}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 1.05 }}
@@ -388,17 +492,29 @@ export function Lightbox({
                             >
                                 {isVideo ? (
                                     <HLSVideoPlayer
+                                        ref={videoRef}
                                         mediaId={photo.id}
                                         src={photo.src}
+                                        rawSrc={photo.raw_url || photo.rawUrl}
                                         poster={photo.thumbnailUrl}
-                                        className="max-h-[60vh] w-[95vw] max-w-5xl shadow-2xl pointer-events-auto md:max-h-[85vh]"
+                                        className={cn(
+                                            "shadow-2xl pointer-events-auto",
+                                            compactMedia ? "w-[88vw] max-w-4xl" : "w-[95vw] max-w-5xl",
+                                            compactMedia ? compactMediaHeightClass : fullMediaHeightClass
+                                        )}
                                         style={{ borderRadius: viewerTheme.radius }}
                                         controls
                                         playsInline
-                                        autoPlay
+                                        onPreviousMedia={onPrev}
+                                        onNextMedia={onNext}
                                     />
                                 ) : (
-                                    <div className="relative flex items-center justify-center min-h-[300px] w-full max-w-5xl">
+                                    <div
+                                        className={cn(
+                                            "relative flex items-center justify-center min-h-[300px] w-full",
+                                            compactMedia ? "max-w-4xl" : "max-w-5xl"
+                                        )}
+                                    >
                                         {imageLoading && (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 pointer-events-none">
                                                 <Loader2 className="w-10 h-10 animate-spin" style={{ color: viewerTheme.accent }} />
@@ -426,7 +542,9 @@ export function Lightbox({
                                                     setImageError(true);
                                                 }}
                                                 className={cn(
-                                                    "max-w-[95vw] md:max-w-full max-h-[60vh] md:max-h-[85vh] w-auto h-auto object-contain shadow-2xl pointer-events-auto transition-all duration-300",
+                                                    "w-auto h-auto object-contain shadow-2xl pointer-events-auto transition-all duration-300",
+                                                    compactMedia ? "max-w-[88vw] md:max-w-[68vw] xl:max-w-4xl" : "max-w-[95vw] md:max-w-full",
+                                                    compactMedia ? compactMediaHeightClass : fullMediaHeightClass,
                                                     imageLoading || imageError ? "opacity-0 scale-95" : "opacity-100 scale-100"
                                                 )}
                                                 style={{ borderRadius: viewerTheme.radius, backgroundColor: viewerTheme.tile }}
@@ -459,7 +577,7 @@ export function Lightbox({
                                     }}
                                     className="flex flex-col items-center space-y-1"
                                 >
-                                    <MessageCircle size={32} className="drop-shadow-lg transition-colors" style={{ color: showComments ? viewerTheme.accent : viewerTheme.text }} />
+                                    <MessageCircle size={32} className="drop-shadow-lg transition-colors" style={{ color: viewerTheme.text }} />
                                     <span className="text-[10px] font-bold drop-shadow-md" style={{ color: viewerTheme.text }}>{comments.length}</span>
                                 </button>
                             </div>
@@ -468,21 +586,17 @@ export function Lightbox({
                         <div className="hidden md:flex flex-row items-center space-x-8 z-[60] pointer-events-auto">
                                 <button
                                     onClick={handleToggleLike}
-                                    className="group flex flex-col items-center space-y-2 pointer-events-auto"
+                                    className="group flex flex-col items-center space-y-1.5 pointer-events-auto px-2 py-1 transition-transform active:scale-95"
                                 >
-                                    <div className={cn(
-                                        "p-4 rounded-3xl border transition-all duration-400 ease-out transform group-active:scale-90 backdrop-blur-sm",
-                                        isLiked && "text-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]"
-                                    )}
-                                        style={{
-                                            backgroundColor: isLiked ? "rgba(244,63,94,0.2)" : viewerTheme.panel,
-                                            borderColor: isLiked ? "rgba(244,63,94,0.5)" : viewerTheme.border,
-                                            color: isLiked ? "#f43f5e" : viewerTheme.muted,
-                                        }}
-                                    >
-                                        <Heart size={24} className={cn(isLiked && "fill-current")} />
-                                    </div>
-                                    <span className="text-[10px] font-bold tracking-[0.2em] drop-shadow-md" style={{ color: viewerTheme.muted }}>{likes.length} LIKES</span>
+                                    <Heart
+                                        size={20}
+                                        className={cn(
+                                            "drop-shadow-md transition-all duration-300 group-hover:scale-110",
+                                            isLiked && "fill-current"
+                                        )}
+                                        style={{ color: isLiked ? "#f43f5e" : viewerTheme.muted }}
+                                    />
+                                    <span className="text-[10px] font-bold tracking-[0.18em] drop-shadow-md" style={{ color: viewerTheme.muted }}>{likes.length} LIKES</span>
                                 </button>
 
                                 <button
@@ -492,21 +606,14 @@ export function Lightbox({
                                             commentsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }, 100);
                                     }}
-                                    className="group flex flex-col items-center space-y-2 pointer-events-auto"
+                                    className="group flex flex-col items-center space-y-1.5 pointer-events-auto px-2 py-1 transition-transform active:scale-95"
                                 >
-                                    <div className={cn(
-                                        "p-4 rounded-3xl border transition-all duration-400 ease-out transform group-active:scale-90 backdrop-blur-sm"
-                                    )}
-                                        style={{
-                                            backgroundColor: showComments ? viewerTheme.accentBg : viewerTheme.panel,
-                                            borderColor: showComments ? addAlpha(viewerTheme.accent, "80") : viewerTheme.border,
-                                            color: showComments ? viewerTheme.accent : viewerTheme.muted,
-                                            boxShadow: showComments ? `0 0 20px ${addAlpha(viewerTheme.accent, "44")}` : undefined,
-                                        }}
-                                    >
-                                        <MessageCircle size={24} />
-                                    </div>
-                                    <span className="text-[10px] font-bold tracking-[0.2em] drop-shadow-md" style={{ color: viewerTheme.muted }}>{comments.length} COMMENTS</span>
+                                    <MessageCircle
+                                        size={20}
+                                        className="drop-shadow-md transition-all duration-300 group-hover:scale-110"
+                                        style={{ color: viewerTheme.text }}
+                                    />
+                                    <span className="text-[10px] font-bold tracking-[0.18em] drop-shadow-md" style={{ color: viewerTheme.muted }}>{comments.length} COMMENTS</span>
                                 </button>
                             </div>
 
@@ -569,7 +676,7 @@ export function Lightbox({
                                                                 <div className="flex items-center justify-between">
                                                                     <span className="text-xs font-bold truncate pr-2" style={{ color: viewerTheme.text }}>{comment.userName}</span>
                                                                     <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: viewerTheme.muted }}>
-                                                                        {comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                                                                        {formatInteractionTime(comment.createdAt)}
                                                                     </span>
                                                                 </div>
                                                                 <div className="p-4 rounded-2xl rounded-tl-none border shadow-sm group" style={{ backgroundColor: viewerTheme.tile, borderColor: viewerTheme.border }}>
@@ -615,7 +722,7 @@ export function Lightbox({
                                                                     <div className="flex items-center justify-between">
                                                                         <span className="text-[11px] font-bold truncate pr-2" style={{ color: viewerTheme.text }}>{reply.userName}</span>
                                                                         <span className="text-[9px] font-medium whitespace-nowrap" style={{ color: viewerTheme.muted }}>
-                                                                            {reply.createdAt ? new Date(reply.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                                                                            {formatInteractionTime(reply.createdAt)}
                                                                         </span>
                                                                     </div>
                                                                     <div className="p-3 rounded-xl rounded-tl-none border shadow-sm group" style={{ backgroundColor: viewerTheme.tile, borderColor: viewerTheme.border }}>

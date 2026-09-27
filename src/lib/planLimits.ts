@@ -19,8 +19,8 @@ export function getPlanDetails(role?: string): PlanDetails {
                 storageLabel: "Unlimited",
                 eventLimit: Infinity,
                 eventLabel: "Unlimited",
-                accent: "#d4af37",
-                accentSoft: "rgba(212, 175, 55, 0.16)",
+                accent: "#CA9C68",
+                accentSoft: "rgba(202, 156, 104, 0.16)",
             };
         case "elite":
             return {
@@ -29,8 +29,8 @@ export function getPlanDetails(role?: string): PlanDetails {
                 storageLabel: "500 GB",
                 eventLimit: 500,
                 eventLabel: "500",
-                accent: "#d4af37",
-                accentSoft: "rgba(212, 175, 55, 0.16)",
+                accent: "#CA9C68",
+                accentSoft: "rgba(202, 156, 104, 0.16)",
             };
         case "pro":
             return {

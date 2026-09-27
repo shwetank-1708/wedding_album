@@ -107,7 +107,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
     justifyContent: 'center',
     marginLeft: 6,
     borderRadius: 21,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(27, 33, 31,0.06)',
   },
   header: {
     marginBottom: 22,
@@ -172,7 +172,7 @@ const getStyles = (colors: typeof MidnightColors, isDark: boolean) => StyleSheet
   supportBox: {
     marginTop: 20,
     borderRadius: 8,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(27, 33, 31,0.04)',
     padding: 16,
   },
   supportText: {

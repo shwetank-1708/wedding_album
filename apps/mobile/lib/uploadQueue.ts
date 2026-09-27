@@ -25,6 +25,60 @@ const PROGRESS_NOTIFICATION_ID = 'media-upload-progress';
 const CHANNEL_PROGRESS = 'upload-progress';
 const CHANNEL_COMPLETE = 'upload-completion';
 
+// ── Chunked Upload Resume State ──────────────────────────────────────────────
+// Persisted per-file in AsyncStorage. Key: 'evebash_chunk_resume_{queueItemId}'
+// Survives app kill, backgrounding, and device restart.
+// B2 large-file sessions last 24 hours, so we use a 23-hour expiry.
+
+const CHUNK_RESUME_KEY_PREFIX = 'evebash_chunk_resume_';
+const CHUNK_RESUME_EXPIRY_MS = 23 * 60 * 60 * 1000; // 23 hours
+
+interface ChunkResumeState {
+    fileId: string;
+    storageKey: string;
+    eventId: string;
+    queueItemId: string;
+    fileName: string;
+    fileSize: number;
+    totalChunks: number;
+    /** partNumber (1-indexed) → sha1 from B2 response */
+    completedParts: Record<number, string>;
+    createdAt: number;
+}
+
+async function saveChunkResumeState(state: ChunkResumeState): Promise<void> {
+    try {
+        const key = `${CHUNK_RESUME_KEY_PREFIX}${state.queueItemId}`;
+        await AsyncStorage.setItem(key, JSON.stringify(state));
+    } catch (err) {
+        console.warn('[UploadQueue] Failed to save chunk resume state:', err);
+    }
+}
+
+async function loadChunkResumeState(queueItemId: string): Promise<ChunkResumeState | null> {
+    try {
+        const key = `${CHUNK_RESUME_KEY_PREFIX}${queueItemId}`;
+        const raw = await AsyncStorage.getItem(key);
+        if (!raw) return null;
+        const state = JSON.parse(raw) as ChunkResumeState;
+        if (Date.now() - state.createdAt > CHUNK_RESUME_EXPIRY_MS) {
+            await AsyncStorage.removeItem(key);
+            return null;
+        }
+        return state;
+    } catch {
+        return null;
+    }
+}
+
+async function clearChunkResumeState(queueItemId: string): Promise<void> {
+    try {
+        await AsyncStorage.removeItem(`${CHUNK_RESUME_KEY_PREFIX}${queueItemId}`);
+    } catch {
+        // ignore
+    }
+}
+
 /**
  * Maximum number of files uploaded simultaneously.
  * 3 is the sweet spot: ~3x faster than sequential on WiFi
@@ -371,43 +425,102 @@ async function notifyQueueDrained() {
 async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken: string, fileSize: number) {
   console.log(`[UploadQueue] Starting chunked upload for: ${item.fileName} (${fileSize} bytes)`);
 
-  // 1. Initiate chunked upload
-  const initiateResponse = await fetchWithEndpointFallback(
-    getEndpointsForPath('/api/media/upload/chunk/initiate'),
-    (endpoint: string) => {
-      return fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          eventId: item.eventId,
-          fileName: item.fileName,
-          resourceType: item.mediaType === 'video' ? 'video' : 'image',
-          contentType: item.fileType || 'application/octet-stream',
-        }),
-      });
-    },
-    'initiate chunked upload'
-  );
-
-  const initiateResult = await initiateResponse.json().catch(() => ({}));
-  if (!initiateResponse.ok) {
-    throw new Error(initiateResult.error || `Failed to initiate chunked upload (status: ${initiateResponse.status})`);
-  }
-
-  const { fileId, storageKey } = initiateResult;
   const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB chunks
   const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
-  const partSha1Array: string[] = [];
 
-  // 2. Upload chunks sequentially
+  // ── 1. Check for existing resume state ──────────────────────────────────────
+  let fileId: string;
+  let storageKey: string;
+  let completedParts: Record<number, string> = {};
+  let resumeCreatedAt = Date.now();
+
+  const saved = await loadChunkResumeState(item.id);
+  if (
+    saved &&
+    saved.eventId === item.eventId &&
+    saved.fileName === item.fileName &&
+    saved.fileSize === fileSize &&
+    saved.totalChunks === totalChunks
+  ) {
+    // Resume from persisted state — don't re-initiate the B2 session
+    fileId = saved.fileId;
+    storageKey = saved.storageKey;
+    completedParts = saved.completedParts;
+    resumeCreatedAt = saved.createdAt;
+    const doneCount = Object.keys(completedParts).length;
+    console.log(`[UploadQueue] Resuming chunked upload: ${doneCount}/${totalChunks} chunks already done.`);
+  } else {
+    // Fresh start — initiate a new B2 large-file session
+    const initiateResponse = await fetchWithEndpointFallback(
+      getEndpointsForPath('/api/media/upload/chunk/initiate'),
+      (endpoint: string) => {
+        return fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            eventId: item.eventId,
+            fileName: item.fileName,
+            fileSize,
+            resourceType: item.mediaType === 'video' ? 'video' : 'image',
+            contentType: item.fileType || 'application/octet-stream',
+          }),
+        });
+      },
+      'initiate chunked upload'
+    );
+
+    const initiateResult = await initiateResponse.json().catch(() => ({}));
+    if (!initiateResponse.ok) {
+      throw new Error(initiateResult.error || `Failed to initiate chunked upload (status: ${initiateResponse.status})`);
+    }
+
+    fileId = initiateResult.fileId;
+    storageKey = initiateResult.storageKey;
+    completedParts = {};
+
+    // ── Server-side resume check ────────────────────────────────────────────────
+    if (initiateResult.resumed && Array.isArray(initiateResult.completedParts)) {
+      for (const part of initiateResult.completedParts) {
+        completedParts[part.partNumber] = part.sha1;
+      }
+      const doneCount = Object.keys(completedParts).length;
+      console.log(`[UploadQueue] Server-side resume active! ${doneCount}/${totalChunks} chunks verified on Backblaze.`);
+    }
+
+    // Persist immediately so we have the fileId saved before any chunk uploads
+    await saveChunkResumeState({
+      fileId, storageKey, eventId: item.eventId,
+      queueItemId: item.id, fileName: item.fileName,
+      fileSize, totalChunks,
+      completedParts: { ...completedParts },
+      createdAt: resumeCreatedAt,
+    });
+  }
+
+  // Build partSha1Array — pre-fill with already-completed parts
+  const partSha1Array: string[] = new Array(totalChunks).fill('');
+  for (const [partNumStr, sha1] of Object.entries(completedParts)) {
+    partSha1Array[Number(partNumStr) - 1] = sha1;
+  }
+
+  // ── 2. Upload chunks sequentially, skipping already-completed ones ───────────
   for (let partIndex = 0; partIndex < totalChunks; partIndex++) {
+    const partNumber = partIndex + 1;
+
+    // Skip already-completed parts (resume magic)
+    if (completedParts[partNumber]) {
+      console.log(`[UploadQueue] Skipping already-completed chunk ${partNumber}/${totalChunks}`);
+      continue;
+    }
+
     // Check if item has been cancelled mid-upload
     const currentItem = queue.find(i => i.id === item.id);
     if (!currentItem) {
-      // Abort B2 large file
+      await clearChunkResumeState(item.id);
+      // Abort the B2 large-file session
       await fetchWithEndpointFallback(
         getEndpointsForPath('/api/media/upload/chunk/abort'),
         (endpoint: string) => {
@@ -427,7 +540,6 @@ async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken:
 
     const start = partIndex * CHUNK_SIZE;
     const end = Math.min(start + CHUNK_SIZE, fileSize);
-    const partNumber = partIndex + 1;
     const chunkBlobSize = end - start;
 
     console.log(`[UploadQueue] Uploading chunk ${partNumber}/${totalChunks} (${chunkBlobSize} bytes)...`);
@@ -504,7 +616,17 @@ async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken:
         }
 
         chunkUploadSuccess = true;
-        partSha1Array.push(sha1);
+        partSha1Array[partIndex] = sha1;
+
+        // Persist completed part to AsyncStorage immediately after every successful chunk
+        completedParts[partNumber] = sha1;
+        await saveChunkResumeState({
+          fileId, storageKey, eventId: item.eventId,
+          queueItemId: item.id, fileName: item.fileName,
+          fileSize, totalChunks,
+          completedParts: { ...completedParts },
+          createdAt: resumeCreatedAt,
+        });
 
         // Update progress
         const percent = Math.min(99, ((start + chunkBlobSize) / fileSize) * 100);
@@ -524,7 +646,7 @@ async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken:
     }
   }
 
-  // 3. Complete chunked upload on Railway
+  // ── 3. Complete chunked upload on Railway ────────────────────────────────────
   console.log(`[UploadQueue] Chunks complete. Completing large file: ${storageKey}`);
   const completeResponse = await fetchWithEndpointFallback(
     getEndpointsForPath('/api/media/upload/chunk/complete'),
@@ -554,9 +676,13 @@ async function uploadWorkerLargeFileInChunks(item: UploadQueueItem, accessToken:
     throw new Error(completeResult.error || `Failed to complete chunked upload (status: ${completeResponse.status})`);
   }
 
+  // ── 4. Clean up resume state on success ─────────────────────────────────────
+  await clearChunkResumeState(item.id);
+
   item.status = 'completed';
   item.progress = 100;
 }
+
 
 async function uploadWorker(item: UploadQueueItem) {
   item.status = 'uploading';
@@ -582,7 +708,10 @@ async function uploadWorker(item: UploadQueueItem) {
       console.warn('[UploadQueue] Could not get file size info:', infoErr);
     }
 
-    if (fileSize > 100 * 1024 * 1024) { // > 100 MB (videos and large photos)
+    const isVideo = item.mediaType === 'video' ||
+      /\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv|wmv|mts|m2ts|ts|ogv)$/i.test(item.fileName || '');
+
+    if (isVideo || fileSize >= 5 * 1024 * 1024) { // All videos and files >= 5MB use resilient chunking
       await uploadWorkerLargeFileInChunks(item, accessToken, fileSize);
       return;
     }

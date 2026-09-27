@@ -4,10 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import * as faceapi from "face-api.js";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
-import { getEventFaceEncodings, getEventById, getSubEvents, FaceRecord, Event } from "@/lib/database";
-import { useSearchParams } from "next/navigation";
-import { EventNavbar } from "@/components/EventNavbar";
-import { getWebTemplateChrome } from "@/lib/webTemplateTheme";
+import { getEventById, getSubEvents, Event } from "@/lib/database";
 import { getApiUrl } from "@/lib/apiBase";
 
 type MatchedPhoto = {
@@ -18,12 +15,20 @@ type MatchedPhoto = {
     alt?: string;
 };
 
-export default function FindYouPage({ params }: { params: Promise<{ slug: string }> }) {
-    const searchParams = useSearchParams();
-    const isShared = searchParams.get("shared") === "true";
+type FaceSearchMatch = {
+    id?: string;
+    imageId?: string;
+    storageKey?: string;
+    previewUrl?: string;
+    thumbnailUrl?: string;
+    url?: string;
+    imageUrl?: string;
+    width?: number;
+    height?: number;
+    eventId?: string;
+};
 
-    const [event, setEvent] = useState<Event | null>(null);
-    const [parentEvent, setParentEvent] = useState<Event | null>(null);
+export default function FindYouPage({ params }: { params: Promise<{ slug: string }> }) {
     const [subEvents, setSubEvents] = useState<Event[]>([]);
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -41,16 +46,12 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
     useEffect(() => {
         let active = true;
 
-        async function loadEventNavData() {
+        async function loadEventData() {
             const eventData = await getEventById(slug);
             if (!active || !eventData) return;
 
-            setEvent(eventData);
-
             const navRoot = eventData.parentId ? await getEventById(eventData.parentId) : eventData;
             if (!active) return;
-
-            setParentEvent(eventData.parentId ? navRoot : null);
 
             if (navRoot) {
                 const siblings = await getSubEvents(navRoot.id, navRoot.legacyId);
@@ -59,7 +60,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
             }
         }
 
-        void loadEventNavData();
+        void loadEventData();
 
         return () => {
             active = false;
@@ -85,30 +86,6 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
 
         loadModels();
     }, []);
-
-    const navEvent = parentEvent || event;
-    const templateChrome = getWebTemplateChrome(navEvent?.templateId || event?.templateId);
-
-    useEffect(() => {
-        if (!navEvent?.templateId || typeof document === "undefined") return;
-
-        const root = document.documentElement;
-        root.dataset.eventTemplateChrome = "true";
-        root.style.setProperty("--event-template-primary", templateChrome.background);
-        root.style.setProperty("--event-template-text", templateChrome.text);
-        root.style.setProperty("--event-template-muted", templateChrome.muted);
-        root.style.setProperty("--event-template-accent", templateChrome.accent);
-        root.style.setProperty("--event-template-border", templateChrome.border);
-
-        return () => {
-            delete root.dataset.eventTemplateChrome;
-            root.style.removeProperty("--event-template-primary");
-            root.style.removeProperty("--event-template-text");
-            root.style.removeProperty("--event-template-muted");
-            root.style.removeProperty("--event-template-accent");
-            root.style.removeProperty("--event-template-border");
-        };
-    }, [navEvent?.templateId, templateChrome.accent, templateChrome.background, templateChrome.border, templateChrome.muted, templateChrome.text]);
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.files?.length) return;
@@ -160,7 +137,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
                 }
 
                 const mediaDomain = process.env.NEXT_PUBLIC_MEDIA_DOMAIN || "media.evebash.com";
-                const matches = (data.matches || []).map((p: any) => {
+                const matches = (data.matches || []).map((p: FaceSearchMatch) => {
                     const storageKey = p.storageKey || p.imageId || p.id;
                     return {
                         id: p.id || p.imageId,
@@ -190,34 +167,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
     };
 
     return (
-        <main
-            className="event-template-shell min-h-screen bg-stone-50 pb-20"
-            style={{
-                "--event-template-primary": templateChrome.background,
-                "--event-template-text": templateChrome.text,
-                "--event-template-muted": templateChrome.muted,
-                "--event-template-accent": templateChrome.accent,
-                "--event-template-border": templateChrome.border,
-            } as React.CSSProperties}
-        >
-            {navEvent && (
-                <EventNavbar
-                    mainEventTitle={navEvent.title}
-                    mainEventId={navEvent.id}
-                    subEvents={subEvents}
-                    isShared={isShared}
-                    basePath={`/events/${navEvent.id}`}
-                    activeGalleryId={navEvent.id}
-                    activePage="find-you"
-                    showFavouriteGallery
-                    favouriteGalleryActive={false}
-                    chromeBackgroundColor={templateChrome.background}
-                    chromeTextColor={templateChrome.text}
-                    chromeAccentColor={templateChrome.accent}
-                    chromeBorderColor={templateChrome.border}
-                />
-            )}
-
+        <main className="min-h-screen bg-stone-50 pb-20">
             <section className="mx-auto max-w-6xl px-4 pt-32 pb-20 sm:px-6 lg:px-8">
                 <SectionHeader title="Find You" subtitle="AI-Powered Photo Search" />
 

@@ -2,7 +2,6 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getApiUrl } from "@/lib/apiBase";
 import { supabase } from "@/lib/supabase";
 import {
     createUserProfile,
@@ -161,11 +160,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const accessToken = data.session?.access_token;
         if (!accessToken) return;
 
-        await fetch(getApiUrl("/api/v1/subscriptions/apply-pending"), {
+        await fetch("/api/v1/subscriptions/apply-pending", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
+            cache: "no-store",
         });
     }, []);
 

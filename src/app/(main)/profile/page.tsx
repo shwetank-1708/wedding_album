@@ -704,6 +704,7 @@ export default function ProfilePage() {
                                         placeholder={placeholder}
                                         type={field === "email" ? "email" : "text"}
                                         required={Boolean(required)}
+                                        maxLength={field === "username" ? 12 : undefined}
                                         className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-yellow-400"
                                     />
                                     {field === "username" && usernameStatus !== "idle" && (
@@ -714,7 +715,7 @@ export default function ProfilePage() {
                                             {usernameStatus === "checking" && "Checking availability..."}
                                             {usernameStatus === "available" && "Username is available"}
                                             {usernameStatus === "taken" && "Username is already taken"}
-                                            {usernameStatus === "invalid" && "Use 3-30 lowercase letters/numbers. Dots/underscores allowed only inside, not repeated."}
+                                            {usernameStatus === "invalid" && "Use 3-12 lowercase letters/numbers. Dots/underscores allowed only inside, not repeated."}
                                         </span>
                                     )}
                                 </label>

@@ -1,18 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 :root {
-    --font-playfair: 'Playfair Display', Georgia, serif;
-    --font-lato: 'Lato', Helvetica, Arial, sans-serif;
+    --font-inter: 'Inter', Helvetica, Arial, sans-serif;
+    --font-playfair: var(--font-inter);
+    --font-lato: var(--font-inter);
 }
 
 @theme {
     /* Fonts matching template_1 requirements */
-    --font-serif: var(--font-playfair), serif;
-    --font-sans: var(--font-lato), sans-serif;
+    --font-serif: var(--font-inter);
+    --font-sans: var(--font-inter);
+    --font-playfair: var(--font-inter);
+    --font-lato: var(--font-inter);
 
     /* Colors matching template_1 requirements */
     --color-royal-maroon: #5D001E;
-    --color-royal-gold: #D4AF37;
+    --color-royal-gold: #CA9C68;
     --color-royal-cream: #FFFDD0;
     --color-royal-green: #005D4B;
 }

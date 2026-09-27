@@ -149,7 +149,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient colors={['#101010', '#1e293b', '#334155']} style={styles.gradient}>
+    <LinearGradient colors={['#1B211F', '#2B2F2E', '#594C3D']} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -208,7 +208,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="John Doe"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#CDB89E"
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
@@ -223,7 +223,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="9876543210"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#CDB89E"
                     value={phone}
                     onChangeText={setPhone}
                     keyboardType="phone-pad"
@@ -238,7 +238,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="you@example.com"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#CDB89E"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -262,7 +262,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#CDB89E"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPass}
@@ -310,7 +310,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="••••••••"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#CDB89E"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showPass}
@@ -424,29 +424,29 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(212,175,55,0.15)',
+    backgroundColor: 'rgba(202, 156, 104,0.15)',
     borderWidth: 2,
-    borderColor: 'rgba(212,175,55,0.4)',
+    borderColor: 'rgba(202, 156, 104,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   logoEmoji: {
     fontSize: 24,
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontWeight: '900',
     letterSpacing: 1,
   },
   brandName: {
     fontFamily: 'AkayaKanadaka_400Regular',
     fontSize: 32,
-    color: '#f8fafc',
+    color: '#FFF7EB',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   brandTagline: {
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontWeight: '400',
     letterSpacing: 0.3,
   },
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#101010',
+    color: '#1B211F',
     marginBottom: 4,
   },
   cardSubtitle: {
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentButtonActive: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   segmentText: {
     fontSize: 13,
@@ -513,14 +513,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#101010',
+    color: '#1B211F',
     flex: 1,
   },
   passwordRow: {
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 0,
   },
   eyeBtn: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
     borderLeftWidth: 0,
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   },
   checkItem: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#CDB89E',
     marginBottom: 4,
   },
   checkMet: {
@@ -597,12 +597,12 @@ const styles = StyleSheet.create({
 
   // Submit
   submitBtn: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#101010',
+    shadowColor: '#1B211F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
   },
   dividerText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 12,
     fontWeight: '700',
     paddingHorizontal: 12,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   socialBtnGoogleText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -690,10 +690,10 @@ const styles = StyleSheet.create({
   },
   versionLabel: {
     fontSize: 10,
-    color: '#d4af37',
+    color: '#CA9C68',
     fontWeight: 'bold',
     marginBottom: 4,
-    backgroundColor: 'rgba(212,175,55,0.1)',
+    backgroundColor: 'rgba(202, 156, 104,0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,

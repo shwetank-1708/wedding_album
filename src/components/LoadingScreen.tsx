@@ -56,7 +56,7 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
           inset: 0,
           borderRadius: "50%",
           border: "2px solid rgba(212,175,55,0.12)",
-          borderTopColor: "#D4AF37",
+          borderTopColor: "#CA9C68",
           borderRightColor: "rgba(212,175,55,0.5)",
           animation: "ls-cw 1.8s linear infinite",
         }} />
@@ -86,7 +86,7 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
           width: 44,
           height: 44,
           borderRadius: "50%",
-          background: "radial-gradient(circle at 36% 36%, #F0DEAA 0%, #D4AF37 50%, #6b4c0e 100%)",
+          background: "radial-gradient(circle at 36% 36%, #F0DEAA 0%, #CA9C68 50%, #6b4c0e 100%)",
           boxShadow: "0 0 20px 6px rgba(212,175,55,0.35)",
           animation: "ls-pulse 2.2s ease-in-out infinite",
           display: "flex",
@@ -121,14 +121,14 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
         display: "flex",
         alignItems: "baseline",
         gap: 7,
-        fontFamily: "'Georgia', serif",
+        fontFamily: "var(--font-inter), Helvetica, Arial, sans-serif",
         animation: "ls-fadeup 0.8s ease-out 0.15s both",
       }}>
         <span style={{
           fontSize: "1.5rem",
           fontWeight: 700,
           letterSpacing: "0.06em",
-          color: "#D4AF37",
+          color: "#CA9C68",
           textShadow: "0 0 24px rgba(212,175,55,0.5)",
         }}>EveBash</span>
       </div>
@@ -136,7 +136,7 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
       {/* Message */}
       <p style={{
         marginTop: 10,
-        fontFamily: "'Arial', sans-serif",
+        fontFamily: "var(--font-inter), Helvetica, Arial, sans-serif",
         fontSize: "0.68rem",
         letterSpacing: "0.22em",
         textTransform: "uppercase",
@@ -162,7 +162,7 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
         <div style={{
           height: "100%",
           width: "40%",
-          background: "linear-gradient(90deg, transparent, #D4AF37, transparent)",
+          background: "linear-gradient(90deg, transparent, #CA9C68, transparent)",
           animation: "ls-shimmer 1.6s ease-in-out infinite",
         }} />
       </div>
@@ -185,7 +185,7 @@ export default function LoadingScreen({ message = "Capturing the moment" }: Load
             width: 8,
             height: 15,
             borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-            background: "linear-gradient(160deg, #F0DEAA, #D4AF37)",
+            background: "linear-gradient(160deg, #F0DEAA, #CA9C68)",
             opacity: 0,
             animation: `ls-petal ${p.dur} linear infinite`,
             animationDelay: p.del,

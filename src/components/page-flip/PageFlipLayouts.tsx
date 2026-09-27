@@ -26,6 +26,8 @@ export interface PageFlipLayoutProps {
   onGoTo: (index: number) => void;
   reducedMotion?: boolean;
   immersive?: boolean;
+  commentsMode?: "overlay" | "side-panel";
+  commentsPanelOpen?: boolean;
 }
 
 function getNearbyNumberIndexes(currentIndex: number, total: number) {
@@ -258,26 +260,30 @@ function CoverFlowSideMedia({ item, config }: { item: GalleryMediaItem; config: 
 
 export function CoverFlowLayout(props: PageFlipLayoutProps) {
   const currentItem = props.items[props.currentIndex];
+  const sidePanelOpen = props.commentsMode === "side-panel" && props.commentsPanelOpen;
+  const fullscreenStage = props.immersive && !sidePanelOpen;
   const showImmersiveSidePreviews = Boolean(
-    props.immersive &&
+    fullscreenStage &&
     currentItem?.width &&
     currentItem?.height &&
     currentItem.height > currentItem.width
   );
   const indexes = Array.from({ length: 5 }, (_, offset) => props.currentIndex - 2 + offset)
     .filter((index) => index >= 0 && index < props.items.length)
-    .filter((index) => !props.immersive || showImmersiveSidePreviews || index === props.currentIndex);
+    .filter((index) => !fullscreenStage || showImmersiveSidePreviews || index === props.currentIndex);
 
   return (
     <div className={cn(
-      "relative z-10 flex h-full w-full flex-col items-center justify-center px-3 pb-28 pt-24 md:px-10 md:pb-32 md:pt-24",
-      props.immersive && "px-0 py-0 md:px-0 md:py-0"
+      "relative z-10 flex h-full w-full flex-col items-center justify-center px-3 pb-28 pt-24 transition-[padding] duration-300",
+      sidePanelOpen ? "md:items-center md:py-0 md:pl-8 md:pr-[452px]" : "md:px-10 md:pb-32 md:pt-24",
+      fullscreenStage && "px-0 py-0 md:px-0 md:py-0"
     )}>
-      {!props.immersive && <div className="pointer-events-none absolute inset-x-0 bottom-24 h-28 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.18),transparent_62%)] opacity-40 blur-2xl" />}
+      {!fullscreenStage && <div className="pointer-events-none absolute inset-x-0 bottom-24 h-28 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.18),transparent_62%)] opacity-40 blur-2xl" />}
       <div
         className={cn(
-          "relative h-[min(72dvh,780px)] w-[min(98vw,1500px)] overflow-visible",
-          props.immersive && "h-[100dvh] w-screen"
+          "relative h-[min(72dvh,780px)] w-[min(98vw,1500px)] overflow-visible transition-[width] duration-300",
+          sidePanelOpen && "md:w-[calc(100vw-500px)]",
+          fullscreenStage && "h-[100dvh] w-screen"
         )}
         style={{ perspective: "1400px", transformStyle: "preserve-3d" }}
       >
@@ -302,22 +308,23 @@ export function CoverFlowLayout(props: PageFlipLayoutProps) {
                 props.onGoTo(index);
               }}
               className={cn(
-                "absolute left-1/2 top-1/2 h-[min(70dvh,760px)] w-[min(88vw,1040px)] -translate-x-1/2 -translate-y-1/2 overflow-visible focus-visible:outline-none focus-visible:ring-2",
-                props.immersive && isActive && "h-[100dvh] w-screen",
-                props.immersive && !isActive && "h-[min(72dvh,760px)] w-[min(28vw,360px)]",
+                "absolute left-1/2 top-1/2 h-[min(70dvh,760px)] w-[min(88vw,1040px)] -translate-x-1/2 -translate-y-1/2 overflow-visible transition-[width,height] duration-300 focus-visible:outline-none focus-visible:ring-2",
+                sidePanelOpen && isActive && "md:w-[min(calc(100vw-560px),1040px)]",
+                fullscreenStage && isActive && "h-[100dvh] w-screen",
+                fullscreenStage && !isActive && "h-[min(72dvh,760px)] w-[min(28vw,360px)]",
                 isActive ? "cursor-default" : "cursor-pointer"
               )}
               style={{ zIndex: transform.zIndex }}
               aria-label={isActive ? `Current media ${index + 1}` : `Open media ${index + 1}`}
             >
               <motion.div
-                className={cn("relative h-full w-full", isActive && !props.immersive ? props.config.shadowClass : "shadow-black/40")}
+                className={cn("relative h-full w-full", isActive && !fullscreenStage ? props.config.shadowClass : "shadow-black/40")}
                 animate={{
-                  x: props.immersive && !isActive ? `${immersiveSideOffset * 34}vw` : transform.x,
-                  rotateY: props.immersive && !isActive ? (offset < 0 ? 42 : -42) : transform.rotateY,
-                  scale: props.immersive && !isActive ? Math.max(0.72, 0.88 - Math.abs(offset) * 0.06) : transform.scale,
-                  opacity: props.immersive && !isActive ? Math.max(0.22, 0.5 - Math.abs(offset) * 0.08) : transform.opacity,
-                  z: props.immersive && !isActive ? -Math.abs(offset) * 120 : transform.z,
+                  x: fullscreenStage && !isActive ? `${immersiveSideOffset * 34}vw` : transform.x,
+                  rotateY: fullscreenStage && !isActive ? (offset < 0 ? 42 : -42) : transform.rotateY,
+                  scale: fullscreenStage && !isActive ? Math.max(0.72, 0.88 - Math.abs(offset) * 0.06) : transform.scale,
+                  opacity: fullscreenStage && !isActive ? Math.max(0.22, 0.5 - Math.abs(offset) * 0.08) : transform.opacity,
+                  z: fullscreenStage && !isActive ? -Math.abs(offset) * 120 : transform.z,
                 }}
                 transition={props.reducedMotion ? { duration: 0.16 } : { type: "spring", stiffness: 180, damping: 25, mass: 0.9 }}
                 style={{
@@ -326,7 +333,7 @@ export function CoverFlowLayout(props: PageFlipLayoutProps) {
                 }}
               >
                 {isActive ? props.currentPage : <CoverFlowSideMedia item={props.items[index]} config={props.config} />}
-                {!props.immersive && <div className="pointer-events-none absolute inset-x-6 -bottom-8 h-8 rounded-[50%] bg-black/45 blur-xl" />}
+                {!fullscreenStage && <div className="pointer-events-none absolute inset-x-6 -bottom-8 h-8 rounded-[50%] bg-black/45 blur-xl" />}
               </motion.div>
             </div>
           );

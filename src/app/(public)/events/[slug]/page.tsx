@@ -7,18 +7,15 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
 import LoadingScreen from "@/components/LoadingScreen";
 import { getEvent } from "@/lib/events"; // Static Data
-import { getEventPhotosPaginated, getEventById, getSubEvents, logGuestLogin, onGuestStatusChange, Event, Photo as DatabasePhoto, getFavouritePhotosForEvents } from "@/lib/database"; // Live Data
-import { EventNavbar } from "@/components/EventNavbar";
+import { getEventPhotosPaginated, getEventById, getSubEvents, logGuestLogin, onGuestStatusChange, Event, Photo as DatabasePhoto, getFavouritePhotosForEvents, getEventFavouritePhotos } from "@/lib/database"; // Live Data
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Image as ImageIcon, ChevronLeft, ChevronDown, Share2, Check } from "lucide-react";
+import { Loader2, Image as ImageIcon, ChevronLeft, ChevronDown, Share2, Check, Star, Layers3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 import { getWebTemplateComponent } from "@/components/templateRegistry";
 import { getWebLightboxTheme, getWebTemplateChrome } from "@/lib/webTemplateTheme";
-import { FindYouSection } from "@/components/FindYouSection";
 import { supabase } from "@/lib/supabase";
-import { downloadGalleryAsZip } from "@/lib/zipDownload";
 
 function EventPageContent() {
     const params = useParams();
@@ -33,14 +30,13 @@ function EventPageContent() {
     const [photos, setPhotos] = useState<any[]>([]);
     const [mediaTotals, setMediaTotals] = useState({ photos: 0, videos: 0 });
     const [activeGallery, setActiveGallery] = useState<Event | null>(null);
-    const [activeVirtualGallery, setActiveVirtualGallery] = useState<"favourite" | null>(null);
     const [galleryMediaTab, setGalleryMediaTab] = useState<"photos" | "videos">("photos");
-    const [activePage, setActivePage] = useState<"gallery" | "find-you">("gallery");
+    const [showOnlyFavourites, setShowOnlyFavourites] = useState(false);
+    const [favouriteMediaIds, setFavouriteMediaIds] = useState<Set<string>>(new Set());
+    const [sourceGalleryFilter, setSourceGalleryFilter] = useState("all");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-    const [isZipping, setIsZipping] = useState(false);
-    const [zipProgress, setZipProgress] = useState(0);
 
     // Pagination State
     const [photoPage, setPhotoPage] = useState(0);
@@ -55,7 +51,6 @@ function EventPageContent() {
     const [isLogging, setIsLogging] = useState(false);
     const [hasCheckedSession, setHasCheckedSession] = useState(false);
     const [stableIdentifier, setStableIdentifier] = useState<string | null>(null);
-    const [hasHandledInitialHash, setHasHandledInitialHash] = useState(false);
     const [entryMode, setEntryMode] = useState<'phone' | 'email'>('phone');
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState("");
@@ -72,41 +67,6 @@ function EventPageContent() {
             loadEventData();
         }
     }, [authLoading, slug]);
-
-    useEffect(() => {
-        if (loading || !event || hasHandledInitialHash || typeof window === "undefined") return;
-        if (window.location.hash === "#favourite") {
-            setHasHandledInitialHash(true);
-            void selectFavouriteGallery();
-            return;
-        }
-        setHasHandledInitialHash(true);
-    }, [loading, event?.id, hasHandledInitialHash]);
-
-    const activeTemplateId = (activeGallery || event)?.templateId || event?.templateId;
-
-    useEffect(() => {
-        if (!activeTemplateId || typeof document === "undefined") return;
-
-        const chrome = getWebTemplateChrome(activeTemplateId);
-        const root = document.documentElement;
-
-        root.dataset.eventTemplateChrome = "true";
-        root.style.setProperty("--event-template-primary", chrome.background);
-        root.style.setProperty("--event-template-text", chrome.text);
-        root.style.setProperty("--event-template-muted", chrome.muted);
-        root.style.setProperty("--event-template-accent", chrome.accent);
-        root.style.setProperty("--event-template-border", chrome.border);
-
-        return () => {
-            delete root.dataset.eventTemplateChrome;
-            root.style.removeProperty("--event-template-primary");
-            root.style.removeProperty("--event-template-text");
-            root.style.removeProperty("--event-template-muted");
-            root.style.removeProperty("--event-template-accent");
-            root.style.removeProperty("--event-template-border");
-        };
-    }, [activeTemplateId]);
 
     // Initial session check
     useEffect(() => {
@@ -138,11 +98,7 @@ function EventPageContent() {
                         console.log(`[Realtime] Received DB change on photos table for event ${id}:`, payload);
                         
                         if (payload.eventType === 'INSERT') {
-                            if (activeVirtualGallery === 'favourite') {
-                                loadFavouritePhotos();
-                            } else {
-                                loadGalleryPhotos(activeGallery || event, 0, false);
-                            }
+                            loadGalleryPhotos(activeGallery || event, 0, false);
                         } else if (payload.eventType === 'UPDATE') {
                             setPhotos(prev => prev.map(p => {
                                 if (p.id === payload.new.id) {
@@ -167,12 +123,30 @@ function EventPageContent() {
         return () => {
             channels.forEach(ch => supabase.removeChannel(ch));
         };
-    }, [event?.id, subEvents, activeGallery, activeVirtualGallery]);
+    }, [event?.id, subEvents, activeGallery]);
+
+    useEffect(() => {
+        const ownerEventId = event?.parentId || event?.id;
+        if (!ownerEventId) return;
+        const channel = supabase.channel(`event-visibility-${ownerEventId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${ownerEventId}` }, payload => {
+                const isPublic = payload.new.is_public === true;
+                setEvent((previous: Event | null) => previous ? { ...previous, isPublic } : previous);
+                if (!isPublic) setGuestStatus('idle');
+            }).subscribe();
+        return () => { void supabase.removeChannel(channel); };
+    }, [event?.id, event?.parentId]);
 
     // Check for guest details or user approval if shared link
     useEffect(() => {
         let unsubscribe: (() => void) | undefined;
 
+        if (!event || loading) return;
+        if (event.isPublic) {
+            setGuestStatus('approved');
+            setShowGuestModal(false);
+            return;
+        }
         if (isShared && !authLoading && hasCheckedSession) {
             // --- VIP BYPASS CHECK ---
             const isVIP = user && event && (
@@ -244,7 +218,7 @@ function EventPageContent() {
         return () => {
             if (unsubscribe) unsubscribe();
         };
-    }, [isShared, user, authLoading, slug, event?.id, loading, hasCheckedSession, event?.parentId, stableIdentifier]);
+    }, [isShared, user, authLoading, slug, event?.id, loading, hasCheckedSession, event?.parentId, event?.isPublic, stableIdentifier]);
 
     const logGuestAccess = async (name: string, identifier: string) => {
         if (!slug || !event) return;
@@ -340,12 +314,9 @@ function EventPageContent() {
         }
     };
 
-    const [parentEvent, setParentEvent] = useState<Event | null>(null);
-
-    // ... (keep existing state)
-
     const transformPhotos = (databasePhotos: DatabasePhoto[]) => databasePhotos.map(p => ({
         id: p.id,
+        eventId: p.eventId,
         src: p.url || "",
         storageKey: p.storageKey || "",
         width: p.width || 800,
@@ -357,16 +328,26 @@ function EventPageContent() {
     }));
 
     const loadGalleryPhotos = async (gallery: Event, page = 0, append = false, overrideSubEvents?: Event[]) => {
+        if (!append) {
+            const favouriteRows = await getEventFavouritePhotos(gallery.id);
+            setFavouriteMediaIds(new Set(favouriteRows.map(row => row.photoId)));
+        }
         const currentMainEvent = gallery.type === 'main' ? gallery : event;
         const subEventList = overrideSubEvents || subEvents;
 
         if (!gallery.parentId && (currentMainEvent || gallery.type === 'main')) {
             const rootId = gallery.type === 'main' ? gallery.id : currentMainEvent?.id;
-            const eventIds = Array.from(new Set([rootId, ...subEventList.map(s => s.id)].filter(Boolean) as string[]));
+            const eventIds = Array.from(new Set([
+                rootId,
+                gallery.legacyId,
+                currentMainEvent?.legacyId,
+                ...subEventList.flatMap(s => [s.id, s.legacyId]),
+            ].filter(Boolean) as string[]));
             if (eventIds.length > 0) {
                 const favPhotos = await getFavouritePhotosForEvents(eventIds);
                 if (favPhotos.length > 0) {
                     const transformedFavs = transformPhotos(favPhotos as DatabasePhoto[]);
+                    setFavouriteMediaIds(new Set(transformedFavs.map(photo => photo.id).filter(Boolean)));
                     setPhotos(prev => append ? [...prev, ...transformedFavs] : transformedFavs);
                     const photoCount = transformedFavs.filter(p => p.mediaType !== "video" && p.resourceType !== "video").length;
                     const videoCount = transformedFavs.filter(p => p.mediaType === "video" || p.resourceType === "video").length;
@@ -386,74 +367,6 @@ function EventPageContent() {
         setHasMorePhotos(hasMore);
     };
 
-    const getFavouriteEventIds = () => {
-        const ids = [
-            parentEvent?.id,
-            event?.parentId,
-            event?.id,
-            ...subEvents.map(sub => sub.id),
-        ].filter(Boolean) as string[];
-
-        return Array.from(new Set(ids));
-    };
-
-    const loadFavouritePhotos = async () => {
-        const eventIds = getFavouriteEventIds();
-
-        if (eventIds.length === 0) {
-            setPhotos([]);
-            setMediaTotals({ photos: 0, videos: 0 });
-            setPhotoPage(0);
-            setHasMorePhotos(false);
-            return;
-        }
-
-        const databasePhotos = await getFavouritePhotosForEvents(eventIds);
-        const transformedPhotos = transformPhotos(databasePhotos);
-        const favouritePhotoCount = transformedPhotos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video").length;
-        const favouriteVideoCount = transformedPhotos.filter(photo => photo.mediaType === "video" || photo.resourceType === "video").length;
-        setPhotos(transformedPhotos);
-        setMediaTotals({ photos: favouritePhotoCount, videos: favouriteVideoCount });
-        setPhotoPage(0);
-        setHasMorePhotos(false);
-    };
-
-    const selectGallery = async (gallery: Event | null) => {
-        const targetGallery = gallery || event;
-        if (!targetGallery) return;
-
-        setActiveVirtualGallery(null);
-        setActiveGallery(gallery);
-        setGalleryMediaTab("photos");
-        setLoadingMorePhotos(false);
-
-        try {
-            await loadGalleryPhotos(targetGallery, 0, false);
-        } catch (err) {
-            console.error("Error loading gallery photos:", err);
-            setPhotos([]);
-            setMediaTotals({ photos: 0, videos: 0 });
-            setHasMorePhotos(false);
-        }
-    };
-
-    const selectFavouriteGallery = async () => {
-        setActivePage("gallery");
-        setActiveVirtualGallery("favourite");
-        setActiveGallery(null);
-        setGalleryMediaTab("photos");
-        setLoadingMorePhotos(false);
-
-        try {
-            await loadFavouritePhotos();
-        } catch (err) {
-            console.error("Error loading favourite photos:", err);
-            setPhotos([]);
-            setMediaTotals({ photos: 0, videos: 0 });
-            setHasMorePhotos(false);
-        }
-    };
-
     const loadEventData = async () => {
         setLoading(true);
         console.log(`[EventPage] Loading event for slug: ${slug}, isShared: ${isShared}`);
@@ -462,7 +375,7 @@ function EventPageContent() {
             // 1. Get Event Details
             let eventData: Event | null = null;
             try {
-                eventData = await getEventById(slug);
+                eventData = await getEventById(slug, true);
             } catch (e: any) {
                 console.error("[EventPage] Error fetching from Supabase database:", e);
                 if (e.message?.includes("permissions")) {
@@ -482,6 +395,12 @@ function EventPageContent() {
                 return;
             }
 
+            // Sub-gallery links inherit the parent event's current visibility.
+            if (eventData.parentId) {
+                const parentEvent = await getEventById(eventData.parentId, true);
+                eventData.isPublic = !!parentEvent?.isPublic;
+            }
+
             // Resolve event cover image to preview format
             eventData.coverImage = resolveEventCoverImage(eventData.coverImage, 'preview');
 
@@ -497,9 +416,7 @@ function EventPageContent() {
                     coverImage: resolveEventCoverImage(sub.coverImage, 'thumbnail')
                 }));
                 setSubEvents(resolvedSubEvents);
-                setParentEvent(null);
                 setActiveGallery(null);
-                setActiveVirtualGallery(null);
                 setGalleryMediaTab("photos");
                 await loadGalleryPhotos(eventData, 0, false, resolvedSubEvents);
             } else {
@@ -512,7 +429,6 @@ function EventPageContent() {
                         const pEvent = await getEventById(eventData.parentId);
                         if (pEvent) {
                             pEvent.coverImage = resolveEventCoverImage(pEvent.coverImage, 'preview');
-                            setParentEvent(pEvent);
                             const siblings = await getSubEvents(pEvent.id, pEvent.legacyId);
                             const resolvedSiblings = siblings.map(sub => ({
                                 ...sub,
@@ -526,7 +442,6 @@ function EventPageContent() {
                 }
 
                 setActiveGallery(eventData);
-                setActiveVirtualGallery(null);
                 setGalleryMediaTab("photos");
                 await loadGalleryPhotos(eventData, 0, false);
             }
@@ -539,8 +454,6 @@ function EventPageContent() {
     };
 
     const loadMorePhotos = async () => {
-        if (activeVirtualGallery) return;
-
         const currentGallery = activeGallery || event;
         if (!currentGallery || loadingMorePhotos || !hasMorePhotos) return;
 
@@ -593,18 +506,35 @@ function EventPageContent() {
 
     const photoItems = photos.filter(photo => photo.mediaType !== "video" && photo.resourceType !== "video" && !!(photo.thumbnailUrl || photo.src));
     const videoItems = photos.filter(photo => photo.mediaType === "video" || photo.resourceType === "video");
-    const activeGalleryItems = galleryMediaTab === "videos" ? videoItems : photoItems;
+    const selectedMediaItems = galleryMediaTab === "videos" ? videoItems : photoItems;
+    const isPrimaryGalleryView = !activeGallery;
+    const sourceGalleryOptions = [event, ...subEvents]
+        .filter((gallery): gallery is Event => !!gallery)
+        .map(gallery => ({
+            id: gallery.id,
+            label: gallery.id === event.id ? "Main event" : gallery.title,
+            legacyId: gallery.legacyId,
+            count: selectedMediaItems.filter(photo => photo.eventId === gallery.id || (!!gallery.legacyId && photo.eventId === gallery.legacyId)).length,
+        }))
+        .filter(option => option.count > 0);
+    const effectiveSourceGalleryFilter = sourceGalleryOptions.some(option => option.id === sourceGalleryFilter)
+        ? sourceGalleryFilter
+        : "all";
+    const isFavouriteFilterActive = !isPrimaryGalleryView && showOnlyFavourites;
+    const sourceFilteredMediaItems = isPrimaryGalleryView && effectiveSourceGalleryFilter !== "all"
+        ? selectedMediaItems.filter(photo => {
+            const source = sourceGalleryOptions.find(option => option.id === effectiveSourceGalleryFilter);
+            return photo.eventId === source?.id || (!!source?.legacyId && photo.eventId === source.legacyId);
+        })
+        : selectedMediaItems;
+    const activeGalleryItems = isFavouriteFilterActive
+        ? sourceFilteredMediaItems.filter(photo => favouriteMediaIds.has(photo.id))
+        : sourceFilteredMediaItems;
+    const activeFavouriteCount = selectedMediaItems.filter(photo => favouriteMediaIds.has(photo.id)).length;
     const displayedPhotoCount = mediaTotals.photos || photoItems.length;
     const displayedVideoCount = mediaTotals.videos || videoItems.length;
-    const activeGalleryTitle = activeVirtualGallery === "favourite" ? "Favourite" : activeGallery?.title || event.title || "Home";
-    const activeGalleryId = activeVirtualGallery === "favourite" ? "__favourite__" : activeGallery?.id || event.id;
-    const displayEvent = activeVirtualGallery === "favourite"
-        ? {
-            ...event,
-            title: "Favourite",
-            description: `Your favourite photos from ${event.title || "this event"}.`,
-        }
-        : activeGallery
+    const activeGalleryTitle = activeGallery?.title || event.title || "Home";
+    const displayEvent = activeGallery
         ? {
             ...event,
             title: activeGallery.title || event.title,
@@ -614,7 +544,7 @@ function EventPageContent() {
             templateId: activeGallery.templateId || event.templateId,
         }
         : event;
-    const activeGalleryMessage = activeVirtualGallery === "favourite" ? displayEvent.description : activeGallery ? activeGallery.description : event.description;
+    const activeGalleryMessage = activeGallery ? activeGallery.description : event.description;
 
     const renderContent = () => (
         <div className="contents">
@@ -666,7 +596,7 @@ function EventPageContent() {
 
             <div className="mt-12">
                 <SectionHeader
-                    title={activeVirtualGallery === "favourite" ? activeGalleryTitle : activeGallery ? activeGalleryTitle : "Home Gallery"}
+                    title={activeGallery ? activeGalleryTitle : "Home Gallery"}
                     subtitle={`${displayedPhotoCount} Photos · ${displayedVideoCount} Videos`}
                 />
 
@@ -696,6 +626,54 @@ function EventPageContent() {
                         </button>
                     ))}
                 </div>
+                <div className="mt-4">
+                    {isPrimaryGalleryView ? (
+                    <label className="flex w-full max-w-md items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left shadow-sm">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700">
+                            <Layers3 className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-stone-800">Source gallery</span>
+                            <span className="mt-0.5 block text-xs text-stone-500">Show media selected from</span>
+                        </span>
+                        <select
+                            value={effectiveSourceGalleryFilter}
+                            onChange={(event) => setSourceGalleryFilter(event.target.value)}
+                            className="max-w-[13rem] rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-semibold text-stone-800 outline-none focus:border-slate-700"
+                            aria-label="Filter by source gallery"
+                        >
+                            <option value="all">All galleries ({selectedMediaItems.length})</option>
+                            {sourceGalleryOptions.map(option => (
+                                <option key={option.id} value={option.id}>{option.label} ({option.count})</option>
+                            ))}
+                        </select>
+                    </label>
+                    ) : (
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showOnlyFavourites}
+                        onClick={() => setShowOnlyFavourites(current => !current)}
+                        className={cn(
+                            "flex w-full max-w-md items-center gap-3 rounded-xl border px-4 py-3 text-left shadow-sm transition-colors",
+                            showOnlyFavourites
+                                ? "border-slate-900 bg-slate-900"
+                                : "border-stone-200 bg-white hover:border-stone-400"
+                        )}
+                    >
+                        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", showOnlyFavourites ? "bg-white text-slate-900" : "bg-stone-100 text-stone-600")}>
+                            <Star className={cn("h-4 w-4", showOnlyFavourites && "fill-current")} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className={cn("block text-sm font-bold", showOnlyFavourites ? "text-white" : "text-stone-800")}>Favourites only</span>
+                            <span className={cn("mt-0.5 block text-xs", showOnlyFavourites ? "text-slate-300" : "text-stone-500")}>{activeFavouriteCount} in {galleryMediaTab === "videos" ? "Videos" : "Photos"}</span>
+                        </span>
+                        <span className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", showOnlyFavourites ? "bg-white/35" : "bg-stone-200")}>
+                            <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform", showOnlyFavourites ? "translate-x-5" : "translate-x-0.5")} />
+                        </span>
+                    </button>
+                    )}
+                </div>
 
                 {activeGalleryItems.length > 0 ? (
                     <div className="mt-8">
@@ -718,11 +696,9 @@ function EventPageContent() {
                         ) : (
                             <>
                                 <h2 className="text-2xl font-serif italic text-stone-600 mb-2">
-                                    {activeVirtualGallery === "favourite"
-                                        ? "No favourite photos yet."
-                                        : galleryMediaTab === "videos"
-                                            ? "No videos yet."
-                                            : "No photos yet."}
+                                    {isFavouriteFilterActive
+                                        ? `No favourite ${galleryMediaTab === "videos" ? "videos" : "photos"} in this gallery yet.`
+                                        : galleryMediaTab === "videos" ? "No videos yet." : "No photos yet."}
                                 </h2>
                                 <p className="font-sans text-stone-600 text-sm">Check back soon to see the captured memories.</p>
                             </>
@@ -756,42 +732,6 @@ function EventPageContent() {
     const TemplateComponent = getWebTemplateComponent(displayEvent.templateId);
     const templateChrome = getWebTemplateChrome(displayEvent.templateId);
 
-    // Determine Navbar Props
-    const navMainTitle = parentEvent ? parentEvent.title : event.title;
-    const navMainId = event.parentId || event.id;
-
-    // Build Find You event IDs (current event + parent if sub-event)
-    const findYouEventIds = [event.id];
-    if (event.parentId) findYouEventIds.push(event.parentId);
-
-    const handleDownloadZip = async () => {
-        if (!photos || photos.length === 0) {
-            alert("No photos or videos to download in this gallery.");
-            return;
-        }
-        setIsZipping(true);
-        setZipProgress(0);
-        try {
-            const title = activeGallery?.title || event?.title || "Gallery";
-            await downloadGalleryAsZip(
-                title,
-                photos.map(p => ({
-                    id: p.id,
-                    url: p.src || p.url,
-                    filename: p.filename,
-                    mediaType: p.mediaType,
-                    resourceType: p.resourceType,
-                })),
-                (percent) => setZipProgress(percent)
-            );
-        } catch (err: any) {
-            alert(err.message || "Failed to generate zip file.");
-        } finally {
-            setIsZipping(false);
-            setZipProgress(0);
-        }
-    };
-
     return (
         <main
             className="event-template-shell min-h-screen relative"
@@ -804,27 +744,6 @@ function EventPageContent() {
                 "--event-template-border": templateChrome.border,
             } as React.CSSProperties}
         >
-            <EventNavbar
-                mainEventTitle={navMainTitle}
-                mainEventId={navMainId}
-                subEvents={subEvents}
-                isShared={isShared}
-                basePath={`/events/${navMainId}`}
-                activeGalleryId={activeGalleryId}
-                activePage={activePage}
-                onSelectGallery={(gallery) => {
-                    setActivePage("gallery");
-                    selectGallery(gallery || parentEvent || null);
-                }}
-                onFindYou={() => router.push(`/events/${navMainId}/find-you${isShared ? "?shared=true" : ""}`)}
-                onDownloadZip={handleDownloadZip}
-                isZipping={isZipping}
-                zipProgress={zipProgress}
-                chromeBackgroundColor={templateChrome.background}
-                chromeTextColor={templateChrome.text}
-                chromeAccentColor={templateChrome.accent}
-                chromeBorderColor={templateChrome.border}
-            />
             <TemplateComponent
                 event={displayEvent}
                 subEvents={[]}
@@ -841,29 +760,11 @@ function EventPageContent() {
                 copied={copied}
                 error={error}
             >
-                {activePage === "find-you" ? (
-                    <div className="py-12 px-4">
-                        <div className="text-center mb-10">
-                            <p className="text-xs font-black uppercase tracking-widest text-stone-500 mb-2">AI Photo Search</p>
-                            <h2 className="text-3xl md:text-4xl font-serif italic text-stone-900 mb-3">Find You</h2>
-                            <p className="text-stone-500 text-sm">Upload a selfie to find all your photos from this event</p>
-                        </div>
-                        <FindYouSection
-                            eventId={event.id}
-                            legacyId={event.legacyId}
-                            parentId={event.parentId}
-                            subEventIds={subEvents.map(s => s.id)}
-                            eventSlug={slug}
-                            lightboxTheme={getWebLightboxTheme(event.templateId)}
-                        />
-                    </div>
-                ) : (
-                    renderContent()
-                )}
+                {renderContent()}
             </TemplateComponent>
             {/* Guest Entry Modal */}
             <AnimatePresence>
-                {showGuestModal && (
+                {showGuestModal && !event?.isPublic && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}

@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, Heart, Info, Loader2, Maximize2, MessageCircle, Send, Share2, Trash2, UserSearch, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Download, Heart, Info, Loader2, Maximize2, MessageCircle, Pause, Play, Search, Send, Share2, Trash2, UserSearch, X } from "lucide-react";
 import { addComment, deletePhotoComment, onPhotoInteractions, toggleLike } from "@/lib/database";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -29,9 +29,17 @@ interface PageFlipSocialBarProps {
   showFindYou?: boolean;
   visible?: boolean;
   immersive?: boolean;
+  commentsMode?: "overlay" | "side-panel";
+  zoomed?: boolean;
+  slideshow?: boolean;
+  commentsPanelSuppressed?: boolean;
   onDownload: () => void;
   onFullscreen: () => void;
   onFindYou?: () => void;
+  onCloseViewer?: () => void;
+  onToggleZoom?: () => void;
+  onToggleSlideshow?: () => void;
+  onCommentsOpenChange?: (open: boolean) => void;
 }
 
 function getGuestIdentity() {
@@ -70,9 +78,17 @@ export function PageFlipSocialBar({
   showFindYou = false,
   visible = true,
   immersive = false,
+  commentsMode = "overlay",
+  zoomed = false,
+  slideshow = false,
+  commentsPanelSuppressed = false,
   onDownload,
   onFullscreen,
   onFindYou,
+  onCloseViewer,
+  onToggleZoom,
+  onToggleSlideshow,
+  onCommentsOpenChange,
 }: PageFlipSocialBarProps) {
   const { user } = useAuth();
   const identity = useMemo(() => {
@@ -81,14 +97,41 @@ export function PageFlipSocialBar({
   }, [user]);
   const [likes, setLikes] = useState<PhotoInteraction[]>([]);
   const [comments, setComments] = useState<PhotoInteraction[]>([]);
-  const [commentDrawerOpen, setCommentDrawerOpen] = useState(false);
+  const [commentDrawerOpen, setCommentDrawerOpen] = useState(() => (
+    commentsMode === "side-panel" &&
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 768px)").matches
+  ));
   const [commentText, setCommentText] = useState("");
   const [likePending, setLikePending] = useState(false);
   const [commentPending, setCommentPending] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [expandedProfileImage, setExpandedProfileImage] = useState<{ src: string; name: string } | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const initializedSidePanelRef = useRef(commentDrawerOpen);
   const isLiked = likes.some((like) => like.userId === identity.id);
+  const useSidePanelComments = commentsMode === "side-panel";
+  const commentDrawerVisible = commentDrawerOpen && !(useSidePanelComments && commentsPanelSuppressed);
+  const handleCloseComments = useCallback(() => {
+    const shouldCloseViewer =
+      useSidePanelComments &&
+      Boolean(onCloseViewer) &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 768px)").matches;
+
+    if (shouldCloseViewer) {
+      onCloseViewer?.();
+      return;
+    }
+
+    setCommentDrawerOpen(false);
+  }, [onCloseViewer, useSidePanelComments]);
+
+  useEffect(() => {
+    if (!useSidePanelComments || initializedSidePanelRef.current || typeof window === "undefined") return;
+    initializedSidePanelRef.current = true;
+    setCommentDrawerOpen(window.matchMedia("(min-width: 768px)").matches);
+  }, [useSidePanelComments]);
 
   useEffect(() => {
     const unsubscribe = onPhotoInteractions(item.id, (data) => {
@@ -99,22 +142,26 @@ export function PageFlipSocialBar({
   }, [item.id]);
 
   useEffect(() => {
-    if (!commentDrawerOpen) return;
+    if (!commentDrawerVisible) return;
     const timer = window.setTimeout(() => commentInputRef.current?.focus(), 80);
     return () => window.clearTimeout(timer);
-  }, [commentDrawerOpen]);
+  }, [commentDrawerVisible]);
 
   useEffect(() => {
-    if (!commentDrawerOpen) return;
+    if (!commentDrawerVisible) return;
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setCommentDrawerOpen(false);
+      handleCloseComments();
     };
     window.addEventListener("keydown", handleEscape, true);
     return () => window.removeEventListener("keydown", handleEscape, true);
-  }, [commentDrawerOpen]);
+  }, [commentDrawerVisible, handleCloseComments]);
+
+  useEffect(() => {
+    onCommentsOpenChange?.(commentDrawerVisible);
+  }, [commentDrawerVisible, onCommentsOpenChange]);
 
   const handleToggleLike = async () => {
     if (likePending) return;
@@ -181,12 +228,14 @@ export function PageFlipSocialBar({
   };
 
   const actionClass = cn("flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-45", config.controlClass);
+  const panelActionClass = cn("flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-45", config.controlClass);
 
   return (
     <>
       <div className={cn(
         "fixed inset-x-3 bottom-5 z-[116] flex justify-center transition-all duration-300 md:bottom-8",
         !visible && "pointer-events-none translate-y-8 opacity-0",
+        useSidePanelComments && "md:pointer-events-none md:translate-y-8 md:opacity-0",
         immersive && "bottom-6 md:bottom-7"
       )}>
         <div className={cn("flex max-w-[min(94vw,980px)] flex-wrap items-center justify-center gap-2 rounded-2xl border px-3 py-3 shadow-2xl backdrop-blur-2xl", config.pageClass)}>
@@ -197,7 +246,7 @@ export function PageFlipSocialBar({
             </button>
           )}
           {showComments && (
-            <button type="button" onClick={() => setCommentDrawerOpen(true)} className={actionClass} aria-label="Open comments">
+            <button type="button" onClick={() => setCommentDrawerOpen((open) => !open)} className={actionClass} aria-label={commentDrawerVisible ? "Close comments" : "Open comments"} aria-pressed={commentDrawerVisible}>
               <MessageCircle className="h-4 w-4" />
               {comments.length}
             </button>
@@ -233,19 +282,68 @@ export function PageFlipSocialBar({
         </div>
       </div>
 
-      {commentDrawerOpen && (
-        <div className="fixed inset-0 z-[135] bg-black/45 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Media comments">
-          <button type="button" className="absolute inset-0 cursor-default" onClick={() => setCommentDrawerOpen(false)} aria-label="Close comments" />
-          <div className={cn("absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-3xl border md:inset-y-0 md:left-auto md:right-0 md:w-[min(420px,92vw)] md:max-h-none md:rounded-l-3xl md:rounded-tr-none", config.pageClass)}>
+      {commentDrawerVisible && (
+        <div
+          className={cn(
+            "fixed inset-0 z-[135] bg-black/45 backdrop-blur-sm",
+            useSidePanelComments && "md:pointer-events-none md:bg-transparent md:backdrop-blur-none"
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Media comments"
+        >
+          <button type="button" className={cn("absolute inset-0 cursor-default", useSidePanelComments && "md:hidden")} onClick={handleCloseComments} aria-label="Close comments" />
+          <div className={cn("absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-3xl border md:inset-y-0 md:left-auto md:right-0 md:w-[min(420px,92vw)] md:max-h-none md:rounded-l-3xl md:rounded-tr-none", useSidePanelComments && "md:pointer-events-auto md:w-[420px]", config.pageClass)}>
             <div className="flex items-center justify-between border-b border-current/10 px-5 py-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] opacity-70">Comments</p>
                 <p className="text-sm opacity-70">{comments.length} shared thoughts</p>
               </div>
-              <button type="button" onClick={() => setCommentDrawerOpen(false)} className={cn("flex h-11 w-11 items-center justify-center rounded-full border", config.controlClass)} aria-label="Close comments">
+              <button type="button" onClick={handleCloseComments} className={cn("flex h-11 w-11 items-center justify-center rounded-full border", config.controlClass)} aria-label={useSidePanelComments ? "Close viewer" : "Close comments"}>
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {useSidePanelComments && (
+              <div className="hidden flex-wrap gap-2 border-b border-current/10 px-5 py-3 md:flex">
+                {showLikes && (
+                  <button type="button" onClick={handleToggleLike} disabled={likePending} className={cn(panelActionClass, "w-auto gap-2 px-3", isLiked && "text-rose-300")} aria-pressed={isLiked} aria-label={isLiked ? "Unlike media" : "Like media"} title={isLiked ? "Unlike" : "Like"}>
+                    {likePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />}
+                    <span className="text-xs font-black">{likes.length}</span>
+                  </button>
+                )}
+                {showFullscreen && (
+                  <button type="button" onClick={onFullscreen} className={panelActionClass} aria-label="Open fullscreen" title="Fullscreen">
+                    <Maximize2 className="h-4 w-4" />
+                  </button>
+                )}
+                {onToggleSlideshow && (
+                  <button type="button" onClick={onToggleSlideshow} className={panelActionClass} aria-label={slideshow ? "Pause slideshow" : "Start slideshow"} title={slideshow ? "Pause slideshow" : "Start slideshow"}>
+                    {slideshow ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  </button>
+                )}
+                {onToggleZoom && (
+                  <button type="button" onClick={onToggleZoom} className={panelActionClass} aria-label={zoomed ? "Reset zoom" : "Zoom media"} title={zoomed ? "Reset zoom" : "Zoom media"}>
+                    <Search className="h-4 w-4" />
+                  </button>
+                )}
+                {showShare && (
+                  <button type="button" onClick={handleShare} className={panelActionClass} aria-label="Share gallery media" title={shareCopied ? "Copied" : "Share"}>
+                    {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                  </button>
+                )}
+                {showDownload && (
+                  <button type="button" onClick={onDownload} className={panelActionClass} aria-label="Download original media" title="Download">
+                    <Download className="h-4 w-4" />
+                  </button>
+                )}
+                {showFindYou && onFindYou && (
+                  <button type="button" onClick={onFindYou} className={panelActionClass} aria-label="Find me in this gallery" title="Find You">
+                    <UserSearch className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
               {comments.length === 0 ? (
@@ -297,7 +395,7 @@ export function PageFlipSocialBar({
               )}
             </div>
 
-            <form onSubmit={handleAddComment} className="border-t border-current/10 p-4">
+            <form onSubmit={handleAddComment} className="border-t border-current/10 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex gap-2">
                 <textarea
                   ref={commentInputRef}

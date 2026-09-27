@@ -78,7 +78,7 @@ export default function BusinessEnquiriesScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#d4af37" />
+        <ActivityIndicator size="large" color="#CA9C68" />
       </View>
     );
   }
@@ -88,7 +88,7 @@ export default function BusinessEnquiriesScreen() {
       <View style={[styles.container, styles.center]}>
         <Text style={{ color: '#ffffff' }}>Business not found</Text>
         <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard')} style={{ marginTop: 20 }}>
-          <Text style={{ color: '#d4af37' }}>Go Back</Text>
+          <Text style={{ color: '#CA9C68' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -155,12 +155,12 @@ export default function BusinessEnquiriesScreen() {
         <View style={styles.tabContent}>
           {loadingEnquiries ? (
             <View style={[styles.center, { paddingVertical: 40 }]}>
-              <ActivityIndicator size="large" color="#d4af37" />
+              <ActivityIndicator size="large" color="#CA9C68" />
             </View>
           ) : enquiries.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconBg}>
-                <IconSymbol name="bubble.right" size={48} color="#d4af37" />
+                <IconSymbol name="bubble.right" size={48} color="#CA9C68" />
               </View>
               <Text style={styles.emptyStateTitle}>No Enquiries Yet</Text>
               <Text style={styles.emptyStateDesc}>
@@ -173,7 +173,7 @@ export default function BusinessEnquiriesScreen() {
               {filteredEnquiries.length === 0 ? (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconBg}>
-                    <IconSymbol name="bubble.right" size={48} color="#d4af37" />
+                    <IconSymbol name="bubble.right" size={48} color="#CA9C68" />
                   </View>
                   <Text style={styles.emptyStateTitle}>No {activeFilter} Leads</Text>
                   <Text style={styles.emptyStateDesc}>
@@ -218,7 +218,7 @@ export default function BusinessEnquiriesScreen() {
                           </View>
                           <Text style={styles.leadTimestamp}>Sent: {formattedDate}</Text>
                         </View>
-                        <IconSymbol name="chevron.right" size={20} color="#94a3b8" />
+                        <IconSymbol name="chevron.right" size={20} color="#CDB89E" />
                       </View>
                     </TouchableOpacity>
                   );
@@ -254,7 +254,7 @@ export default function BusinessEnquiriesScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Enquiry Details</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                  <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                  <IconSymbol name="xmark" size={20} color="#CDB89E" />
                 </TouchableOpacity>
               </View>
 
@@ -278,7 +278,7 @@ export default function BusinessEnquiriesScreen() {
               {/* Event details */}
               <View style={styles.leadDetailsRow}>
                 <View style={styles.leadDetailPill}>
-                  <IconSymbol name="calendar" size={14} color="#d4af37" />
+                  <IconSymbol name="calendar" size={14} color="#CA9C68" />
                   <Text style={styles.leadDetailPillText}>Event Date: {selectedEnquiry.date}</Text>
                 </View>
               </View>
@@ -321,7 +321,7 @@ export default function BusinessEnquiriesScreen() {
                         }
                       }}
                     >
-                      <IconSymbol name="bubble.left.fill" size={14} color="#101010" />
+                      <IconSymbol name="bubble.left.fill" size={14} color="#1B211F" />
                       <Text style={styles.leadActionBtnTextDark}>Reply via In-App Chat</Text>
                     </TouchableOpacity>
                   )
@@ -379,7 +379,7 @@ export default function BusinessEnquiriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   center: {
     justifyContent: 'center',
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -448,9 +448,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: 'rgba(202, 156, 104, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.15)',
+    borderColor: 'rgba(202, 156, 104, 0.15)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 8,
@@ -461,19 +461,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_700Bold',
   },
   leadsCountBadge: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
   leadsCountText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 10,
     fontFamily: 'Outfit_800ExtraBold',
     letterSpacing: 0.5,
   },
   leadCardCompact: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
@@ -488,14 +488,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(202, 156, 104, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   leadAvatarText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 16,
     fontFamily: 'Outfit_700Bold',
   },
@@ -526,24 +526,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(212, 175, 55, 0.05)',
+    backgroundColor: 'rgba(202, 156, 104, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.1)',
+    borderColor: 'rgba(202, 156, 104, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   leadDetailPillText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 12,
     fontFamily: 'Outfit_600SemiBold',
   },
   leadMessageContainer: {
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#2B2F2E',
   },
   leadMessageLabel: {
     color: '#64748b',
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#475569',
   },
   chatBtn: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
   },
   leadActionBtnText: {
     color: '#ffffff',
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_700Bold',
   },
   leadActionBtnTextDark: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 13,
     fontFamily: 'Outfit_700Bold',
   },
@@ -611,11 +611,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.8)',
+    backgroundColor: 'rgba(19, 25, 31, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#334155',
+    backgroundColor: '#594C3D',
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -709,8 +709,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeFilterTab: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderColor: 'rgba(212, 175, 55, 0.25)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
+    borderColor: 'rgba(202, 156, 104, 0.25)',
   },
   filterTabText: {
     color: '#64748b',
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
   },
   activeFilterTabText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontFamily: 'Outfit_700Bold',
   },
   headerRightBadgeContainer: {
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerLeadsCountBadge: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerLeadsCountText: {
-    color: '#101010',
+    color: '#1B211F',
     fontSize: 11,
     fontFamily: 'Outfit_800ExtraBold',
   },

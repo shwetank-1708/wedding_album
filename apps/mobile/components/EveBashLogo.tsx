@@ -1,12 +1,13 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { MidnightColors } from '../constants/theme';
 
 type EveBashLogoProps = {
   size?: number;
   color?: string;
 };
 
-export function EveBashLogo({ size = 24, color = '#D4AF37' }: EveBashLogoProps) {
+export function EveBashLogo({ size = 24, color = MidnightColors.gold }: EveBashLogoProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 1024 1024" fill="none">
       <Path
@@ -29,8 +30,8 @@ type EveBashLogoBadgeProps = {
 export function EveBashLogoBadge({
   size = 38,
   logoSize = 24,
-  backgroundColor = 'rgba(212, 175, 55, 0.12)',
-  color = '#D4AF37',
+  backgroundColor = 'rgba(202, 156, 104, 0.12)',
+  color = MidnightColors.gold,
   onPress,
   accessibilityLabel = 'Go to home',
 }: EveBashLogoBadgeProps) {

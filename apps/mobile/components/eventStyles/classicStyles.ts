@@ -49,7 +49,7 @@ export const classicStyles = {
     borderRadius: 2,
     overflow: 'hidden',
     borderWidth: 1.5, // Thicker, luxurious outer frame
-    borderColor: '#cca43b', // Elegantly gilded warm gold frame holding the white-matted photo!
+    borderColor: '#8B9A6E', // Elegant vintage sage green frame holding the white-matted photo!
     backgroundColor: '#ffffff', // Crisp white internal gallery matte frame
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -234,7 +234,7 @@ export const classicStyles = {
   heroDateMain: {
     fontSize: 11,
     fontFamily: Fonts.inter.semiBold,
-    color: '#94a3b8',
+    color: '#CDB89E',
     letterSpacing: 3,
   },
   heroActionRow: {
@@ -305,8 +305,8 @@ export const classicStyles = {
     borderColor: 'rgba(255,255,255,0.05)',
   },
   activeCategoryOption: {
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    backgroundColor: 'rgba(202, 156, 104, 0.08)',
+    borderColor: 'rgba(202, 156, 104, 0.35)',
   },
   categoryLeft: {
     flexDirection: 'row',
@@ -419,7 +419,7 @@ export const classicStyles = {
     gap: 8,
     backgroundColor: 'rgba(9, 8, 24, 0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderColor: 'rgba(202, 156, 104, 0.35)',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,

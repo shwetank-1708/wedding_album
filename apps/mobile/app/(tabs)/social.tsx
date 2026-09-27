@@ -22,11 +22,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { EveBashLogoBadge } from '@/components/EveBashLogo';
-import { 
-  getUsers, 
-  followUser, 
-  unfollowUser, 
-  getFollowing, 
+import {
+  getUsers,
+  followUser,
+  unfollowUser,
+  getFollowing,
   getSocialFeed,
   toggleEventPostLike,
   isEventPostLikedByUser,
@@ -130,7 +130,7 @@ export default function SocialScreen() {
       // Now fetch feed with the fresh IDs (always include self)
       const queryIds = [user.uid, ...ids];
       const feed = await getSocialFeed(queryIds);
-      
+
       console.log('[initFeed] raw feed returned:', feed.length, 'items');
       feed.forEach((item, i) => console.log(`  feed[${i}] id=${item.id} type=${item.type} title=${item.title} createdBy=${item.createdBy}`));
 
@@ -310,12 +310,12 @@ export default function SocialScreen() {
 
   const handleLike = async (eventId: string) => {
     if (!user?.uid) return;
-    
+
     // Optimistic update
     const wasLiked = likedEvents[eventId] || false;
     setLikedEvents(prev => ({ ...prev, [eventId]: !wasLiked }));
     setLikeCounts(prev => ({ ...prev, [eventId]: (prev[eventId] || 0) + (wasLiked ? -1 : 1) }));
-    
+
     try {
       await toggleEventPostLike(eventId, user.uid);
     } catch (error) {
@@ -343,11 +343,11 @@ export default function SocialScreen() {
   const handlePostComment = async (eventId: string) => {
     if (!user?.uid || !commentText.trim() || postingComment) return;
     setPostingComment(true);
-    
+
     const userName = usersList.find(u => u.id === user.uid)?.name || 'You';
     try {
       await addEventPostComment(eventId, user.uid, userName, commentText.trim());
-      
+
       // Add to local state immediately
       const newComment = { id: Date.now().toString(), userId: user.uid, userName, text: commentText.trim(), createdAt: { seconds: Date.now() / 1000 } };
       setComments(prev => ({ ...prev, [eventId]: [newComment, ...(prev[eventId] || [])] }));
@@ -399,7 +399,7 @@ export default function SocialScreen() {
       const isOwner = item.createdBy === user.uid || item.userId === user.uid;
 
       // 2. Check if user is privileged viewer
-      const isPrivileged = 
+      const isPrivileged =
         user.role === 'admin' ||
         (user.roleType === 'primary' && user.delegatedBy === item.createdBy) ||
         !!user.assignedEvents?.some((id: string) => id === eventId || id === item.legacyId || id === item.parentId);
@@ -447,7 +447,7 @@ export default function SocialScreen() {
     try {
       const nameToSubmit = user.name || user.email?.split('@')[0] || 'Guest';
       const rawPhone = user.phone || user.email || user.uid;
-      
+
       const success = await logGuestLogin(
         nameToSubmit,
         rawPhone,
@@ -564,7 +564,7 @@ export default function SocialScreen() {
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.portfolioPhoto, styles.postImagePlaceholder]}>
-                    <IconSymbol name="photo" size={32} color="#334155" />
+                    <IconSymbol name="photo" size={32} color="#594C3D" />
                   </View>
                 )}
                 <Text style={styles.portfolioPhotoCaption}>{item.content}</Text>
@@ -579,12 +579,12 @@ export default function SocialScreen() {
                 <IconSymbol
                   name={isLiked ? 'heart.fill' : 'heart'}
                   size={22}
-                  color={isLiked ? '#ef4444' : '#94a3b8'}
+                  color={isLiked ? '#ef4444' : '#CDB89E'}
                 />
                 {likeCount > 0 && <Text style={[styles.actionCount, isLiked && { color: '#ef4444' }]}>{likeCount}</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => handleToggleComments(item.id)}>
-                <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#818cf8' : '#94a3b8'} />
+                <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#818cf8' : '#CDB89E'} />
                 {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
               </TouchableOpacity>
             </View>
@@ -602,8 +602,8 @@ export default function SocialScreen() {
           {isCommentsOpen && (
             <View style={styles.commentsSection}>
               {actComments.length > 3 && !showAllComments[item.id] && (
-                <TouchableOpacity 
-                  style={styles.viewAllCommentsBtn} 
+                <TouchableOpacity
+                  style={styles.viewAllCommentsBtn}
                   onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: true }))}
                 >
                   <Text style={[styles.viewAllCommentsText, styles.bizViewAllCommentsText]}>View all {commentCount} comments</Text>
@@ -618,8 +618,8 @@ export default function SocialScreen() {
               ))}
 
               {actComments.length > 3 && showAllComments[item.id] && (
-                <TouchableOpacity 
-                  style={styles.viewAllCommentsBtn} 
+                <TouchableOpacity
+                  style={styles.viewAllCommentsBtn}
                   onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: false }))}
                 >
                   <Text style={[styles.viewAllCommentsText, styles.bizViewAllCommentsText]}>Show less</Text>
@@ -630,7 +630,7 @@ export default function SocialScreen() {
                 <TextInput
                   style={styles.commentInput}
                   placeholder="Add a comment…"
-                  placeholderTextColor="#334155"
+                  placeholderTextColor="#594C3D"
                   value={commentText}
                   onChangeText={setCommentText}
                   returnKeyType="send"
@@ -705,7 +705,7 @@ export default function SocialScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.bizHeartToggle}
               onPress={() => {
                 if (user?.uid) {
@@ -715,10 +715,10 @@ export default function SocialScreen() {
                 }
               }}
             >
-              <IconSymbol 
-                name={isShortlisted ? "heart.fill" : "heart"} 
-                size={20} 
-                color={isShortlisted ? "#ef4444" : "#94a3b8"} 
+              <IconSymbol
+                name={isShortlisted ? "heart.fill" : "heart"}
+                size={20}
+                color={isShortlisted ? "#ef4444" : "#CDB89E"}
               />
             </TouchableOpacity>
           </View>
@@ -730,7 +730,7 @@ export default function SocialScreen() {
                 <Image source={{ uri: item.coverImage }} style={styles.postMainImage} resizeMode="cover" />
               ) : (
                 <View style={[styles.postMainImage, styles.postImagePlaceholder]}>
-                  <IconSymbol name="photo" size={32} color="#334155" />
+                  <IconSymbol name="photo" size={32} color="#594C3D" />
                 </View>
               )}
               {/* Gradient Overlay bottom strip */}
@@ -741,7 +741,7 @@ export default function SocialScreen() {
                     <Text style={[styles.postGlassBadgeText, styles.bizGlassBadgeText]}>{item.type?.toUpperCase() || 'VENDOR'}</Text>
                   </View>
                   <View style={styles.bizRatingBadge}>
-                    <IconSymbol name="star.fill" size={10} color="#d4af37" />
+                    <IconSymbol name="star.fill" size={10} color="#CA9C68" />
                     <Text style={styles.bizRatingText}>{item.rating || '5.0'}</Text>
                   </View>
                 </View>
@@ -777,13 +777,13 @@ export default function SocialScreen() {
 
             {/* Quick Actions */}
             <View style={styles.bizActionRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.bizViewProfileBtn}
                 onPress={() => router.push(`/business/${item.id}`)}
               >
                 <Text style={styles.bizViewProfileText}>View Portfolio</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.bizInquireBtn}
                 onPress={() => {
                   Alert.alert(
@@ -791,9 +791,9 @@ export default function SocialScreen() {
                     `Would you like to send an inquiry to ${item.name}?`,
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { 
-                        text: 'Send Inquiry', 
-                        onPress: () => Alert.alert("Success", "Inquiry sent successfully! The vendor will reach out to you shortly.") 
+                      {
+                        text: 'Send Inquiry',
+                        onPress: () => Alert.alert("Success", "Inquiry sent successfully! The vendor will reach out to you shortly.")
                       }
                     ]
                   );
@@ -819,12 +819,12 @@ export default function SocialScreen() {
                 <IconSymbol
                   name={isLiked ? 'heart.fill' : 'heart'}
                   size={22}
-                  color={isLiked ? '#ef4444' : '#94a3b8'}
+                  color={isLiked ? '#ef4444' : '#CDB89E'}
                 />
                 {likeCount > 0 && <Text style={[styles.actionCount, isLiked && { color: '#ef4444' }]}>{likeCount}</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => handleToggleComments(item.id)}>
-                <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#818cf8' : '#94a3b8'} />
+                <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#818cf8' : '#CDB89E'} />
                 {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
               </TouchableOpacity>
             </View>
@@ -842,8 +842,8 @@ export default function SocialScreen() {
           {isCommentsOpen && (
             <View style={styles.commentsSection}>
               {bizComments.length > 3 && !showAllComments[item.id] && (
-                <TouchableOpacity 
-                  style={styles.viewAllCommentsBtn} 
+                <TouchableOpacity
+                  style={styles.viewAllCommentsBtn}
                   onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: true }))}
                 >
                   <Text style={[styles.viewAllCommentsText, styles.bizViewAllCommentsText]}>View all {commentCount} comments</Text>
@@ -858,8 +858,8 @@ export default function SocialScreen() {
               ))}
 
               {bizComments.length > 3 && showAllComments[item.id] && (
-                <TouchableOpacity 
-                  style={styles.viewAllCommentsBtn} 
+                <TouchableOpacity
+                  style={styles.viewAllCommentsBtn}
                   onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: false }))}
                 >
                   <Text style={[styles.viewAllCommentsText, styles.bizViewAllCommentsText]}>Show less</Text>
@@ -870,7 +870,7 @@ export default function SocialScreen() {
                 <TextInput
                   style={styles.commentInput}
                   placeholder="Add a comment…"
-                  placeholderTextColor="#334155"
+                  placeholderTextColor="#594C3D"
                   value={commentText}
                   onChangeText={setCommentText}
                   returnKeyType="send"
@@ -938,18 +938,18 @@ export default function SocialScreen() {
               <Image source={{ uri: coverImage }} style={styles.postMainImage} resizeMode="cover" />
             ) : (
               <View style={[styles.postMainImage, styles.postImagePlaceholder]}>
-                <IconSymbol name="photo" size={32} color="#334155" />
+                <IconSymbol name="photo" size={32} color="#594C3D" />
               </View>
             )}
             {checkingAccess === item.id && (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(2, 6, 23, 0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 20 }]}>
-                <ActivityIndicator size="large" color="#d4af37" />
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(19, 25, 31, 0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 20 }]}>
+                <ActivityIndicator size="large" color="#CA9C68" />
               </View>
             )}
             {/* Gradient overlay bottom strip */}
             <View style={styles.postGlassOverlay}>
               <View style={styles.postGlassBadge}>
-                <IconSymbol name="sparkles" size={10} color="#d4af37" />
+                <IconSymbol name="sparkles" size={10} color="#CA9C68" />
                 <Text style={styles.postGlassBadgeText}>EVENT</Text>
               </View>
               <Text style={styles.postEventTitle} numberOfLines={1}>{item.title}</Text>
@@ -967,12 +967,12 @@ export default function SocialScreen() {
               <IconSymbol
                 name={isLiked ? 'heart.fill' : 'heart'}
                 size={22}
-                color={isLiked ? '#ef4444' : '#94a3b8'}
+                color={isLiked ? '#ef4444' : '#CDB89E'}
               />
               {likeCount > 0 && <Text style={[styles.actionCount, isLiked && { color: '#ef4444' }]}>{likeCount}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={() => handleToggleComments(item.id)}>
-              <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#d4af37' : '#94a3b8'} />
+              <IconSymbol name="bubble.right" size={21} color={isCommentsOpen ? '#CA9C68' : '#CDB89E'} />
               {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
             </TouchableOpacity>
           </View>
@@ -990,8 +990,8 @@ export default function SocialScreen() {
         {isCommentsOpen && (
           <View style={styles.commentsSection}>
             {eventComments.length > 3 && !showAllComments[item.id] && (
-              <TouchableOpacity 
-                style={styles.viewAllCommentsBtn} 
+              <TouchableOpacity
+                style={styles.viewAllCommentsBtn}
                 onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: true }))}
               >
                 <Text style={styles.viewAllCommentsText}>View all {commentCount} comments</Text>
@@ -1006,8 +1006,8 @@ export default function SocialScreen() {
             ))}
 
             {eventComments.length > 3 && showAllComments[item.id] && (
-              <TouchableOpacity 
-                style={styles.viewAllCommentsBtn} 
+              <TouchableOpacity
+                style={styles.viewAllCommentsBtn}
                 onPress={() => setShowAllComments(prev => ({ ...prev, [item.id]: false }))}
               >
                 <Text style={styles.viewAllCommentsText}>Show less</Text>
@@ -1018,7 +1018,7 @@ export default function SocialScreen() {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Add a comment…"
-                placeholderTextColor="#334155"
+                placeholderTextColor="#594C3D"
                 value={commentText}
                 onChangeText={setCommentText}
                 returnKeyType="send"
@@ -1049,9 +1049,9 @@ export default function SocialScreen() {
       return usersList.filter(u => u.id !== user?.uid && !followingIds.includes(u.id));
     }
     // Search mode: return users matching name, username or email (excluding ourselves)
-    return usersList.filter(u => 
+    return usersList.filter(u =>
       u.id !== user?.uid && (
-        u.name?.toLowerCase().includes(query) || 
+        u.name?.toLowerCase().includes(query) ||
         (u.username && u.username.toLowerCase().includes(query)) ||
         (u.email && u.email.toLowerCase().includes(query))
       )
@@ -1061,15 +1061,15 @@ export default function SocialScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        
+
         {/* Header */}
-        <LinearGradient colors={isDark ? ['#101010', '#050505'] : [colors.deepSlate, colors.background]} style={styles.header}>
+        <LinearGradient colors={isDark ? ['#1B211F', '#13191F'] : [colors.deepSlate, colors.background]} style={styles.header}>
           <View style={styles.topRow}>
             <View style={styles.headingLogoRow}>
               <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
               <Text style={styles.headerTitle}>Social Hub</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.searchHeaderBtn}
               onPress={() => setSearchModalVisible(true)}
             >
@@ -1078,8 +1078,8 @@ export default function SocialScreen() {
           </View>
         </LinearGradient>
 
-        <ScrollView 
-          style={styles.content} 
+        <ScrollView
+          style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 60 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
@@ -1093,7 +1093,7 @@ export default function SocialScreen() {
                 feedItems.map(renderFeedItem)
               ) : (
                 <View style={styles.emptyContainer}>
-                  <IconSymbol name="sparkles" size={48} color="#1e293b" />
+                  <IconSymbol name="sparkles" size={48} color="#2B2F2E" />
                   <Text style={styles.emptyTitle}>Feed is empty</Text>
                   <Text style={styles.emptySubtitle}>Follow users who have created events to see them here.</Text>
                   <TouchableOpacity style={styles.discoverBtn} onPress={() => setSearchModalVisible(true)}>
@@ -1113,8 +1113,8 @@ export default function SocialScreen() {
           onRequestClose={handleCloseSearchModal}
         >
           <SafeAreaView style={styles.searchModalOverlay} edges={['top', 'bottom']}>
-            <KeyboardAvoidingView 
-              style={styles.searchModalContainer} 
+            <KeyboardAvoidingView
+              style={styles.searchModalContainer}
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
               {/* Header Search Bar */}
@@ -1143,7 +1143,7 @@ export default function SocialScreen() {
               </View>
 
               {/* Scrollable list of suggestions / search results */}
-              <ScrollView 
+              <ScrollView
                 style={styles.searchScroll}
                 contentContainerStyle={styles.searchScrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -1176,13 +1176,13 @@ export default function SocialScreen() {
                             )}
                           </View>
                         </View>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={[styles.searchFollowBtn, isFollowing && styles.searchFollowingBtn]}
                           onPress={() => handleFollowToggle(item)}
                           disabled={actionLoading === item.id}
                         >
                           {actionLoading === item.id ? (
-                            <ActivityIndicator size="small" color={isFollowing ? colors.slate400 : '#050505'} />
+                            <ActivityIndicator size="small" color={isFollowing ? colors.slate400 : '#13191F'} />
                           ) : (
                             <Text style={[styles.searchFollowBtnText, isFollowing && styles.searchFollowingBtnText]}>
                               {isFollowing ? 'Following' : 'Follow'}
@@ -1212,18 +1212,18 @@ export default function SocialScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <TouchableOpacity 
-                style={styles.modalCloseBtn} 
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
                 onPress={() => setAccessModalVisible(false)}
               >
                 <IconSymbol name="xmark" size={18} color={colors.slate400} />
               </TouchableOpacity>
 
               <View style={styles.modalHeader}>
-                <IconSymbol name="lock.fill" size={28} color="#d4af37" />
+                <IconSymbol name="lock.fill" size={28} color="#CA9C68" />
                 <Text style={styles.modalTitle}>Private Event</Text>
               </View>
-              
+
               <Text style={styles.modalSubtitle}>
                 {selectedEvent?.title ? `"${selectedEvent.title}"` : 'This event'} is private.
               </Text>
@@ -1234,20 +1234,20 @@ export default function SocialScreen() {
                     You must request access to join this event and view its content. A request will be sent to the creator.
                   </Text>
                   <View style={styles.modalButtons}>
-                    <TouchableOpacity 
-                      style={[styles.modalBtn, styles.modalBtnSecondary]} 
+                    <TouchableOpacity
+                      style={[styles.modalBtn, styles.modalBtnSecondary]}
                       onPress={() => setAccessModalVisible(false)}
                       disabled={requestingAccess}
                     >
                       <Text style={styles.modalBtnSecondaryText}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.modalBtn, styles.modalBtnPrimary]} 
+                    <TouchableOpacity
+                      style={[styles.modalBtn, styles.modalBtnPrimary]}
                       onPress={handleSendJoinRequest}
                       disabled={requestingAccess}
                     >
                       {requestingAccess ? (
-                        <ActivityIndicator size="small" color="#050505" />
+                        <ActivityIndicator size="small" color="#13191F" />
                       ) : (
                         <Text style={styles.modalBtnPrimaryText}>Send Request</Text>
                       )}
@@ -1259,8 +1259,8 @@ export default function SocialScreen() {
                   <Text style={styles.modalMessage}>
                     Your request to join this event is currently pending approval from the creator.
                   </Text>
-                  <TouchableOpacity 
-                    style={[styles.modalBtn, styles.modalBtnSingle]} 
+                  <TouchableOpacity
+                    style={[styles.modalBtn, styles.modalBtnSingle]}
                     onPress={() => setAccessModalVisible(false)}
                   >
                     <Text style={styles.modalBtnPrimaryText}>OK</Text>
@@ -1271,8 +1271,8 @@ export default function SocialScreen() {
                   <Text style={styles.modalMessage}>
                     Your request to join this event has been declined.
                   </Text>
-                  <TouchableOpacity 
-                    style={[styles.modalBtn, styles.modalBtnSingle]} 
+                  <TouchableOpacity
+                    style={[styles.modalBtn, styles.modalBtnSingle]}
                     onPress={() => setAccessModalVisible(false)}
                   >
                     <Text style={styles.modalBtnPrimaryText}>OK</Text>
@@ -1344,7 +1344,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     padding: 1.5,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#d4af37',
+    borderColor: '#CA9C68',
   },
   postAvatarPlaceholder: {
     width: 30,
@@ -1400,9 +1400,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     right: 0,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: isDark ? 'rgba(2,6,23,0.72)' : 'rgba(255,255,255,0.85)',
+    backgroundColor: isDark ? 'rgba(19, 25, 31,0.72)' : 'rgba(255,255,255,0.85)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(212,175,55,0.1)',
+    borderTopColor: 'rgba(202, 156, 104,0.1)',
   },
   postGlassBadge: {
     flexDirection: 'row',
@@ -1525,8 +1525,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   emptyContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
   emptyTitle: { color: colors.white, fontSize: 20, fontFamily: 'Outfit_700Bold', marginTop: 16, textAlign: 'center' },
   emptySubtitle: { color: colors.slate400, fontSize: 14, fontFamily: 'Inter_400Regular', marginTop: 8, textAlign: 'center', lineHeight: 20 },
-  discoverBtn: { marginTop: 24, backgroundColor: '#d4af37', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 },
-  discoverBtnText: { color: '#050505', fontSize: 15, fontFamily: 'Outfit_700Bold' },
+  discoverBtn: { marginTop: 24, backgroundColor: '#CA9C68', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 },
+  discoverBtnText: { color: '#13191F', fontSize: 15, fontFamily: 'Outfit_700Bold' },
 
   // === User List ===
   userList: { padding: 16 },
@@ -1538,9 +1538,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   avatarChar: { color: colors.gold, fontSize: 18, fontFamily: 'Outfit_700Bold' },
   userNameText: { color: colors.white, fontSize: 16, fontFamily: 'Outfit_700Bold' },
   userRoleText: { color: colors.slate400, fontSize: 12, fontFamily: 'Inter_400Regular' },
-  followBtn: { backgroundColor: '#d4af37', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  followBtn: { backgroundColor: '#CA9C68', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
   followingBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.slate800 },
-  followBtnText: { color: '#050505', fontSize: 13, fontFamily: 'Outfit_700Bold' },
+  followBtnText: { color: '#13191F', fontSize: 13, fontFamily: 'Outfit_700Bold' },
   followingBtnText: { color: colors.slate400 },
 
   // === Business Card Feed Styles ===
@@ -1611,7 +1611,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   bizBottomContainer: {
     padding: 14,
-    backgroundColor: isDark ? 'rgba(2, 6, 23, 0.4)' : 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: isDark ? 'rgba(19, 25, 31, 0.4)' : 'rgba(255, 255, 255, 0.4)',
   },
   bizDescription: {
     color: colors.slate400,
@@ -1766,7 +1766,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   // === Modal Styles ===
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    backgroundColor: 'rgba(19, 25, 31, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -1806,7 +1806,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: 4,
   },
   modalSubtitle: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 15,
     fontFamily: 'Outfit_700Bold',
     textAlign: 'center',
@@ -1833,7 +1833,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
   modalBtnPrimary: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
   },
   modalBtnSecondary: {
     backgroundColor: 'transparent',
@@ -1841,7 +1841,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.border,
   },
   modalBtnSingle: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     width: '100%',
     height: 48,
     borderRadius: 14,
@@ -1849,7 +1849,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
   modalBtnPrimaryText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 14,
     fontFamily: 'Outfit_700Bold',
   },
@@ -1874,7 +1874,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   // === Instagram-style Search Modal Styles ===
   searchModalOverlay: {
     flex: 1,
-    backgroundColor: isDark ? '#050505' : colors.background,
+    backgroundColor: isDark ? '#13191F' : colors.background,
   },
   searchModalContainer: {
     flex: 1,
@@ -1991,7 +1991,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: 2,
   },
   searchFollowBtn: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
@@ -2004,7 +2004,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.slate800,
   },
   searchFollowBtnText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 13,
     fontFamily: 'Outfit_700Bold',
   },

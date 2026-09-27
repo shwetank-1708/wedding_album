@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
-  Image, 
-  ActivityIndicator, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Platform,
   Modal
@@ -34,7 +34,7 @@ export default function EditPhotosScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { colors, isDark } = useAppTheme();
-  
+
   const [subEvent, setSubEvent] = useState<DatabaseEvent | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,9 +157,9 @@ export default function EditPhotosScreen() {
       "Are you sure you want to delete this photo?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive", 
+        {
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             const success = await deletePhoto(photoId);
             if (success) {
@@ -181,16 +181,16 @@ export default function EditPhotosScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      <Stack.Screen options={{ 
+      <Stack.Screen options={{
         title: 'Edit Photos',
         headerShown: true,
         headerLeft: () => (
-          <TouchableOpacity 
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard')} 
+          <TouchableOpacity
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard')}
             style={styles.nativeBackButton}
             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
           >
-            <IconSymbol name="chevron.left" size={28} color="#101010" />
+            <IconSymbol name="chevron.left" size={28} color="#1B211F" />
           </TouchableOpacity>
         ),
         headerRight: () => (
@@ -217,8 +217,8 @@ export default function EditPhotosScreen() {
         renderItem={({ item }) => (
           <View style={styles.imageWrapper}>
             <Image source={{ uri: getGridThumbnail(item.url, item.thumbnailUrl) }} style={styles.image} />
-            <TouchableOpacity 
-              style={styles.deleteBtn} 
+            <TouchableOpacity
+              style={styles.deleteBtn}
               onPress={() => handleDeletePhoto(item.id)}
             >
               <IconSymbol name="xmark" size={14} color="#ffffff" />
@@ -227,7 +227,7 @@ export default function EditPhotosScreen() {
         )}
         ListHeaderComponent={
           <TouchableOpacity style={styles.uploadCard} onPress={handlePickImage}>
-            <IconSymbol name="plus" size={32} color="#94a3b8" />
+            <IconSymbol name="plus" size={32} color="#CDB89E" />
             <Text style={styles.uploadText}>Add Photos</Text>
           </TouchableOpacity>
         }
@@ -243,12 +243,12 @@ export default function EditPhotosScreen() {
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUploadCompleteModal(false)} />
           <View style={[
-            styles.modalContent, 
-            { 
-              padding: 24, 
-              borderRadius: 24, 
-              borderWidth: 1.5, 
-              backgroundColor: isDark ? '#101010' : '#ffffff',
+            styles.modalContent,
+            {
+              padding: 24,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              backgroundColor: isDark ? '#1B211F' : '#ffffff',
               borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
               alignItems: 'center',
               alignSelf: 'center',
@@ -260,12 +260,12 @@ export default function EditPhotosScreen() {
               elevation: 10,
             }
           ]}>
-            <View style={{ 
-              width: 60, 
-              height: 60, 
-              borderRadius: 30, 
-              backgroundColor: 'rgba(34, 197, 94, 0.1)', 
-              justifyContent: 'center', 
+            <View style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 16,
               borderWidth: 1,
@@ -273,31 +273,31 @@ export default function EditPhotosScreen() {
             }}>
               <IconSymbol name="checkmark.circle.fill" size={32} color="#22c55e" />
             </View>
-            
-            <Text style={{ 
-              fontSize: 20, 
-              fontWeight: 'bold', 
-              color: isDark ? '#ffffff' : '#101010', 
+
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: isDark ? '#ffffff' : '#1B211F',
               marginBottom: 8,
               textAlign: 'center',
             }}>
               Upload Complete
             </Text>
-            
-            <Text style={{ 
-              fontSize: 14, 
-              color: isDark ? '#cbd5e1' : '#64748b', 
-              textAlign: 'center', 
+
+            <Text style={{
+              fontSize: 14,
+              color: isDark ? '#cbd5e1' : '#64748b',
+              textAlign: 'center',
               marginBottom: 20,
             }}>
               Upload complete
             </Text>
-            
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: '#0284c7', 
-                paddingVertical: 12, 
-                paddingHorizontal: 24, 
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#0284c7',
+                paddingVertical: 12,
+                paddingHorizontal: 24,
                 borderRadius: 12,
                 width: '100%',
                 alignItems: 'center'
@@ -322,12 +322,12 @@ export default function EditPhotosScreen() {
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUploadFailedModal(false)} />
           <View style={[
-            styles.modalContent, 
-            { 
-              padding: 24, 
-              borderRadius: 24, 
-              borderWidth: 1.5, 
-              backgroundColor: isDark ? '#101010' : '#ffffff',
+            styles.modalContent,
+            {
+              padding: 24,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              backgroundColor: isDark ? '#1B211F' : '#ffffff',
               borderColor: 'rgba(239, 68, 68, 0.3)',
               alignItems: 'center',
               alignSelf: 'center',
@@ -339,12 +339,12 @@ export default function EditPhotosScreen() {
               elevation: 10,
             }
           ]}>
-            <View style={{ 
-              width: 60, 
-              height: 60, 
-              borderRadius: 30, 
-              backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-              justifyContent: 'center', 
+            <View style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 16,
               borderWidth: 1,
@@ -352,38 +352,38 @@ export default function EditPhotosScreen() {
             }}>
               <IconSymbol name="xmark.circle.fill" size={32} color="#ef4444" />
             </View>
-            
-            <Text style={{ 
-              fontSize: 20, 
-              fontWeight: 'bold', 
-              color: '#ef4444', 
+
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: '#ef4444',
               marginBottom: 8,
               textAlign: 'center',
             }}>
               Upload Failed
             </Text>
-            
-            <Text style={{ 
-              fontSize: 14, 
-              color: isDark ? '#cbd5e1' : '#64748b', 
-              textAlign: 'center', 
+
+            <Text style={{
+              fontSize: 14,
+              color: isDark ? '#cbd5e1' : '#64748b',
+              textAlign: 'center',
               marginBottom: 20,
             }}>
               Upload failed
             </Text>
-            
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', 
-                paddingVertical: 12, 
-                paddingHorizontal: 24, 
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                paddingVertical: 12,
+                paddingHorizontal: 24,
                 borderRadius: 12,
                 width: '100%',
                 alignItems: 'center'
               }}
               onPress={() => setShowUploadFailedModal(false)}
             >
-              <Text style={{ color: isDark ? '#ffffff' : '#101010', fontWeight: 'bold' }}>
+              <Text style={{ color: isDark ? '#ffffff' : '#1B211F', fontWeight: 'bold' }}>
                 Close
               </Text>
             </TouchableOpacity>
@@ -397,7 +397,7 @@ export default function EditPhotosScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
   },
   nativeBackButton: {
     width: 44,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFF7EB',
   },
   header: {
     padding: 20,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#101010',
+    color: '#1B211F',
   },
   photoCount: {
     fontSize: 14,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   uploadText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 14,
     fontWeight: 'bold',
     marginTop: 8,

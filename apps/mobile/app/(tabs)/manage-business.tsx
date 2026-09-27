@@ -68,7 +68,7 @@ export default function ManageBusinessScreen() {
   const router = useRouter();
   const { id, tab } = useLocalSearchParams();
   const { user } = useAuth();
-  
+
   const isMountedRef = React.useRef(false);
   React.useEffect(() => {
     isMountedRef.current = true;
@@ -76,7 +76,7 @@ export default function ManageBusinessScreen() {
       isMountedRef.current = false;
     };
   }, []);
-  
+
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<Business | null>(null);
   const [activeTab, setActiveTab] = useState('Profile');
@@ -199,7 +199,7 @@ export default function ManageBusinessScreen() {
     if (r.includes('gujarat')) return 'Gujarat';
     if (r.includes('west bengal')) return 'West Bengal';
     if (r.includes('goa')) return 'Goa';
-    
+
     // Capitalize first letter of each word as default fallback
     return region.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
@@ -208,14 +208,14 @@ export default function ManageBusinessScreen() {
     if (locality) return locality;
     if (!address) return 'Delhi';
     const parts = address.split(',').map(p => p.trim());
-    
+
     // List of Indian States and Union Territories (UTs)
     const statesAndUTs = [
-      'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
-      'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
-      'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
-      'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 
-      'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 
+      'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+      'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+      'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+      'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand',
+      'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
       'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
     ];
 
@@ -234,7 +234,7 @@ export default function ManageBusinessScreen() {
     if (/^\d+$/.test(fallbackPart.replace(/\s+/g, '')) && parts.length > 2) {
       fallbackPart = parts[parts.length - 3];
     }
-    
+
     fallbackPart = fallbackPart.replace(/\d+/g, '').replace(/[-–]/g, '').trim();
     return normalizeRegion(fallbackPart || 'Delhi');
   };
@@ -268,7 +268,7 @@ export default function ManageBusinessScreen() {
     if (isMountedRef.current) setLoadingMarketRank(true);
     try {
       const competitors = await getPublishedBusinesses(bizType);
-      
+
       const scoredCompetitors = competitors.map(b => {
         const rangeViews = getViewsForBusinessRange(b.viewsByDate || {}, b.profileViews || 0, range);
         const score = rangeViews * 1 + (b.shortlistCount || 0) * 5 + (b.rating || 0) * 50;
@@ -578,7 +578,7 @@ export default function ManageBusinessScreen() {
   const handleSave = async () => {
     const bizId = Array.isArray(id) ? id[0] : id;
     if (!bizId) return;
-    
+
     setIsUpdating(true);
     try {
       const savedCoverImages = await uploadLocalCoverImages(bizId);
@@ -602,9 +602,9 @@ export default function ManageBusinessScreen() {
         coverImage: savedCoverImages[0] || '', // Fallback for single image field
         portfolioEvents: portfolioEvents || [],
       };
-      
+
       const success = await updateBusiness(bizId, updatedData);
-      
+
       if (success) {
         // Log activities in the background
         if (business) {
@@ -816,7 +816,7 @@ export default function ManageBusinessScreen() {
       const rest = list.slice(4);
       const restCount = rest.reduce((sum, item) => sum + item.count, 0);
       const restPercent = Math.round((restCount / total) * 100);
-      
+
       const result = top.map((item, idx) => ({
         city: item.city,
         percent: item.percent,
@@ -850,7 +850,7 @@ export default function ManageBusinessScreen() {
     const jsDayToArrayIdx = [6, 0, 1, 2, 3, 4, 5]; // Sunday=6, Monday=0, Tuesday=1 ... Saturday=5
     const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
+
     const dailyScores = [0, 0, 0, 0, 0, 0, 0];
 
     const rangeToDays: Record<string, number> = {
@@ -861,7 +861,7 @@ export default function ManageBusinessScreen() {
       '1 Year': 365,
       '3 Year': 1095,
     };
-    
+
     const isOverall = timeRange === 'Overall';
     const days = rangeToDays[timeRange] ?? 30;
     const now = new Date();
@@ -918,7 +918,7 @@ export default function ManageBusinessScreen() {
     { id: '1', label: 'Views',      value: formatCount(getViewsForRange()),              icon: 'eye.fill',     color: '#3b82f6' },
     { id: '2', label: 'Inquiries',  value: formatCount(getEnquiriesForRange().length),   icon: 'message.fill', color: '#22c55e' },
     { id: '3', label: 'Shortlists', value: formatCount(business?.shortlistCount ?? 0),   icon: 'heart.fill',   color: '#ef4444' },
-    { id: '4', label: 'Rating',     value: business?.rating?.toString() || '0',          icon: 'star.fill',    color: '#d4af37' },
+    { id: '4', label: 'Rating',     value: business?.rating?.toString() || '0',          icon: 'star.fill',    color: '#CA9C68' },
   ];
   if (loading) {
     return (
@@ -965,7 +965,7 @@ export default function ManageBusinessScreen() {
         <View style={styles.headerRight}>
           {!isEditing && activeTab === 'Portfolio' ? (
             <TouchableOpacity style={styles.compactEditBtn} onPress={pickImage}>
-              <IconSymbol name="plus" size={12} color="#101010" />
+              <IconSymbol name="plus" size={12} color="#1B211F" />
               <Text style={styles.compactEditBtnText}>Add</Text>
             </TouchableOpacity>
           ) : !isEditing && activeTab !== 'Enquiries' && activeTab !== 'Portfolio' ? (
@@ -1010,7 +1010,7 @@ export default function ManageBusinessScreen() {
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.inputLabel}>Manage Business Profile</Text>
               </View>
-              
+
               <View style={styles.coverPreviewContainer}>
                 {coverImages[0] ? (
                   <View style={{ flex: 1 }}>
@@ -1040,7 +1040,7 @@ export default function ManageBusinessScreen() {
                       pickImage();
                     }}
                   >
-                    <IconSymbol name="photo.on.rectangle.angled" size={40} color="#334155" />
+                    <IconSymbol name="photo.on.rectangle.angled" size={40} color="#594C3D" />
                     <View style={[styles.imageActionBtn, styles.emptyCoverEditBtn, { backgroundColor: INDIGO }]}>
                       <IconSymbol name="pencil" size={16} color="#ffffff" />
                     </View>
@@ -1055,7 +1055,7 @@ export default function ManageBusinessScreen() {
                   disabled={isUpdating}
                 >
                   {isUpdating ? (
-                    <ActivityIndicator size="small" color="#101010" />
+                    <ActivityIndicator size="small" color="#1B211F" />
                   ) : (
                     <Text style={[styles.saveBtnText, { fontSize: 15 }]}>Save Changes</Text>
                   )}
@@ -1082,8 +1082,8 @@ export default function ManageBusinessScreen() {
                 <Text style={styles.inputLabel}>Category</Text>
                 {isEditing ? (
                   <>
-                    <TouchableOpacity 
-                      style={styles.dropdownBtn} 
+                    <TouchableOpacity
+                      style={styles.dropdownBtn}
                       onPress={() => setShowCategoryPicker(true)}
                     >
                       <Text style={[styles.dropdownBtnText, !category && { color: '#475569' }]}>
@@ -1098,27 +1098,27 @@ export default function ManageBusinessScreen() {
                       animationType="fade"
                       onRequestClose={() => setShowCategoryPicker(false)}
                     >
-                      <TouchableOpacity 
-                        style={styles.modalOverlay} 
-                        activeOpacity={1} 
+                      <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
                         onPress={() => setShowCategoryPicker(false)}
                       >
                         <View style={styles.pickerModalContainer}>
                           <View style={styles.pickerHeader}>
                             <Text style={styles.pickerTitle}>Select Category</Text>
                             <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
-                              <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                              <IconSymbol name="xmark" size={20} color="#CDB89E" />
                             </TouchableOpacity>
                           </View>
                           <View>
-                            <ScrollView 
+                            <ScrollView
                               style={styles.pickerList}
                               showsVerticalScrollIndicator={true}
                               contentContainerStyle={{ paddingBottom: 40 }}
                             >
                               {BUSINESS_TYPES.map((item) => (
-                                <TouchableOpacity 
-                                  key={item} 
+                                <TouchableOpacity
+                                  key={item}
                                   style={[styles.pickerItem, category === item && styles.pickerItemActive]}
                                   onPress={() => {
                                     setCategory(item);
@@ -1135,7 +1135,7 @@ export default function ManageBusinessScreen() {
                               ))}
                             </ScrollView>
                             <LinearGradient
-                              colors={['transparent', 'rgba(15, 23, 42, 0.9)', '#101010']}
+                              colors={['transparent', 'rgba(27, 33, 31, 0.9)', '#1B211F']}
                               style={styles.pickerFade}
                               pointerEvents="none"
                             />
@@ -1156,8 +1156,8 @@ export default function ManageBusinessScreen() {
                 <Text style={styles.inputLabel}>Business Started</Text>
                 {isEditing ? (
                   <>
-                    <TouchableOpacity 
-                      style={styles.datePickerBtn} 
+                    <TouchableOpacity
+                      style={styles.datePickerBtn}
                       onPress={() => setShowDatePicker(true)}
                     >
                       <IconSymbol name="calendar" size={16} color={INDIGO_LIGHT} />
@@ -1234,7 +1234,7 @@ export default function ManageBusinessScreen() {
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.inputLabel}>Services & Tags ({services.length}/10)</Text>
               </View>
-              
+
               {isEditing && (
                 <View style={styles.tagInputRow}>
                   <TextInput
@@ -1246,7 +1246,7 @@ export default function ManageBusinessScreen() {
                     onSubmitEditing={addTag}
                   />
                   <TouchableOpacity style={styles.addTagBtn} onPress={addTag}>
-                    <IconSymbol name="plus" size={20} color="#101010" />
+                    <IconSymbol name="plus" size={20} color="#1B211F" />
                   </TouchableOpacity>
                 </View>
               )}
@@ -1257,7 +1257,7 @@ export default function ManageBusinessScreen() {
                     <Text style={styles.tagText}>{tag}</Text>
                     {isEditing && (
                       <TouchableOpacity onPress={() => removeTag(tag)} style={styles.removeTagBtn}>
-                        <IconSymbol name="xmark" size={12} color="#94a3b8" />
+                        <IconSymbol name="xmark" size={12} color="#CDB89E" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1271,13 +1271,13 @@ export default function ManageBusinessScreen() {
             {/* Removed FAQ section from Profile tab */}
 
             {isEditing && (
-              <TouchableOpacity 
-                style={[styles.saveBtn, { marginTop: 20, paddingVertical: 16, width: '100%' }]} 
-                onPress={handleSave} 
+              <TouchableOpacity
+                style={[styles.saveBtn, { marginTop: 20, paddingVertical: 16, width: '100%' }]}
+                onPress={handleSave}
                 disabled={isUpdating}
               >
                 {isUpdating ? (
-                  <ActivityIndicator size="small" color="#101010" />
+                  <ActivityIndicator size="small" color="#1B211F" />
                 ) : (
                   <Text style={[styles.saveBtnText, { fontSize: 16 }]}>Save All Changes</Text>
                 )}
@@ -1300,7 +1300,7 @@ export default function ManageBusinessScreen() {
                     <Text style={styles.upgradeBtnText}>Upgrade</Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.storageBarTrack}>
                   <LinearGradient
                     colors={['#3b82f6', '#2563eb']}
@@ -1314,7 +1314,7 @@ export default function ManageBusinessScreen() {
             </View>
 
             <View style={styles.actionRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.promotionBtn}
                 onPress={async () => {
                   const bizId = Array.isArray(id) ? id[0] : id;
@@ -1424,7 +1424,7 @@ export default function ManageBusinessScreen() {
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.inputLabel}>News & Updates ({news.length}/10)</Text>
                 {!isEditingNews && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.manageBtn}
                     onPress={() => setIsEditingNews(true)}
                   >
@@ -1434,7 +1434,7 @@ export default function ManageBusinessScreen() {
                 )}
                 {isEditingNews && (
                   <View style={[styles.statusBadge, { backgroundColor: news.length > 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)' }]}>
-                    <Text style={[styles.statusText, { color: news.length > 0 ? '#22c55e' : '#94a3b8' }]}>
+                    <Text style={[styles.statusText, { color: news.length > 0 ? '#22c55e' : '#CDB89E' }]}>
                       {news.length > 0 ? `${news.length} Active` : 'No News'}
                     </Text>
                   </View>
@@ -1452,8 +1452,8 @@ export default function ManageBusinessScreen() {
                     editable={news.length < 10}
                     multiline
                   />
-                  <TouchableOpacity 
-                    style={[styles.addBtnSmall, (news.length >= 10 || !newNewsItem.trim()) && { opacity: 0.5 }]} 
+                  <TouchableOpacity
+                    style={[styles.addBtnSmall, (news.length >= 10 || !newNewsItem.trim()) && { opacity: 0.5 }]}
                     onPress={addNewsItem}
                     disabled={news.length >= 10 || !newNewsItem.trim()}
                   >
@@ -1480,10 +1480,10 @@ export default function ManageBusinessScreen() {
                   <Text style={styles.emptyText}>No active news or updates.</Text>
                 )}
               </View>
-              
+
               {isEditingNews && (
                 <View style={styles.inlineActionsRow}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.inlineActionBtn, styles.inlineCancelBtn]}
                     onPress={() => {
                       setNews(business?.announcements || []);
@@ -1492,7 +1492,7 @@ export default function ManageBusinessScreen() {
                   >
                     <Text style={styles.inlineCancelBtnText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.inlineActionBtn, styles.inlineSaveBtn]}
                     onPress={async () => {
                       const bizId = Array.isArray(id) ? id[0] : id;
@@ -1518,7 +1518,7 @@ export default function ManageBusinessScreen() {
                             content: ann
                           });
                         }
-                        
+
                         const success = await updateBusiness(bizId, { announcements: finalNews });
                         if (success) {
                           if (business) {
@@ -1537,21 +1537,21 @@ export default function ManageBusinessScreen() {
                     }}
                   >
                     {isUpdating ? (
-                      <ActivityIndicator size="small" color="#101010" />
+                      <ActivityIndicator size="small" color="#1B211F" />
                     ) : (
                       <Text style={styles.inlineSaveBtnText}>Save News</Text>
                     )}
                   </TouchableOpacity>
                 </View>
               )}
-              
+
               <Text style={styles.inputHint}>Owners can manage up to 10 active news items. Delete old ones to make space.</Text>
             </View>
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.inputLabel}>Manage FAQ ({faqs.length}/5)</Text>
               {!isEditingFaqs && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.manageBtn}
                   onPress={() => setIsEditingFaqs(true)}
                 >
@@ -1560,8 +1560,8 @@ export default function ManageBusinessScreen() {
                 </TouchableOpacity>
               )}
               {isEditingFaqs && (
-                <TouchableOpacity 
-                  style={[styles.addBtn, faqs.length >= 5 && { opacity: 0.5 }]} 
+                <TouchableOpacity
+                  style={[styles.addBtn, faqs.length >= 5 && { opacity: 0.5 }]}
                   onPress={addFaq}
                   disabled={faqs.length >= 5}
                 >
@@ -1602,7 +1602,7 @@ export default function ManageBusinessScreen() {
             ))}
             {faqs.length === 0 && (
               <View style={styles.emptyState}>
-                <IconSymbol name="questionmark.circle.fill" size={40} color="#334155" />
+                <IconSymbol name="questionmark.circle.fill" size={40} color="#594C3D" />
                 <Text style={styles.emptyStateText}>No FAQs added yet.</Text>
                 {isEditingFaqs && (
                   <TouchableOpacity style={styles.addBtn} onPress={addFaq}>
@@ -1614,7 +1614,7 @@ export default function ManageBusinessScreen() {
 
             {isEditingFaqs && (
               <View style={[styles.inlineActionsRow, { marginTop: 16 }]}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.inlineActionBtn, styles.inlineCancelBtn]}
                   onPress={() => {
                     setFaqs(business?.faqs || []);
@@ -1623,7 +1623,7 @@ export default function ManageBusinessScreen() {
                 >
                   <Text style={styles.inlineCancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.inlineActionBtn, styles.inlineSaveBtn]}
                   onPress={async () => {
                     const bizId = Array.isArray(id) ? id[0] : id;
@@ -1644,7 +1644,7 @@ export default function ManageBusinessScreen() {
                           content: `Q: ${faqItem.q}\nA: ${faqItem.a}`
                         });
                       }
-                      
+
                       const success = await updateBusiness(bizId, { faqs: faqs });
                       if (success) {
                         if (business) {
@@ -1661,7 +1661,7 @@ export default function ManageBusinessScreen() {
                   }}
                 >
                   {isUpdating ? (
-                    <ActivityIndicator size="small" color="#101010" />
+                    <ActivityIndicator size="small" color="#1B211F" />
                   ) : (
                     <Text style={styles.inlineSaveBtnText}>Save FAQs</Text>
                   )}
@@ -1674,9 +1674,9 @@ export default function ManageBusinessScreen() {
         {activeTab === 'Analytics' && (
           <View style={styles.tabContent}>
             {/* ── TIME RANGE SELECTOR ── */}
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.timeRangeScroll}
               style={styles.timeRangeWrapper}
             >
@@ -1716,7 +1716,7 @@ export default function ManageBusinessScreen() {
               {loadingMarketRank ? (
                 <View style={[styles.rankingCard, { minHeight: 180 }]}>
                   <LinearGradient
-                    colors={['#1e293b', '#101010']}
+                    colors={['#2B2F2E', '#1B211F']}
                     style={[StyleSheet.absoluteFillObject, { padding: 20, justifyContent: 'center', alignItems: 'center', borderRadius: 24 }]}
                   >
                     <ActivityIndicator size="small" color={INDIGO_LIGHT} />
@@ -1728,7 +1728,7 @@ export default function ManageBusinessScreen() {
               ) : marketPercentile === null ? (
                 <View style={styles.rankingCard}>
                   <LinearGradient
-                    colors={['#334155', '#1e293b']}
+                    colors={['#594C3D', '#2B2F2E']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.rankingGradient}
@@ -1736,12 +1736,12 @@ export default function ManageBusinessScreen() {
                     <View style={styles.rankingHeader}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={styles.rankingIconBg}>
-                          <IconSymbol name="crown.fill" size={20} color="#94a3b8" />
+                          <IconSymbol name="crown.fill" size={20} color="#CDB89E" />
                         </View>
                         <Text style={styles.rankingTitle}>Market Standing</Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.rankingContent}>
                       <Text style={[styles.rankingValue, { fontSize: 24, color: '#cbd5e1' }]}>Not Enough Data</Text>
                       <Text style={styles.rankingSubText}>
@@ -1753,8 +1753,8 @@ export default function ManageBusinessScreen() {
               ) : (() => {
                 const fillPercentage = Math.max(0, Math.min(100, 100 - marketPercentile));
                 const rankingGradientColors = (() => {
-                  if (marketPercentile <= 15) return ['#d4af37', '#996515'] as const; // Gold Elite
-                  if (marketPercentile <= 45) return ['#94a3b8', '#475569'] as const; // Silver High
+                  if (marketPercentile <= 15) return ['#CA9C68', '#906D4B'] as const; // Gold Elite
+                  if (marketPercentile <= 45) return ['#CDB89E', '#475569'] as const; // Silver High
                   return ['#cd7f32', '#8c502b'] as const; // Bronze Standard
                 })();
                 const standingText = marketRank === 1 ? 'Top Rank' : `Top ${marketPercentile}%`;
@@ -1779,7 +1779,7 @@ export default function ManageBusinessScreen() {
                           <Text style={styles.rankBadgeText}>Rank #{marketRank} of {totalInMarket}</Text>
                         </View>
                       </View>
-                      
+
                       <View style={styles.rankingContent}>
                         <Text style={styles.rankingValue}>{standingText}</Text>
                         <Text style={styles.rankingSubText}>
@@ -1810,7 +1810,7 @@ export default function ManageBusinessScreen() {
 
               <View style={styles.performanceCard}>
                 <LinearGradient
-                  colors={['#1e293b', '#101010']}
+                  colors={['#2B2F2E', '#1B211F']}
                   style={styles.performanceGradient}
                 >
                   {(() => {
@@ -1818,10 +1818,10 @@ export default function ManageBusinessScreen() {
                     const inquiries = getEnquiriesForRange().length;
                     const impressions = Math.round(views * 1.54) + 5;
                     const conversionRate = views > 0 ? ((inquiries / views) * 100).toFixed(1) : '0.0';
-                    
+
                     const viewsBarWidth: any = impressions > 0 ? `${Math.max(10, Math.min(100, Math.round((views / impressions) * 100)))}%` : '10%';
                     const inquiriesBarWidth: any = views > 0 ? `${Math.max(5, Math.min(100, Math.round((inquiries / views) * 100)))}%` : '5%';
-                    
+
                     // Calculate dynamic growth trend compared to previous range
                     let trendText = 'Stable';
                     let isPositive = false;
@@ -1837,7 +1837,7 @@ export default function ManageBusinessScreen() {
                         '3 Year': 1095,
                       };
                       const days = rangeToDays[timeRange] ?? 30;
-                      
+
                       // Current conversion rate
                       const currentRate = views > 0 ? (inquiries / views) * 100 : 0;
 
@@ -1889,11 +1889,11 @@ export default function ManageBusinessScreen() {
                       }
                     }
 
-                    const badgeBgColor = isNeutral 
-                      ? 'rgba(148, 163, 184, 0.1)' 
+                    const badgeBgColor = isNeutral
+                      ? 'rgba(148, 163, 184, 0.1)'
                       : (isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)');
-                    const badgeTextColor = isNeutral 
-                      ? '#94a3b8' 
+                    const badgeTextColor = isNeutral
+                      ? '#CDB89E'
                       : (isPositive ? '#22c55e' : '#ef4444');
                     const trendIcon: any = isNeutral
                       ? 'minus'
@@ -1913,7 +1913,7 @@ export default function ManageBusinessScreen() {
                             </Text>
                           </View>
                         </View>
-                        
+
                         <View style={styles.funnelContainer}>
                           <View style={styles.funnelRow}>
                             <View style={styles.funnelMeta}>
@@ -1925,7 +1925,7 @@ export default function ManageBusinessScreen() {
                             </View>
                             <Text style={styles.funnelCount}>{formatCount(impressions)}</Text>
                           </View>
-                          
+
                           <View style={styles.funnelRow}>
                             <View style={styles.funnelMeta}>
                               <View style={[styles.funnelDot, { backgroundColor: '#8b5cf6' }]} />
@@ -1959,7 +1959,7 @@ export default function ManageBusinessScreen() {
             <View style={styles.analyticsSection}>
               <View style={styles.performanceCard}>
                 <LinearGradient
-                  colors={['#1e293b', '#101010']}
+                  colors={['#2B2F2E', '#1B211F']}
                   style={styles.performanceGradient}
                 >
                   {(() => {
@@ -2027,7 +2027,7 @@ export default function ManageBusinessScreen() {
             <View style={styles.analyticsSection}>
               <View style={styles.performanceCard}>
                 <LinearGradient
-                  colors={['#1e293b', '#101010']}
+                  colors={['#2B2F2E', '#1B211F']}
                   style={styles.performanceGradient}
                 >
                   {(() => {
@@ -2085,7 +2085,7 @@ export default function ManageBusinessScreen() {
             <View style={[styles.analyticsSection, { marginBottom: 40 }]}>
               <View style={styles.performanceCard}>
                 <LinearGradient
-                  colors={['#1e293b', '#101010']}
+                  colors={['#2B2F2E', '#1B211F']}
                   style={styles.performanceGradient}
                 >
                   {(() => {
@@ -2101,8 +2101,8 @@ export default function ManageBusinessScreen() {
                             </Text>
                           </View>
                           <View style={[styles.growthBadge, { backgroundColor: hasActivity ? INDIGO_BG_LIGHT : 'rgba(148, 163, 184, 0.1)' }]}>
-                            <IconSymbol name="calendar" size={12} color={hasActivity ? INDIGO_LIGHT : '#94a3b8'} />
-                            <Text style={[styles.growthText, { color: hasActivity ? INDIGO_LIGHT : '#94a3b8' }]}>
+                            <IconSymbol name="calendar" size={12} color={hasActivity ? INDIGO_LIGHT : '#CDB89E'} />
+                            <Text style={[styles.growthText, { color: hasActivity ? INDIGO_LIGHT : '#CDB89E' }]}>
                               Peak: {peakDayName}
                             </Text>
                           </View>
@@ -2169,7 +2169,7 @@ export default function ManageBusinessScreen() {
                     }}
                   >
                     <Text style={[styles.sortOptionText, selected && styles.sortOptionTextActive]}>{option.label}</Text>
-                    {selected && <IconSymbol name="checkmark.circle.fill" size={18} color="#101010" />}
+                    {selected && <IconSymbol name="checkmark.circle.fill" size={18} color="#1B211F" />}
                   </TouchableOpacity>
                 );
               })}
@@ -2210,7 +2210,7 @@ export default function ManageBusinessScreen() {
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>{editingPortfolioId ? 'Edit Portfolio' : 'Create Portfolio'}</Text>
                   <TouchableOpacity onPress={closePortfolioModal}>
-                    <IconSymbol name="xmark" size={20} color="#94a3b8" />
+                    <IconSymbol name="xmark" size={20} color="#CDB89E" />
                   </TouchableOpacity>
                 </View>
 
@@ -2224,7 +2224,7 @@ export default function ManageBusinessScreen() {
                       <ExpoImage source={{ uri: portfolioCoverImage }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
                     ) : (
                       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                        <IconSymbol name="photo.on.rectangle.angled" size={40} color="#334155" />
+                        <IconSymbol name="photo.on.rectangle.angled" size={40} color="#594C3D" />
                         <Text style={styles.emptyCoverText}>Set portfolio cover</Text>
                       </View>
                     )}
@@ -2257,7 +2257,7 @@ export default function ManageBusinessScreen() {
                           onPress={() => setPortfolioType(option.name)}
                           style={[styles.eventTypeOption, selected && styles.eventTypeOptionActive]}
                         >
-                          <IconSymbol name={option.icon as any} size={16} color={selected ? '#050505' : INDIGO_LIGHT} />
+                          <IconSymbol name={option.icon as any} size={16} color={selected ? '#13191F' : INDIGO_LIGHT} />
                           <Text style={[styles.eventTypeText, selected && styles.eventTypeTextActive]}>
                             {option.name}
                           </Text>
@@ -2736,7 +2736,7 @@ const getStyles = (colors: any, isDark: boolean, insets: any) => StyleSheet.crea
     fontFamily: 'Outfit_800ExtraBold',
   },
   sortOptionTextActive: {
-    color: '#101010',
+    color: '#1B211F',
   },
   faqHeader: {
     flexDirection: 'row',
@@ -2779,7 +2779,7 @@ const getStyles = (colors: any, isDark: boolean, insets: any) => StyleSheet.crea
     height: 256,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     marginBottom: 16,
   },
   portfolioCardImageArea: {
@@ -2891,7 +2891,7 @@ const getStyles = (colors: any, isDark: boolean, insets: any) => StyleSheet.crea
     fontFamily: 'Inter_700Bold',
   },
   eventTypeTextActive: {
-    color: '#050505',
+    color: '#13191F',
   },
   newsCard: {
     backgroundColor: colors.deepSlate,
@@ -3745,7 +3745,7 @@ const getStyles = (colors: any, isDark: boolean, insets: any) => StyleSheet.crea
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.95)',
+    backgroundColor: 'rgba(19, 25, 31, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },

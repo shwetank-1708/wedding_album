@@ -70,11 +70,11 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
         <div className="relative z-10 flex flex-col justify-end items-center px-4 pb-20 h-full max-w-5xl mx-auto">
           
           <ScrollReveal direction="up" delay={0.2} className="w-full max-w-xl">
-            <div className="bg-[#0a0a0c]/70 backdrop-blur-xl border border-[#cca43b]/30 p-8 md:p-12 rounded-sm shadow-2xl text-center flex flex-col items-center">
+            <div className="bg-[#0a0a0c]/70 backdrop-blur-xl border border-[#ca9c69]/30 p-8 md:p-12 rounded-sm shadow-2xl text-center flex flex-col items-center">
               
               {/* Modern Micro-Badge */}
-              <div className="inline-block bg-black border border-[#cca43b]/30 px-5 py-1 rounded-sm mb-6">
-                <p className="text-[9px] text-[#cca43b] font-black uppercase tracking-[0.3em]">
+              <div className="inline-block bg-black border border-[#ca9c69]/30 px-5 py-1 rounded-sm mb-6">
+                <p className="text-[9px] text-[#ca9c69] font-black uppercase tracking-[0.3em]">
                   The Celebration Of
                 </p>
               </div>
@@ -86,9 +86,9 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
 
               {/* Platinum divider line with gold star */}
               <div className="flex items-center justify-center gap-4 w-48 my-4">
-                <div className="flex-1 h-[0.5px] bg-[#cca43b]/30" />
-                <span className="text-[#cca43b] text-xs">✦</span>
-                <div className="flex-1 h-[0.5px] bg-[#cca43b]/30" />
+                <div className="flex-1 h-[0.5px] bg-[#ca9c69]/30" />
+                <span className="text-[#ca9c69] text-xs">✦</span>
+                <div className="flex-1 h-[0.5px] bg-[#ca9c69]/30" />
               </div>
 
               {/* Event Date */}
@@ -108,7 +108,7 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
                 {/* Back Button */}
                 <Link
                   href="/gallery"
-                  className="flex items-center justify-center w-12 h-12 border border-[#cca43b]/60 rounded-sm hover:bg-white/5 transition-all text-[#cca43b] bg-black/60"
+                  className="flex items-center justify-center w-12 h-12 border border-[#ca9c69]/60 rounded-sm hover:bg-white/5 transition-all text-[#ca9c69] bg-black/60"
                   title="Back to gallery"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -119,7 +119,7 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
                 {/* Primary CTA (Enter Gallery) */}
                 <button
                   onClick={scrollToContent}
-                  className="flex-1 py-3.5 bg-[#cca43b] hover:bg-[#e2b857] text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all duration-300 shadow-md shadow-[#cca43b]/10 hover:shadow-[#cca43b]/30 transform hover:-translate-y-0.5"
+                  className="flex-1 py-3.5 bg-[#ca9c69] hover:bg-[#d9aa75] text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-sm transition-all duration-300 shadow-md shadow-[#ca9c69]/10 hover:shadow-[#ca9c69]/30 transform hover:-translate-y-0.5"
                 >
                   Enter Gallery
                 </button>
@@ -127,7 +127,7 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
                 {/* Share Button */}
                 <button
                   onClick={handleShare}
-                  className="flex items-center justify-center w-12 h-12 border border-[#cca43b]/60 rounded-sm hover:bg-white/5 transition-all text-[#cca43b] bg-black/60"
+                  className="flex items-center justify-center w-12 h-12 border border-[#ca9c69]/60 rounded-sm hover:bg-white/5 transition-all text-[#ca9c69] bg-black/60"
                   title="Share event"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -142,8 +142,8 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
           {/* Scrolling indicator */}
           <ScrollReveal direction="up" delay={0.6} className="mt-4">
             <button onClick={scrollToContent} className="animate-bounce flex flex-col items-center gap-2">
-              <span className="text-[8px] uppercase tracking-[0.3em] text-[#cca43b]/70 font-semibold">Scroll Down</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-[#cca43b]/60">
+              <span className="text-[8px] uppercase tracking-[0.3em] text-[#ca9c69]/70 font-semibold">Scroll Down</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-[#ca9c69]/60">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
@@ -156,8 +156,8 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
         <section id="event-content" className="relative z-10 bg-black border-t border-zinc-900 py-24 min-h-[50vh]">
           <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#cca43b] mb-3 font-black">The Guest Gallery</h2>
-              <div className="mx-auto w-px h-16 bg-gradient-to-b from-[#cca43b] to-transparent" />
+              <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#ca9c69] mb-3 font-black">The Guest Gallery</h2>
+              <div className="mx-auto w-px h-16 bg-gradient-to-b from-[#ca9c69] to-transparent" />
             </div>
             {children}
           </div>

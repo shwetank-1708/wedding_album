@@ -96,7 +96,7 @@ export default function YourEventsScreen() {
           transition={400}
         />
       <LinearGradient
-        colors={['rgba(2,6,23,0.3)', 'rgba(2,6,23,0.85)']}
+        colors={['rgba(19, 25, 31,0.3)', 'rgba(19, 25, 31,0.85)']}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.cardContent}>
@@ -132,7 +132,7 @@ export default function YourEventsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={['#101010', '#050505']}
+          colors={['#1B211F', '#13191F']}
           style={[styles.header, { paddingTop: insets.top + 4 }]}
         >
           <View style={styles.headerLeft}>
@@ -164,7 +164,7 @@ export default function YourEventsScreen() {
               style={styles.headerFilterBtn}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CA9C68" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <Path d="M10 5H3"/><Path d="M12 19H3"/><Path d="M14 3v4"/><Path d="M16 17v4"/><Path d="M21 12h-9"/><Path d="M21 19h-5"/><Path d="M21 5h-7"/><Path d="M8 10v4"/><Path d="M8 12H3"/>
               </Svg>
             </TouchableOpacity>
@@ -191,7 +191,7 @@ export default function YourEventsScreen() {
           onPress={() => router.push('/(tabs)/gallery')}
         >
           <LinearGradient
-            colors={['rgba(212,175,55,0.95)', 'rgba(184,134,11,1)']}
+            colors={['rgba(202, 156, 104,0.95)', 'rgba(184,134,11,1)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroGradient}
@@ -255,7 +255,7 @@ export default function YourEventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#050505' },
+  safeArea: { flex: 1, backgroundColor: '#13191F' },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 60, paddingTop: 0 },
   
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 20,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -317,11 +317,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(202, 156, 104, 0.2)',
   },
 
   // Host Banner
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -403,12 +403,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     paddingHorizontal: 16,
     height: 50,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#2B2F2E',
   },
   searchInput: {
     flex: 1,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
   eventCard: {
     width: (width - 54) / 2, height: 260,
     borderRadius: 28, overflow: 'hidden',
-    backgroundColor: '#101010',
-    borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)',
+    backgroundColor: '#1B211F',
+    borderWidth: 1, borderColor: 'rgba(202, 156, 104,0.15)',
     marginBottom: 16,
     elevation: 10,
     shadowColor: '#000',
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   cardContent: { flex: 1, padding: 16, justifyContent: 'flex-end' },
   cardHeader: { position: 'absolute', top: 16, left: 16 },
   dateBadge: {
-    backgroundColor: 'rgba(2, 6, 23, 0.6)',
+    backgroundColor: 'rgba(19, 25, 31, 0.6)',
     paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
@@ -468,10 +468,10 @@ const styles = StyleSheet.create({
   emptyState: { width: '100%', alignItems: 'center', paddingTop: 80 },
   emptyIconContainer: {
     width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(212,175,55,0.05)',
+    backgroundColor: 'rgba(202, 156, 104,0.05)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 24,
-    borderWidth: 1, borderColor: 'rgba(212,175,55,0.1)',
+    borderWidth: 1, borderColor: 'rgba(202, 156, 104,0.1)',
   },
   emptyTitle: { fontSize: 24, color: '#fff', fontFamily: Fonts.outfit.bold },
   emptyBody: { fontSize: 15, color: MidnightColors.slate400, fontFamily: Fonts.inter.regular, textAlign: 'center', marginTop: 12, paddingHorizontal: 30, lineHeight: 22 },
@@ -481,5 +481,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32, paddingVertical: 16,
     borderRadius: 16,
   },
-  emptyActionText: { color: '#050505', fontFamily: Fonts.outfit.extraBold, fontSize: 16 },
+  emptyActionText: { color: '#13191F', fontFamily: Fonts.outfit.extraBold, fontSize: 16 },
 });

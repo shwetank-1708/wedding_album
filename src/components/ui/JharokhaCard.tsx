@@ -145,7 +145,7 @@ export function JharokhaCard({ name, slug, img, description }: JharokhaCardProps
                                Q 0 40 0 50
                                Z"
                             fill="none"
-                            stroke="#D4AF37"
+                            stroke="#CA9C68"
                             strokeWidth="2" // Gold Border
                         />
                         <path

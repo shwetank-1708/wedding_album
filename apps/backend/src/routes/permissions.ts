@@ -4,14 +4,14 @@ import { getAdminClient } from "../adminAuth.js";
 export const permissionsRouter = Router();
 
 const SUPER_ADMIN_EMAILS = [
-  "shwetank.chauhan17@gmail.com",
-  "shwetank.chauhan3@gmail.com",
   "code4sarthak@gmail.com",
+  "shwetank.chauhan17@gmail.com",
 ];
 
 async function canManageGuestLog(logId: string, requester: { uid?: string; email?: string }) {
   if (!requester.uid && !requester.email) return false;
-  if (requester.email && SUPER_ADMIN_EMAILS.includes(requester.email)) {
+  const requesterEmail = (requester.email || "").toLowerCase().trim();
+  if (requesterEmail && SUPER_ADMIN_EMAILS.includes(requesterEmail)) {
     return true;
   }
 

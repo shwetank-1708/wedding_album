@@ -54,8 +54,8 @@ export default function TenantLoginPage() {
                     className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-[#800000]/10 text-center relative overflow-hidden"
                 >
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#800000] via-[#D4AF37] to-[#800000]" />
-                    <Sparkles className="absolute top-4 right-4 text-[#D4AF37]/30 w-8 h-8 animate-pulse" />
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#800000] via-[#CA9C68] to-[#800000]" />
+                    <Sparkles className="absolute top-4 right-4 text-[#CA9C68]/30 w-8 h-8 animate-pulse" />
 
                     <motion.div
                         initial={{ scale: 0 }}
@@ -82,7 +82,7 @@ export default function TenantLoginPage() {
 
                     <button
                         onClick={() => window.location.reload()}
-                        className="text-sm text-[#800000] hover:text-[#D4AF37] transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
+                        className="text-sm text-[#800000] hover:text-[#CA9C68] transition-colors font-medium flex items-center justify-center gap-2 mx-auto"
                     >
                         <Clock className="w-4 h-4" />
                         Check Status Again
@@ -104,7 +104,7 @@ export default function TenantLoginPage() {
                 className="bg-white/90 backdrop-blur-sm p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md border border-white/50 relative z-10"
             >
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#800000] text-[#D4AF37] mb-4 shadow-lg">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#800000] text-[#CA9C68] mb-4 shadow-lg">
                         <Lock className="w-5 h-5" />
                     </div>
                     <h1 className="text-4xl font-serif text-[#800000] mb-3 tracking-wide">Welcome</h1>

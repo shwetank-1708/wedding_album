@@ -336,6 +336,25 @@ paymentsRouter.post("/verify-payment", async (request: Request, response: Respon
         return;
       }
 
+      // Log payment to payments table
+      try {
+        const paymentAmount = Number(order.amount) / 100;
+        await supabaseAdmin.from("payments").insert({
+          user_id: user.id,
+          amount: paymentAmount,
+          currency: (order as any).currency || "INR",
+          status: "captured",
+          plan_id: planId,
+          billing_duration: subscriptionDuration,
+          payment_gateway: "razorpay",
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          notes: "Scheduled downgrade to " + planId,
+        });
+      } catch (logErr) {
+        request.log.warn({ logErr }, "[Payments] Could not insert downgrade payment into payments table");
+      }
+
       response.json({
         success: true,
         change_type: "downgrade_scheduled",
@@ -370,6 +389,26 @@ paymentsRouter.post("/verify-payment", async (request: Request, response: Respon
       return;
     }
 
+    // Log payment to payments table
+    try {
+      const paymentAmount = Number(order.amount) / 100;
+      await supabaseAdmin.from("payments").insert({
+        user_id: user.id,
+        amount: paymentAmount,
+        currency: (order as any).currency || "INR",
+        status: "captured",
+        plan_id: planId,
+        billing_duration: subscriptionDuration,
+        payment_gateway: "razorpay",
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        notes: "Immediate plan activation: " + planId,
+      });
+      request.log.info({ userId: user.id, paymentId, amount: paymentAmount }, "[Payments] Captured payment logged to ledger");
+    } catch (logErr) {
+      request.log.warn({ logErr }, "[Payments] Could not insert payment into payments table");
+    }
+
     response.json({
       success: true,
       change_type: "immediate",
@@ -385,3 +424,31 @@ paymentsRouter.post("/verify-payment", async (request: Request, response: Respon
     response.status(500).json({ error: error instanceof Error ? error.message : "Unable to verify payment." });
   }
 });
+
+// POST /api/v1/payments/log-failure
+paymentsRouter.post("/log-failure", async (request: Request, response: Response) => {
+  const verification = await verifySupabaseUser(request);
+  const userId = verification?.user?.id;
+  const { orderId, paymentId, planId, duration, failureReason } = request.body || {};
+
+  try {
+    const supabaseAdmin = getSupabaseAdminClient();
+    await supabaseAdmin.from("payments").insert({
+      user_id: userId || null,
+      amount: 0,
+      currency: "INR",
+      status: "failed",
+      plan_id: planId || "unknown",
+      billing_duration: duration || null,
+      payment_gateway: "razorpay",
+      razorpay_order_id: orderId || null,
+      razorpay_payment_id: paymentId || null,
+      failure_reason: failureReason || "Payment failed or was dismissed",
+    });
+    response.json({ success: true });
+  } catch (error) {
+    request.log.warn({ error }, "[Payments] Failed to log payment failure");
+    response.status(200).json({ success: false });
+  }
+});
+

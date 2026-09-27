@@ -98,7 +98,7 @@ export default function CustomerChatsScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#d4af37" />
+        <ActivityIndicator size="large" color="#CA9C68" />
       </View>
     );
   }
@@ -122,7 +122,7 @@ export default function CustomerChatsScreen() {
         {chatRooms.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconBg}>
-              <IconSymbol name="bubble.left.fill" size={36} color="#d4af37" />
+              <IconSymbol name="bubble.left.fill" size={36} color="#CA9C68" />
             </View>
             <Text style={styles.emptyStateTitle}>No Messages Yet</Text>
             <Text style={styles.emptyStateDesc}>
@@ -307,7 +307,7 @@ export default function CustomerChatsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   center: {
     justifyContent: 'center',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -371,13 +371,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   exploreBtn: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   exploreBtnText: {
-    color: '#050505',
+    color: '#13191F',
     fontSize: 14,
     fontFamily: 'Outfit_700Bold',
   },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   chatCard: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -400,14 +400,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    borderColor: 'rgba(202, 156, 104, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    color: '#d4af37',
+    color: '#CA9C68',
     fontSize: 18,
     fontFamily: 'Outfit_700Bold',
   },
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
   lastMessage: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   clientCardBorder: {
     borderLeftWidth: 4,
-    borderLeftColor: '#d4af37',
+    borderLeftColor: '#CA9C68',
   },
   businessAvatar: {
     backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -504,11 +504,11 @@ const styles = StyleSheet.create({
     color: '#818cf8',
   },
   clientAvatar: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    borderColor: 'rgba(212, 175, 55, 0.2)',
+    backgroundColor: 'rgba(202, 156, 104, 0.1)',
+    borderColor: 'rgba(202, 156, 104, 0.2)',
   },
   clientAvatarText: {
-    color: '#d4af37',
+    color: '#CA9C68',
   },
   businessBadge: {
     paddingHorizontal: 6,
@@ -527,9 +527,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    backgroundColor: 'rgba(202, 156, 104, 0.15)',
     borderWidth: 0.5,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
+    borderColor: 'rgba(202, 156, 104, 0.3)',
   },
   normalBadgeText: {
     fontSize: 9,
@@ -538,13 +538,13 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    backgroundColor: 'rgba(19, 25, 31, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalContent: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 24,
     padding: 24,
     width: '100%',
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
   modalMessage: {
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
-    color: '#94a3b8',
+    color: '#CDB89E',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   cancelButtonText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 15,
     fontFamily: 'Outfit_700Bold',
   },

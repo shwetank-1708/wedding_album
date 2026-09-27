@@ -50,10 +50,10 @@ export default function UsageScreen() {
           getUserTotalStorage(identifiers),
           getUserBusinesses(user.uid)
         ]);
-        setStats({ 
-          eventCount: count, 
+        setStats({
+          eventCount: count,
           storageUsed: storage,
-          businessCount: businesses.length 
+          businessCount: businesses.length
         });
       } catch (error) {
         console.error("Error fetching usage stats:", error);
@@ -120,25 +120,25 @@ export default function UsageScreen() {
   const isBizOver = stats.businessCount > businessLimit && businessLimit !== Infinity;
 
   const usageData = [
-    { 
-      label: 'Storage Used', 
-      value: formatStorage(stats.storageUsed), 
+    {
+      label: 'Storage Used',
+      value: formatStorage(stats.storageUsed),
       limit: plan.storageLabel,
       progress: storageProgress,
       icon: 'cloud.fill',
       isOver: isStorageOver
     },
-    { 
-      label: 'Active Events', 
-      value: stats.eventCount.toString(), 
+    {
+      label: 'Active Events',
+      value: stats.eventCount.toString(),
       limit: plan.eventLabel,
       progress: eventProgress,
       icon: 'calendar.fill',
       isOver: isEventsOver
     },
-    { 
-      label: 'Active Businesses', 
-      value: stats.businessCount.toString(), 
+    {
+      label: 'Active Businesses',
+      value: stats.businessCount.toString(),
       limit: businessLabel,
       progress: businessProgress,
       icon: 'briefcase.fill',
@@ -149,24 +149,24 @@ export default function UsageScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       {/* Header */}
       <LinearGradient
-        colors={['#101010', '#050505']}
+        colors={['#1B211F', '#13191F']}
         style={styles.header}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard')}
             style={styles.backButton}
           >
-            <IconSymbol name="chevron.left" size={24} color="#d4af37" />
+            <IconSymbol name="chevron.left" size={24} color="#CA9C68" />
           </TouchableOpacity>
           <View style={styles.headingLogoRow}>
             <EveBashLogoBadge onPress={() => router.replace('/(tabs)' as any)} />
             <Text style={styles.headerTitle}>Plan & Usage</Text>
           </View>
-          <View style={{ width: 40 }} /> 
+          <View style={{ width: 40 }} />
         </View>
       </LinearGradient>
 
@@ -174,9 +174,9 @@ export default function UsageScreen() {
 
         {/* Current Plan Card */}
         <View style={styles.planCard}>
-          <LinearGradient 
-            colors={[plan.accentSoft, 'rgba(15,23,42,0.8)']}
-            style={StyleSheet.absoluteFill} 
+          <LinearGradient
+            colors={[plan.accentSoft, 'rgba(27, 33, 31,0.8)']}
+            style={StyleSheet.absoluteFill}
           />
           <View style={styles.planHeader}>
             <View>
@@ -208,7 +208,7 @@ export default function UsageScreen() {
 
           {loading ? (
             <View style={{ height: 200, justifyContent: 'center' }}>
-              <ActivityIndicator color="#d4af37" />
+              <ActivityIndicator color="#CA9C68" />
             </View>
           ) : (
             <View style={styles.usageContainer}>
@@ -216,7 +216,7 @@ export default function UsageScreen() {
                 <View key={idx} style={styles.usageItem}>
                   <View style={styles.usageInfo}>
                     <View style={styles.usageLabelRow}>
-                      <IconSymbol name={item.icon as any} size={14} color={item.isOver ? '#f87171' : '#94a3b8'} />
+                      <IconSymbol name={item.icon as any} size={14} color={item.isOver ? '#f87171' : '#CDB89E'} />
                       <Text style={[styles.usageLabel, item.isOver && { color: '#f87171' }]}>{item.label}</Text>
                     </View>
                     <Text style={[styles.usageValue, item.isOver && { color: '#f87171' }]}>
@@ -225,7 +225,7 @@ export default function UsageScreen() {
                   </View>
                   <View style={styles.progressBarBg}>
                     <LinearGradient
-                      colors={item.isOver ? ['#ef4444', '#b91c1c'] : ['#d4af37', '#b49430']}
+                      colors={item.isOver ? ['#ef4444', '#b91c1c'] : ['#CA9C68', '#A77B52']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={[styles.progressBarFill, { width: `${item.progress * 100}%` }]}
@@ -241,28 +241,28 @@ export default function UsageScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Plan Management</Text>
           <View style={styles.listContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.listItem}
               activeOpacity={0.7}
               onPress={() => router.push('/(tabs)/pricing')}
             >
               <View style={styles.listItemLeft}>
-                <View style={[styles.listIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.1)' }]}>
-                  <IconSymbol name="sparkles.fill" size={18} color="#d4af37" />
+                <View style={[styles.listIconBox, { backgroundColor: 'rgba(202, 156, 104, 0.1)' }]}>
+                  <IconSymbol name="sparkles.fill" size={18} color="#CA9C68" />
                 </View>
                 <Text style={styles.itemText}>Upgrade Plan</Text>
               </View>
               <IconSymbol name="chevron.right" size={18} color="#475569" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.listItem}
               activeOpacity={0.7}
               onPress={() => router.push('/(tabs)/pricing')}
             >
               <View style={styles.listItemLeft}>
                 <View style={[styles.listIconBox, { backgroundColor: 'rgba(148, 163, 184, 0.1)' }]}>
-                  <IconSymbol name="creditcard.fill" size={18} color="#94a3b8" />
+                  <IconSymbol name="creditcard.fill" size={18} color="#CDB89E" />
                 </View>
                 <Text style={styles.itemText}>Billing History</Text>
               </View>
@@ -275,28 +275,28 @@ export default function UsageScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support & Feedback</Text>
           <View style={styles.listContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.listItem}
               activeOpacity={0.7}
               onPress={() => router.push('/contact')}
             >
               <View style={styles.listItemLeft}>
                 <View style={[styles.listIconBox, { backgroundColor: 'rgba(148, 163, 184, 0.1)' }]}>
-                  <IconSymbol name="message.fill" size={18} color="#94a3b8" />
+                  <IconSymbol name="message.fill" size={18} color="#CDB89E" />
                 </View>
                 <Text style={styles.itemText}>Support Chat</Text>
               </View>
               <IconSymbol name="chevron.right" size={18} color="#475569" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.listItem}
               activeOpacity={0.7}
               onPress={() => router.push('/contact')}
             >
               <View style={styles.listItemLeft}>
                 <View style={[styles.listIconBox, { backgroundColor: 'rgba(148, 163, 184, 0.1)' }]}>
-                  <IconSymbol name="questionmark.circle.fill" size={18} color="#94a3b8" />
+                  <IconSymbol name="questionmark.circle.fill" size={18} color="#CDB89E" />
                 </View>
                 <Text style={styles.itemText}>Help Center</Text>
               </View>
@@ -315,22 +315,22 @@ export default function UsageScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#050505' },
+  safeArea: { flex: 1, backgroundColor: '#13191F' },
   container: { flex: 1 },
-  header: { 
-    paddingHorizontal: 24, 
-    paddingTop: 20, 
-    paddingBottom: 24, 
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     alignItems: 'center',
     borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(212, 175, 55, 0.2)',
+    borderBottomColor: 'rgba(202, 156, 104, 0.2)',
   },
-  headerTitle: { 
-    fontSize: 28, 
+  headerTitle: {
+    fontSize: 28,
     lineHeight: 38,
-    fontFamily: 'Inter_700Bold', 
-    color: '#94a3b8', 
-    textTransform: 'uppercase', 
+    fontFamily: 'Inter_700Bold',
+    color: '#CDB89E',
+    textTransform: 'uppercase',
     letterSpacing: 2,
     includeFontPadding: false,
   },
@@ -350,13 +350,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   planCard: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     marginHorizontal: 24,
     marginTop: 24,
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.25)',
+    borderColor: 'rgba(202, 156, 104, 0.25)',
     overflow: 'hidden',
   },
   planHeader: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     fontSize: 24,
-    color: '#f8fafc',
+    color: '#FFF7EB',
     fontFamily: 'Outfit_800ExtraBold',
   },
   planBadge: {
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   },
   usageLabel: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontFamily: 'Inter_500Medium',
   },
   usageValue: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: '#334155',
+    color: '#594C3D',
     fontFamily: 'Inter_400Regular',
   },
 });

@@ -133,6 +133,9 @@ findYouRouter.post("/", async (request, response) => {
       .png()
       .toBuffer();
 
+    const verified = await verifySupabaseUser(request).catch(() => null);
+    const userId = verified?.user?.id || (typeof body.userId === "string" ? body.userId : undefined);
+
     const targetUrl = (
       process.env.MODAL_FIND_YOU_URL ||
       "https://shwetank-sarthak--wedding-media-engine-find-matching-photos.modal.run"
@@ -144,6 +147,7 @@ findYouRouter.post("/", async (request, response) => {
       body: JSON.stringify({
         selfie_base64: optimizedSelfie.toString("base64"),
         event_ids: eventIds,
+        user_id: userId,
       }),
     });
 

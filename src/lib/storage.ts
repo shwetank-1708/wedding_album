@@ -62,33 +62,95 @@ function uploadWithXhr(
     });
 }
 
+// ─── Pre-Upload Video Validation ───────────────────────────────────────────────
+
+/** Supported video MIME types — files with any of these will pass the MIME check. */
+const SUPPORTED_VIDEO_MIME_TYPES = new Set([
+    "video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska",
+    "video/webm", "video/x-m4v", "video/3gpp", "video/x-flv",
+    "video/x-ms-wmv", "video/mp2t", "video/ogg",
+]);
+
+/** Supported video extensions (used as fallback when the MIME type is generic or absent). */
+export const VIDEO_EXTENSIONS = new Set([
+    "mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv",
+]);
+
+export interface VideoValidationResult {
+    valid: boolean;
+    error?: string;
+}
+
+/**
+ * Validates a video File before any network request is made.
+ * Checks: non-empty, minimum size, MIME type, and extension/MIME consistency.
+ * Safe to call in browser context — uses no Node.js APIs.
+ */
+export function validateVideoFile(file: File): VideoValidationResult {
+    // 1. Empty file check
+    if (file.size === 0) {
+        return { valid: false, error: "The selected video file is empty (0 bytes). Please choose a valid video." };
+    }
+
+    // 2. Minimum size sanity check — a valid video must be at least 10 KB
+    if (file.size < 10 * 1024) {
+        return { valid: false, error: "The selected file is too small to be a valid video. Please choose a real video file." };
+    }
+
+    // 3. MIME type / extension check
+    const mimeIsVideo = file.type.startsWith("video/");
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const extIsVideo = VIDEO_EXTENSIONS.has(ext);
+
+    if (!mimeIsVideo && !extIsVideo) {
+        return {
+            valid: false,
+            error: `"${file.name}" does not appear to be a video file (detected type: ${file.type || "unknown"}). Please select an MP4, MOV, MKV, or WebM file.`,
+        };
+    }
+
+    // 4. MIME/extension mismatch — likely a corrupt or misnamed file
+    if (mimeIsVideo && ext && !extIsVideo) {
+        return {
+            valid: false,
+            error: `"${file.name}" has a video MIME type but an unrecognized extension ".${ext}". Please rename the file or choose a supported format.`,
+        };
+    }
+
+    // 5. Uncommon but valid MIME — allow, but log for debugging
+    if (file.type && !SUPPORTED_VIDEO_MIME_TYPES.has(file.type) && mimeIsVideo) {
+        console.warn(`[Storage] Uploading video with uncommon MIME type: ${file.type} — proceeding anyway.`);
+    }
+
+    return { valid: true };
+}
+
 // ─── Resume State ──────────────────────────────────────────────────────────────
 // Persisted in localStorage so uploads survive page reloads / lost connections.
 
 const CHUNK_SIZE = 10 * 1024 * 1024;       // 10 MB per chunk
-const MAX_CHUNK_RETRIES = 4;               // attempts per chunk before giving up
+const MAX_CHUNK_RETRIES = 6;               // attempts per chunk before giving up
 const RESUME_EXPIRY_MS = 23 * 60 * 60 * 1000; // 23 h (B2 large-file sessions last 24 h)
 const RESUME_KEY_PREFIX = "evebash_upload_v1_";
 
 /**
  * Google Drive-style Dynamic Adaptive Upload Concurrency.
  * Automatically inspects the browser's Network Information API (5G, 4G, 3G, Wi-Fi)
- * and hardware specs to pick the ideal concurrency (8 on fast desktop Wi-Fi/LAN,
- * 4 on mobile, 2 on 3G) preventing RAM overload and socket congestion.
+ * and hardware specs to pick the ideal concurrency (preventing socket congestion).
  */
 function getOptimalConcurrency(): number {
-    if (typeof window === "undefined") return 4;
+    if (typeof window === "undefined") return 2;
 
     const nav = navigator as any;
     const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
 
-    // Default target for desktop devices: 8 parallel upload streams (Google Drive behavior)
-    let concurrency = 8;
+    // Default target: 2 parallel upload streams (prevents socket starvation and bandwidth choke)
+    let concurrency = 2;
 
     // Detect mobile device to avoid RAM/battery strain
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
-        concurrency = 4;
+        concurrency = 2;
     }
 
     // Inspect real-time network conditions if supported by the browser
@@ -152,8 +214,11 @@ function clearResumeState(fileName: string, fileSize: number) {
 async function uploadLargeFileInChunks(
     file: File,
     eventId: string,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    signal?: AbortSignal,
+    onFinalizing?: () => void
 ) {
+    signal?.throwIfAborted();
     console.log(`[Storage] Starting chunk-wise direct B2 upload for large file: ${file.name} (${file.size} bytes)`);
 
     const resourceType = (file.type?.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm", "m4v", "3gp", "flv", "wmv", "mts", "m2ts", "ts", "ogv"].includes(file.name.split('.').pop()?.toLowerCase() || "")) ? "video" : "image";
@@ -184,6 +249,7 @@ async function uploadLargeFileInChunks(
             body: JSON.stringify({
                 eventId,
                 fileName: file.name,
+                fileSize: file.size,
                 contentType: file.type || "application/octet-stream",
                 resourceType,
             }),
@@ -195,6 +261,15 @@ async function uploadLargeFileInChunks(
         fileId = initiateData.fileId;
         storageKey = initiateData.storageKey;
         completedParts = {};
+
+        // ── Check if server returned server-side resumed parts ───────────────────────
+        if (initiateData.resumed && Array.isArray(initiateData.completedParts)) {
+            for (const part of initiateData.completedParts) {
+                completedParts[part.partNumber] = part.sha1;
+            }
+            const doneCount = Object.keys(completedParts).length;
+            console.log(`[Storage] Server-side resume active! ${doneCount}/${totalChunks} chunks already on Backblaze.`);
+        }
 
         // Persist the fresh state immediately so we have the fileId saved
         saveResumeState({
@@ -208,6 +283,8 @@ async function uploadLargeFileInChunks(
         });
     }
 
+    try {
+    signal?.throwIfAborted();
     // ── 2. Build the queue of pending part indices (0-indexed) ─────────────────
     // Parts already completed are skipped — this is the resume magic.
     const pendingIndices = Array.from({ length: totalChunks }, (_, i) => i)
@@ -231,6 +308,7 @@ async function uploadLargeFileInChunks(
 
 
     const uploadChunk = async (partIndex: number): Promise<void> => {
+        signal?.throwIfAborted();
         const partNumber = partIndex + 1;
         const start = partIndex * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, file.size);
@@ -244,14 +322,33 @@ async function uploadLargeFileInChunks(
         let lastErr: unknown;
         for (let attempt = 1; attempt <= MAX_CHUNK_RETRIES; attempt++) {
             try {
+                signal?.throwIfAborted();
                 // Fresh upload URL per attempt (URLs are single-use)
-                const partUrlRes = await fetch(getApiUrl("/api/media/upload/chunk/part-url"), {
+                let partUrlRes = await fetch(getApiUrl("/api/media/upload/chunk/part-url"), {
                     method: "POST",
                     headers,
                     body: JSON.stringify({ fileId }),
+                    signal,
                 });
+
+                if (partUrlRes.status === 401) {
+                    const { data: refreshed } = await supabase.auth.refreshSession();
+                    if (refreshed.session?.access_token) {
+                        headers["Authorization"] = `Bearer ${refreshed.session.access_token}`;
+                        partUrlRes = await fetch(getApiUrl("/api/media/upload/chunk/part-url"), {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ fileId }),
+                    signal,
+                        });
+                    }
+                }
+
                 const partUrlData = await partUrlRes.json().catch(() => ({}));
                 if (!partUrlRes.ok) {
+                    if (partUrlRes.status === 410 || partUrlData.code === "SESSION_EXPIRED" || partUrlData.error?.includes("No active upload") || partUrlData.error?.includes("status 400")) {
+                        clearResumeState(file.name, file.size);
+                    }
                     throw new Error(partUrlData.error || `Failed to get chunk URL (status: ${partUrlRes.status})`);
                 }
 
@@ -267,6 +364,7 @@ async function uploadLargeFileInChunks(
                         "Content-Length": String(chunkBlob.size),
                     },
                     body: chunkBlob,
+                    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(180_000)]) : AbortSignal.timeout(180_000),
                 });
 
                 if (!res.ok) {
@@ -278,6 +376,7 @@ async function uploadLargeFileInChunks(
                 const b2Sha1Raw = res.headers.get("x-bz-content-sha1") || "";
                 const sha1 = (b2Sha1Raw.startsWith("unverified:") ? b2Sha1Raw.split(":")[1] : b2Sha1Raw) || chunkSha1;
 
+                signal?.throwIfAborted();
                 // Mark complete and persist to localStorage immediately
                 completedParts[partNumber] = sha1;
                 saveResumeState({
@@ -310,17 +409,27 @@ async function uploadLargeFileInChunks(
 
                 return; // success — exit retry loop
 
-            } catch (err) {
+            } catch (err: any) {
+                signal?.throwIfAborted();
                 lastErr = err;
+                if (err?.message?.includes("expired") || err?.message?.includes("No active upload")) {
+                    clearResumeState(file.name, file.size);
+                    throw err;
+                }
                 const wait = Math.min(1000 * 2 ** attempt, 30_000); // 2 s, 4 s, 8 s, max 30 s
                 console.warn(`[Storage] Chunk ${partNumber} attempt ${attempt}/${MAX_CHUNK_RETRIES} failed. Retrying in ${wait / 1000}s...`, err);
                 if (attempt < MAX_CHUNK_RETRIES) {
-                    await new Promise(r => setTimeout(r, wait));
+                    await new Promise<void>((resolve, reject) => {
+                        const abort = () => { clearTimeout(timer); reject(signal?.reason || new DOMException("Upload cancelled", "AbortError")); };
+                        const timer = setTimeout(() => { signal?.removeEventListener("abort", abort); resolve(); }, wait);
+                        signal?.addEventListener("abort", abort, { once: true });
+                        if (signal?.aborted) abort();
+                    });
                 }
             }
         }
-        // If we reach here all retries are exhausted — state is already saved to localStorage
-        // so the upload can be resumed on the next attempt.
+        // If we reach here all retries are exhausted — clear stale state so next attempt is fresh
+        clearResumeState(file.name, file.size);
         throw new Error(`Chunk ${partNumber} failed after ${MAX_CHUNK_RETRIES} attempts: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
     };
 
@@ -339,7 +448,10 @@ async function uploadLargeFileInChunks(
     console.log(`[Storage] Launching ${actualConcurrency} adaptive parallel upload workers (target: ${targetConcurrency}) for ${pendingIndices.length} pending chunks...`);
 
     try {
-        await Promise.all(Array.from({ length: actualConcurrency }, () => worker()));
+        const results = await Promise.allSettled(Array.from({ length: actualConcurrency }, () => worker()));
+        signal?.throwIfAborted();
+        const failed = results.find(result => result.status === "rejected");
+        if (failed?.status === "rejected") throw failed.reason;
     } catch (err) {
         // One or more chunks failed permanently — state is saved, user can retry
         throw new Error(`Upload interrupted: ${err instanceof Error ? err.message : String(err)}. Your progress has been saved — retry to resume from where it stopped.`);
@@ -351,6 +463,57 @@ async function uploadLargeFileInChunks(
 
     console.log(`[Storage] All ${totalChunks} chunks uploaded. Completing large file...`);
 
+    let videoDuration = 0;
+    if (resourceType === "video" && typeof document !== "undefined") {
+        videoDuration = await new Promise<number>((resolve) => {
+            let settled = false;
+            let blobUrl = "";
+            const timer = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    if (blobUrl) {
+                        try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+                    }
+                    resolve(0);
+                }
+            }, 2000);
+
+            try {
+                const video = document.createElement("video");
+                video.preload = "metadata";
+                video.onloadedmetadata = () => {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        const dur = Number(video.duration) || 0;
+                        if (blobUrl) {
+                            try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+                        }
+                        resolve(dur);
+                    }
+                };
+                video.onerror = () => {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timer);
+                        if (blobUrl) {
+                            try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+                        }
+                        resolve(0);
+                    }
+                };
+                blobUrl = URL.createObjectURL(file);
+                video.src = blobUrl;
+            } catch (_) {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timer);
+                    resolve(0);
+                }
+            }
+        });
+    }
+
     // Refresh auth token (long uploads may expire it)
     const { data: freshSession } = await supabase.auth.getSession();
     const freshToken = freshSession.session?.access_token;
@@ -358,6 +521,8 @@ async function uploadLargeFileInChunks(
     if (freshToken) saveHeaders["Authorization"] = `Bearer ${freshToken}`;
     else if (headers["Authorization"]) saveHeaders["Authorization"] = headers["Authorization"];
 
+    signal?.throwIfAborted();
+    onFinalizing?.();
     const completeRes = await fetch(getApiUrl("/api/media/upload/chunk/complete"), {
         method: "POST",
         headers: saveHeaders,
@@ -369,6 +534,7 @@ async function uploadLargeFileInChunks(
             fileSize: file.size,
             resourceType,
             partSha1Array,
+            duration: videoDuration,
         }),
     });
 
@@ -390,6 +556,21 @@ async function uploadLargeFileInChunks(
         bytes: file.size,
         format: file.name.split(".").pop() || "mp4",
     };
+    } catch (error) {
+        if (signal?.aborted) {
+            const cleanup = await fetch(getApiUrl("/api/media/upload/chunk/abort"), {
+                method: "POST", headers, body: JSON.stringify({ fileId }),
+            });
+            if (!cleanup.ok) {
+                const result = await cleanup.json().catch(() => ({}));
+                throw new Error(result.error || "Transfer stopped, but upload cleanup failed. The unfinished upload needs cleanup.");
+            }
+            clearResumeState(file.name, file.size);
+            throw new DOMException("Upload cancelled", "AbortError");
+        }
+        throw error;
+    }
+
 }
 
 
@@ -399,11 +580,29 @@ export async function uploadEventImage(
     userId?: string, 
     laneIndex = 0, 
     skipSaveMetadata = false,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    signal?: AbortSignal,
+    onFinalizing?: () => void
 ) {
-    if (file.size > 100 * 1024 * 1024) { // > 100 MB (any video or large image)
-        return uploadLargeFileInChunks(file, eventId, onProgress);
+    signal?.throwIfAborted();
+    // Pre-upload validation for video files — catches empty, corrupt, or mistyped files
+    // before any network request is made.
+    const isVideoFile = file.type?.startsWith("video/") ||
+        VIDEO_EXTENSIONS.has(file.name.split(".").pop()?.toLowerCase() || "");
+    if (isVideoFile) {
+        const validation = validateVideoFile(file);
+        if (!validation.valid) {
+            throw new Error(validation.error);
+        }
     }
+
+    // Use resilient chunked upload for all videos and media >= 5MB
+    // Backblaze B2 minimum part size is 5MB. Chunked upload provides multi-part parallelism,
+    // exponential backoff retry on network drops, and session resumption across tab refreshes.
+    if (signal || isVideoFile || file.size >= 5 * 1024 * 1024) {
+        return uploadLargeFileInChunks(file, eventId, onProgress, signal, onFinalizing);
+    }
+
 
     try {
         console.log(`[Storage] Starting direct B2 upload for: ${file.name} to event: ${eventId} (lane: ${laneIndex})`);

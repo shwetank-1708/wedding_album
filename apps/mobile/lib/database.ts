@@ -94,6 +94,17 @@ export interface Photo {
     order?: number;
     thumbnailUrl?: string;
     tags?: string[];
+    status?: 'uploading' | 'processing' | 'processed' | 'failed';
+    processingError?: string | null;
+    transcodeAttempts?: number;
+}
+
+export interface EventFavouritePhoto {
+    id: string;
+    eventId: string;
+    photoId: string;
+    markedBy?: string;
+    createdAt: any;
 }
 
 export interface Business {
@@ -327,12 +338,49 @@ function mapSqlToPhoto(p: any): Photo {
         format: p.format,
         order: p.order,
         thumbnailUrl: p.thumbnail_url,
-        tags: p.tags || []
+        tags: p.tags || [],
+        status: p.status,
+        processingError: p.processing_error,
+        transcodeAttempts: p.transcode_attempts
     };
 }
 
 function isCoverUsagePhoto(photo: Photo): boolean {
     return Boolean(photo.tags?.includes(COVER_USAGE_TAG));
+}
+
+function isMediaVisibleInGallery(photo: Photo): boolean {
+    if (isCoverUsagePhoto(photo)) return false;
+    if (photo.status === 'uploading') return false;
+    const isVideo = photo.mediaType === "video" || photo.resourceType === "video";
+    // Strict requirement: Videos must NOT show until 100% processed and fully available
+    if (isVideo && photo.status !== "processed") return false;
+    return true;
+}
+
+function mapSqlToEventFavouritePhoto(row: any): EventFavouritePhoto {
+    return {
+        id: row.id,
+        eventId: row.event_id,
+        photoId: row.photo_id,
+        markedBy: row.marked_by,
+        createdAt: row.created_at
+    };
+}
+
+function isEventFavouriteTableUnavailable(error: unknown) {
+    const formatted = formatSupabaseError(error);
+    if (!formatted || typeof formatted !== "object") return false;
+    const code = (formatted as any).code;
+    return code === "42P01" || code === "PGRST205";
+}
+
+function isEventFavouritePolicyBlocked(error: unknown) {
+    const formatted = formatSupabaseError(error);
+    if (!formatted || typeof formatted !== "object") return false;
+    const code = (formatted as any).code;
+    const message = String((formatted as any).message || "").toLowerCase();
+    return code === "42501" || message.includes("row-level security") || message.includes("permission denied");
 }
 
 function isPaidPlanRole(role?: string | null): boolean {
@@ -802,7 +850,7 @@ export async function updateUserProfileImage(uid: string, imageUrl: string) {
     }
 }
 
-const USERNAME_PATTERN = /^(?!.*[._]{2})[a-z0-9](?:[a-z0-9._]{1,28}[a-z0-9])$/;
+const USERNAME_PATTERN = /^(?!.*[._]{2})[a-z0-9](?:[a-z0-9._]{1,10}[a-z0-9])$/;
 
 export function isValidUsername(username: string): boolean {
     return USERNAME_PATTERN.test(username.trim().toLowerCase());
@@ -960,7 +1008,7 @@ export async function getEventPhotos(eventId: string, legacyId?: string): Promis
             .in('event_id', ids);
 
         if (error) throw error;
-        const photos = (data || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const photos = (data || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const visiblePhotos = await filterPhotosForPlanExpiry(photos, ids);
         return visiblePhotos.sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
     } catch (error) {
@@ -981,12 +1029,12 @@ export async function getEventPhotosPaginated(
 
         const { data: countData, error: countError } = await supabase
             .from('photos')
-            .select('id,event_id,storage_key,url,media_type,resource_type')
+            .select('id,event_id,storage_key,url,media_type,resource_type,status')
             .in('event_id', ids);
 
         if (countError) throw countError;
 
-        const countedMedia = (countData || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const countedMedia = (countData || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const totalVideos = countedMedia.filter(photo => photo.mediaType === 'video' || photo.resourceType === 'video').length;
         const totalPhotos = countedMedia.length - totalVideos;
 
@@ -1001,7 +1049,7 @@ export async function getEventPhotosPaginated(
 
         if (error) throw error;
 
-        const rawPhotos = (data || []).map(mapSqlToPhoto).filter(photo => !isCoverUsagePhoto(photo));
+        const rawPhotos = (data || []).map(mapSqlToPhoto).filter(isMediaVisibleInGallery);
         const hasMore = rawPhotos.length > limit;
         const photosToReturn = hasMore ? rawPhotos.slice(0, limit) : rawPhotos;
 
@@ -1046,19 +1094,101 @@ export async function getFavouritePhotosForEvents(eventIds: string[]): Promise<P
             .filter(photo => !isCoverUsagePhoto(photo))
             .sort((a, b) => (favouriteOrder.get(a.id) ?? 0) - (favouriteOrder.get(b.id) ?? 0));
     } catch (error) {
-        const formatted = formatSupabaseError(error);
-        const code = formatted && typeof formatted === 'object' ? (formatted as any).code : undefined;
-        const message = String((formatted as any)?.message || '').toLowerCase();
-        if (code === '42P01' || code === 'PGRST205') {
+        if (isEventFavouriteTableUnavailable(error)) {
             console.warn('Favourite gallery table is not available yet.');
             return [];
         }
-        if (code === '42501' || message.includes('row-level security') || message.includes('permission denied')) {
+        if (isEventFavouritePolicyBlocked(error)) {
             console.warn('Favourite gallery table exists, but RLS policies are not allowing access yet.');
             return [];
         }
-        console.warn('Error fetching favourite photos:', formatted);
+        console.warn('Error fetching favourite photos:', formatSupabaseError(error));
         return [];
+    }
+}
+
+export async function getEventFavouritePhotos(eventId: string): Promise<EventFavouritePhoto[]> {
+    if (!eventId) return [];
+
+    try {
+        const { data, error } = await supabase
+            .from('event_favourite_photos')
+            .select('*')
+            .eq('event_id', eventId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(mapSqlToEventFavouritePhoto);
+    } catch (error) {
+        if (isEventFavouriteTableUnavailable(error)) {
+            console.warn('Favourite gallery table is not available yet.');
+            return [];
+        }
+        if (isEventFavouritePolicyBlocked(error)) {
+            console.warn('Favourite gallery table exists, but RLS policies are not allowing access yet.');
+            return [];
+        }
+        console.warn('Error fetching event favourite photos:', formatSupabaseError(error));
+        return [];
+    }
+}
+
+export async function toggleEventFavouritePhoto(eventId: string, photoId: string, markedBy?: string) {
+    if (!eventId || !photoId) return { favourited: false, error: 'Missing event or photo.' };
+
+    try {
+        const { data: existing, error: selectError } = await supabase
+            .from('event_favourite_photos')
+            .select('id')
+            .eq('event_id', eventId)
+            .eq('photo_id', photoId)
+            .maybeSingle();
+
+        if (selectError) throw selectError;
+
+        if (existing) {
+            const { error: deleteError } = await supabase
+                .from('event_favourite_photos')
+                .delete()
+                .eq('id', existing.id);
+            if (deleteError) throw deleteError;
+            return { favourited: false };
+        }
+
+        const { error: insertError } = await supabase
+            .from('event_favourite_photos')
+            .insert({
+                event_id: eventId,
+                photo_id: photoId,
+                marked_by: markedBy || null
+            });
+
+        if (insertError) throw insertError;
+        return { favourited: true };
+    } catch (error) {
+        if (isEventFavouriteTableUnavailable(error)) {
+            return {
+                favourited: false,
+                error: 'Primary Gallery selection is not ready yet. Apply the Supabase migration for event_favourite_photos.'
+            };
+        }
+
+        if (isEventFavouritePolicyBlocked(error)) {
+            return {
+                favourited: false,
+                error: 'Primary Gallery selection exists, but Supabase RLS policies are not allowing access yet.'
+            };
+        }
+
+        const formattedError = formatSupabaseError(error);
+        console.warn('Error toggling event favourite photo:', formattedError);
+        const message = formattedError && typeof formattedError === 'object' && 'message' in formattedError
+            ? String(formattedError.message || '')
+            : '';
+        return {
+            favourited: false,
+            error: message || 'Failed to update Primary Gallery.'
+        };
     }
 }
 
@@ -1603,6 +1733,39 @@ function getDeleteEndpoints() {
     return Array.from(new Set(endpoints));
 }
 
+function getRotateEndpoints() {
+    const explicitEndpoint = process.env.EXPO_PUBLIC_MEDIA_UPLOAD_URL?.trim();
+    if (explicitEndpoint) {
+        return [explicitEndpoint.replace(/\/upload$/, '/rotate').replace(/\/delete$/, '/rotate')];
+    }
+
+    const endpoints: string[] = [];
+    const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+    if (apiBaseUrl) {
+        endpoints.push(`${apiBaseUrl.replace(/\/+$/, '')}/api/media/rotate`);
+    }
+
+    try {
+        const Constants = require('expo-constants').default;
+        const hostUri = Constants?.expoConfig?.hostUri || Constants?.manifest2?.extra?.expoGo?.developer?.hostUri;
+        const devHost = typeof hostUri === 'string' ? hostUri.split(':')[0] : '';
+        if (devHost) {
+            endpoints.push(`http://${devHost}:8080/api/media/rotate`);
+        }
+    } catch (e) {}
+
+    try {
+        const { Platform } = require('react-native');
+        if (Platform.OS === 'android') {
+            endpoints.push('http://10.0.2.2:8080/api/media/rotate');
+        }
+    } catch (e) {}
+
+    endpoints.push('http://localhost:8080/api/media/rotate');
+
+    return Array.from(new Set(endpoints));
+}
+
 export async function deletePhoto(photoId: string) {
     try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -1651,13 +1814,104 @@ export async function deletePhoto(photoId: string) {
     }
 }
 
+export async function rotatePhoto(
+    photoId: string,
+    direction: 'left' | 'right'
+): Promise<{
+    success: boolean;
+    url?: string;
+    thumbnailUrl?: string;
+    previewUrl?: string;
+    width?: number | null;
+    height?: number | null;
+    size?: number;
+    cacheBuster?: number;
+    error?: string;
+}> {
+    try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+            throw new Error('Please log in before rotating media.');
+        }
+
+        const endpoints = getRotateEndpoints();
+        let lastError: any = null;
+
+        for (const rotateUrl of endpoints) {
+            try {
+                console.log(`[Database] Trying rotate: ${photoId} via ${rotateUrl}`);
+                const response = await fetch(rotateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({ photoId, direction }),
+                });
+
+                const result = await response.json().catch(() => ({}));
+                if (response.ok) {
+                    return { success: true, ...result };
+                }
+
+                lastError = new Error(result.error || `Failed with status: ${response.status}`);
+            } catch (err) {
+                lastError = err;
+                console.warn(`[Database] Rotate endpoint failed: ${rotateUrl}`, err);
+            }
+        }
+
+        throw lastError || new Error('Failed to reach any rotate endpoint.');
+    } catch (error) {
+        console.error("Error rotating photo:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to rotate photo',
+        };
+    }
+}
+
 export async function deleteEvent(eventId: string) {
     try {
-        // Fetch and delete B2 assets for all photos associated with this event
-        const { data: photos } = await supabase.from('photos').select('id').eq('event_id', eventId);
+        // Fetch photos metadata and delete B2 assets for all photos associated with this event
+        const { data: photos } = await supabase.from('photos').select('id, size, media_type, uploaded_at').eq('event_id', eventId);
+        const { data: eventData } = await supabase.from('events').select('title, created_by, created_at').eq('id', eventId).maybeSingle();
+
         if (photos && photos.length > 0) {
             console.log(`[deleteEvent] Cleaning up B2 files for ${photos.length} photos under event ${eventId}`);
             await Promise.all(photos.map(photo => deletePhoto(photo.id)));
+        }
+
+        // Record compact 1-row financial ledger entry so Backblaze byte-hours and transactions can be accurately billed
+        try {
+            const totalBytes = (photos || []).reduce((s: number, p: any) => s + (Number(p.size) || 0), 0);
+            const photosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() !== 'video').length;
+            const videosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() === 'video').length;
+            const earliestUpload = photos && photos.length > 0
+                ? photos.map((p: any) => p.uploaded_at).filter(Boolean).sort()[0]
+                : null;
+            const eventCreatedAt = eventData?.created_at || earliestUpload || new Date().toISOString();
+
+            const ledgerPayload: Record<string, any> = {
+                event_id: eventId,
+                user_id: eventData?.created_by || null,
+                event_title: eventData?.title || 'Untitled Gallery',
+                photos_count: photosCount,
+                videos_count: videosCount,
+                total_bytes: totalBytes,
+                estimated_modal_cost_inr: 0,
+                deleted_by: 'user_mobile',
+                event_created_at: eventCreatedAt,
+            };
+
+            const { error: insErr } = await supabase.from('deleted_events_archive').insert(ledgerPayload);
+            if (insErr) {
+                delete ledgerPayload.event_created_at;
+                await supabase.from('deleted_events_archive').insert(ledgerPayload);
+            }
+        } catch (archiveErr) {
+            console.warn('[deleteEvent] Could not record deletion ledger (non-blocking):', archiveErr);
         }
 
         const { error } = await supabase.from('events').delete().eq('id', eventId);
@@ -2575,5 +2829,5 @@ export const getBusinessTypeColor = (type: string) => {
   if (match) {
     return BUSINESS_TYPE_COLORS[match];
   }
-  return { bg: 'rgba(212, 175, 55, 0.12)', border: 'rgba(212, 175, 55, 0.25)', text: '#d4af37' };
+  return { bg: 'rgba(202, 156, 104, 0.12)', border: 'rgba(202, 156, 104, 0.25)', text: '#CA9C68' };
 };

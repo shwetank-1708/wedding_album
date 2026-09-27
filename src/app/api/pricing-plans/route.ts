@@ -31,7 +31,7 @@ export async function GET() {
         source: "default",
         error: "Backend API URL is not configured.",
       },
-      { status: 503, headers: corsHeaders() },
+      { headers: corsHeaders() },
     );
   }
 
@@ -40,14 +40,20 @@ export async function GET() {
       method: "GET",
       cache: "no-store",
     });
-    const payload = await backendResponse.json().catch(() => ({
-      plans: defaultPricingPlans,
-      source: "default",
-      error: "Unexpected backend response.",
-    }));
+    const payload = await backendResponse.json().catch(() => null);
+
+    if (!backendResponse.ok || !payload || !Array.isArray(payload.plans)) {
+      return NextResponse.json(
+        {
+          plans: defaultPricingPlans,
+          source: "default",
+          error: `Backend pricing request failed with status ${backendResponse.status}.`,
+        },
+        { headers: corsHeaders() },
+      );
+    }
 
     return NextResponse.json(payload, {
-      status: backendResponse.status,
       headers: corsHeaders(),
     });
   } catch (error) {
@@ -58,7 +64,7 @@ export async function GET() {
         source: "default",
         error: "Unable to reach backend API.",
       },
-      { status: 502, headers: corsHeaders() },
+      { headers: corsHeaders() },
     );
   }
 }

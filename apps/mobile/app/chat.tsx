@@ -235,7 +235,7 @@ export default function ChatScreen() {
       {/* ── MESSAGES LIST ── */}
       {loading ? (
         <View style={[styles.container, styles.center]}>
-          <ActivityIndicator size="large" color="#d4af37" />
+          <ActivityIndicator size="large" color="#CA9C68" />
         </View>
       ) : (
         <FlatList
@@ -283,7 +283,7 @@ export default function ChatScreen() {
               disabled={!inputText.trim()}
               activeOpacity={0.8}
             >
-              <IconSymbol name="paperplane.fill" size={16} color="#050505" />
+              <IconSymbol name="paperplane.fill" size={16} color="#13191F" />
             </TouchableOpacity>
           </View>
         )}
@@ -295,7 +295,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
   },
   center: {
     justifyContent: 'center',
@@ -371,11 +371,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   myBubble: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     borderBottomRightRadius: 4,
   },
   otherBubble: {
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.03)',
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   myText: {
-    color: '#050505',
+    color: '#13191F',
   },
   otherText: {
     color: '#ffffff',
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   myTime: {
-    color: 'rgba(2, 6, 23, 0.5)',
+    color: 'rgba(19, 25, 31, 0.5)',
   },
   otherTime: {
     color: '#64748b',
@@ -409,12 +409,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',
-    backgroundColor: '#050505',
+    backgroundColor: '#13191F',
     gap: 12,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#d4af37',
+    backgroundColor: '#CA9C68',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -467,10 +467,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',
-    backgroundColor: '#101010',
+    backgroundColor: '#1B211F',
   },
   blockedText: {
-    color: '#94a3b8',
+    color: '#CDB89E',
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
     textAlign: 'center',

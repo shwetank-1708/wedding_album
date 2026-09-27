@@ -32,7 +32,7 @@ export function TemplatePop({ event, children }: TemplatePopProps) {
                     box-shadow: 16px 16px 0px 0px #111111 !important;
                 }
                 .pop-art-gallery-override a h3 {
-                    font-family: sans-serif !important;
+                    font-family: var(--font-inter), Helvetica, Arial, sans-serif !important;
                     font-weight: 950 !important;
                     text-transform: uppercase !important;
                     letter-spacing: -0.05em !important;
@@ -69,7 +69,7 @@ export function TemplatePop({ event, children }: TemplatePopProps) {
 
                 /* 3. Section Headers & Text styling inside children */
                 .pop-art-gallery-override h2 {
-                    font-family: sans-serif !important;
+                    font-family: var(--font-inter), Helvetica, Arial, sans-serif !important;
                     font-weight: 950 !important;
                     text-transform: uppercase !important;
                     letter-spacing: -0.03em !important;
@@ -88,15 +88,7 @@ export function TemplatePop({ event, children }: TemplatePopProps) {
             <div className="fixed top-36 left-[-2rem] w-32 h-32 border-8 border-black bg-[#0080ff] rounded-full opacity-20 pointer-events-none -rotate-12 z-0" />
             <div className="fixed bottom-40 right-[-3rem] w-40 h-40 border-8 border-black bg-[#ef2b3a] pointer-events-none rotate-45 transform opacity-20 z-0" />
 
-            {/* Fixed Navigation/Date Stub */}
-            <header className="fixed top-0 inset-x-0 z-50 p-6 flex justify-center pointer-events-none">
-                <div className="pointer-events-auto bg-[#fffdf3] border-4 border-black px-6 py-2.5 rounded-full shadow-[4px_4px_0px_0px_#111111] flex items-center gap-3">
-                    <span className="w-3 h-3 rounded-full bg-[#ef2b3a] animate-pulse border-2 border-black" />
-                    <span className="font-sans font-black text-xs md:text-sm uppercase tracking-wider text-[#111111]">
-                        {event.date || "PARTY TIME"}
-                    </span>
-                </div>
-            </header>
+
 
             {/* Hero Main Content */}
             <main className="pt-36 pb-20 px-4 max-w-6xl mx-auto flex flex-col items-center justify-center text-center relative z-10">

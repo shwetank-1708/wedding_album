@@ -21,13 +21,6 @@ export function TemplateClassic({ event, children }: TemplateClassicProps) {
 
     return (
         <div className="min-h-screen bg-[#f8f5f2] text-slate-800 font-sans selection:bg-rose-200">
-            {/* Header / Navigation Placeholder */}
-            <header className="fixed top-0 inset-x-0 z-50 p-6 flex justify-center mix-blend-multiply pointer-events-none">
-                <div className="text-xl tracking-widest uppercase font-serif border-b border-slate-800 pb-1 pointer-events-auto bg-[#f8f5f2]/80 backdrop-blur-sm px-4 rounded-full">
-                    {event.date || "Save the Date"}
-                </div>
-            </header>
-
             {/* Main Content */}
             <main className="pt-32 pb-20 px-4 max-w-4xl mx-auto text-center min-h-screen flex flex-col justify-center">
 

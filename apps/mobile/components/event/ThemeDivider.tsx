@@ -20,9 +20,9 @@ export function ThemeDivider({ selectedTemplate, styles }: ThemeDividerProps) {
   if (selectedTemplate.id === 'classic') {
     return (
       <View style={styles.classicDividerContainer}>
-        <View style={[styles.classicDividerLine, { backgroundColor: 'rgba(212, 175, 55, 0.25)' }]} />
-        <Text style={[styles.classicDividerDot, { color: '#cca43b' }]}>✦</Text>
-        <View style={[styles.classicDividerLine, { backgroundColor: 'rgba(212, 175, 55, 0.25)' }]} />
+        <View style={[styles.classicDividerLine, { backgroundColor: selectedTemplate.accent ? `${selectedTemplate.accent}40` : 'rgba(139, 154, 110, 0.25)' }]} />
+        <Text style={[styles.classicDividerDot, { color: selectedTemplate.accent || '#8B9A6E' }]}>✦</Text>
+        <View style={[styles.classicDividerLine, { backgroundColor: selectedTemplate.accent ? `${selectedTemplate.accent}40` : 'rgba(139, 154, 110, 0.25)' }]} />
       </View>
     );
   }
