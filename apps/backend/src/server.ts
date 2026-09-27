@@ -15,6 +15,7 @@ import { paymentsRouter } from "./routes/payments.js";
 import { tenantAuthRouter } from "./routes/tenantAuth.js";
 import { permissionsRouter } from "./routes/permissions.js";
 import { runMediaWatchdog } from "./services/watchdog.js";
+import { startWatchdogScheduler } from "./services/watchdogScheduler.js";
 
 // ── Process-Level Crash Protection ──────────────────────────────────────────
 // Prevent unhandled promise rejections from crashing the process (Node 16+)
@@ -142,24 +143,14 @@ const safeRunWatchdog = async (context: string) => {
   }
 };
 
-// Start background self-healing watchdog (runs every 10 minutes)
-const WATCHDOG_INTERVAL_MS = 10 * 60 * 1000;
-const watchdogInterval = setInterval(() => {
-  safeRunWatchdog("Background").catch(() => {});
-}, WATCHDOG_INTERVAL_MS);
-
-// Also run once 30 seconds after server startup
-const startupWatchdogTimeout = setTimeout(() => {
-  safeRunWatchdog("Startup").catch(() => {});
-}, 30 * 1000);
+const stopWatchdogScheduler = startWatchdogScheduler(safeRunWatchdog);
 
 function handleShutdown(signal: string) {
   if (isShuttingDown) return;
   isShuttingDown = true;
   console.log(`[EveBashBackend] Received ${signal}. Starting graceful shutdown...`);
 
-  clearInterval(watchdogInterval);
-  clearTimeout(startupWatchdogTimeout);
+  stopWatchdogScheduler();
 
   // Stop accepting new connections
   server.close(() => {
@@ -176,5 +167,4 @@ function handleShutdown(signal: string) {
 
 process.on("SIGTERM", () => handleShutdown("SIGTERM"));
 process.on("SIGINT", () => handleShutdown("SIGINT"));
-
 

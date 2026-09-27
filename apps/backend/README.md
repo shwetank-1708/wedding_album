@@ -65,3 +65,14 @@ Authorization: Bearer <CRON_SECRET>
 The endpoint applies all plan changes whose `pending_plan_effective_at` time has
 arrived. Use a long random `CRON_SECRET` and store it only in Railway and the
 scheduler.
+# Automatic media watchdog
+
+`MEDIA_WATCHDOG_ENABLED=false` disables the startup and periodic media recovery/cleanup runs.
+When absent or set to `true`, existing behavior is preserved: one run after 30 seconds,
+then every 10 minutes. Normal uploads and processing are unaffected. The authenticated
+manual `/api/media/watchdog/run` endpoint remains available; disable any external schedules
+calling it separately if this service must not perform recovery/cleanup.
+
+While staging and production share Supabase/B2, leave staging enabled and set this variable
+to `false` in production after deploying code that supports it. This does not isolate data
+or stop ordinary requests from modifying shared resources.
