@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/apiBase";
 import {
     createUserProfile,
     getAllowedUser,
@@ -382,14 +383,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signup = async (email: string, password: string, name: string): Promise<{success: boolean, error?: string, needsEmailVerification?: boolean}> => {
         try {
+            const normalizedEmail = email.trim().toLowerCase();
+            const existingAccountMessage = "An account with this email already exists. Please sign in, continue with Google, or use Forgot Password.";
+            const check = await fetch(getApiUrl("/api/v1/signup/check-email"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: normalizedEmail }),
+                signal: AbortSignal.timeout(15000),
+            });
+            const result = await check.json();
+            if (!check.ok || typeof result.exists !== "boolean") {
+                return { success: false, error: result.error || "Unable to check your email right now. Please try again later." };
+            }
+            if (result.exists) return { success: false, error: existingAccountMessage };
             const { data, error } = await supabase.auth.signUp({
-                email,
+                email: normalizedEmail,
                 password,
                 options: {
                     data: { name },
                 },
             });
             if (error) throw error;
+            // Handle an account created between the check and signup as well.
+            if (data.user?.identities?.length === 0) {
+                return { success: false, error: existingAccountMessage };
+            }
             if (data.user && data.session === null) {
                 await supabase.auth.signOut();
                 return { success: true, needsEmailVerification: true };

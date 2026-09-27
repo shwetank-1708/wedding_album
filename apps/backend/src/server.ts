@@ -16,6 +16,7 @@ import { tenantAuthRouter } from "./routes/tenantAuth.js";
 import { permissionsRouter } from "./routes/permissions.js";
 import { runMediaWatchdog } from "./services/watchdog.js";
 import { startWatchdogScheduler } from "./services/watchdogScheduler.js";
+import { createSignupRouter } from "./routes/signup.js";
 
 // ── Process-Level Crash Protection ──────────────────────────────────────────
 // Prevent unhandled promise rejections from crashing the process (Node 16+)
@@ -93,6 +94,7 @@ app.use("/api/create-order", paymentsRouter);
 app.use("/api/verify-payment", paymentsRouter);
 app.use("/api/v1/tenant-auth", tenantAuthRouter);
 app.use("/api/v1/permissions", permissionsRouter);
+app.use("/api/v1/signup", createSignupRouter());
 
 app.use((_request, response) => {
   response.status(404).json({ success: false, error: "Route not found." });
@@ -167,4 +169,3 @@ function handleShutdown(signal: string) {
 
 process.on("SIGTERM", () => handleShutdown("SIGTERM"));
 process.on("SIGINT", () => handleShutdown("SIGINT"));
-

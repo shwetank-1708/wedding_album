@@ -76,3 +76,18 @@ calling it separately if this service must not perform recovery/cleanup.
 While staging and production share Supabase/B2, leave staging enabled and set this variable
 to `false` in production after deploying code that supports it. This does not isolate data
 or stop ordinary requests from modifying shared resources.
+
+## Email signup checks
+
+`POST /api/v1/signup/check-email` accepts `{ "email": "user@example.com" }` and
+returns only `{ "exists": boolean }`. It checks the paginated Supabase Auth
+directory, including Google-only and unconfirmed accounts, rather than `profiles`.
+The service-role key remains on the backend. Lookup failures return 503 and the
+web signup stops instead of claiming a confirmation email was sent.
+
+Deploy the backend endpoint before the frontend that calls it. No migration or
+new credentials are required. Google OAuth continues using its existing flow.
+The public existence response intentionally reveals account registration status.
+A conservative, in-memory budget of 60 checks per 15 minutes per backend process
+limits directory scans regardless of proxy headers. At larger user/traffic volumes,
+replace scans with a restricted indexed Auth lookup and use a shared rate-limit store.
