@@ -640,10 +640,16 @@ async function flushMetadataBatchesInternal(): Promise<void> {
         );
       }
 
+      if (!response) {
+        throw new Error('Network error: unable to reach metadata sync endpoints');
+      }
+
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(result.error || `Failed to save metadata batch (status: ${response.status})`);
       }
+
+      console.log(`[UploadQueue] Metadata batch response for event ${eventId}:`, JSON.stringify(result));
 
       // Inspect per-item results
       const resultsMap = new Map<string, { status: string; error?: string }>();
@@ -665,21 +671,40 @@ async function flushMetadataBatchesInternal(): Promise<void> {
             target.error = undefined;
             void cleanupDurableFile(target.fileUri);
           } else if (itemResult.status === 'not_uploaded') {
-            target.status = 'pending';
-            target.progress = 0;
-            target.error = itemResult.error || 'Server did not find B2 file';
+            const retries = (target.retryCount || 0) + 1;
+            if (retries < MAX_UPLOAD_RETRIES) {
+              target.status = 'pending';
+              target.retryCount = retries;
+              target.progress = 0;
+              target.error = itemResult.error || 'Server did not find B2 file, retrying';
+            } else {
+              target.status = 'failed';
+              target.error = itemResult.error || 'File failed to verify on server';
+            }
           } else if (itemResult.status === 'rejected') {
             target.status = 'failed';
             target.error = itemResult.error || 'Rejected by server';
           }
         }
       });
-    } catch (batchErr) {
+    } catch (batchErr: any) {
       console.warn(`[UploadQueue] Error flushing metadata batch for event ${eventId}:`, batchErr);
+      await mutateQueue(q => {
+        for (const item of items) {
+          const target = q.find(i => i.id === item.id);
+          if (!target) continue;
+          const retries = (target.retryCount || 0) + 1;
+          if (retries >= MAX_UPLOAD_RETRIES) {
+            target.status = 'failed';
+            target.error = batchErr?.message || 'Metadata sync failed';
+          }
+        }
+      });
     }
   }
 
   void updateProgressNotification();
+  processQueue();
 }
 
 // ── 7. Concurrent Queue Dispatcher ──────────────────────────────────────────

@@ -1240,18 +1240,27 @@ mediaRouter.post("/mobile/save-photo-batch", asyncRoute(async (request, response
 
     if (!eventIdForNotification) eventIdForNotification = eventId;
 
-    // Verify remote file existence in B2
-    const b2Check = await checkB2FileExists(backblazeAuth, bucketId, storageKey);
-    if (!b2Check.exists) {
-      results.push({ clientUploadId, status: "not_uploaded", error: "File not present in B2 storage" });
+    // Validate storageKey belongs to this event
+    if (!storageKey.startsWith(`events/${eventId}/`)) {
+      results.push({ clientUploadId, status: "rejected", error: "Invalid storage key prefix for event" });
       continue;
+    }
+
+    let effectiveSize = fileSize;
+    try {
+      const b2Check = await checkB2FileExists(backblazeAuth, bucketId, storageKey);
+      if (b2Check.exists && b2Check.contentLength) {
+        effectiveSize = b2Check.contentLength;
+      }
+    } catch {
+      // Non-blocking check
     }
 
     const { row, url, photoId, isVideo } = toPhotoRow({
       storageKey,
       eventId,
       fileName,
-      fileSize: b2Check.contentLength || fileSize,
+      fileSize: effectiveSize,
       userId,
       resourceType: photo.resourceType,
       duration,

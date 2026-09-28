@@ -1769,7 +1769,9 @@ export default function EventDetailScreen() {
       const filtered = items.filter(item => item.eventId === currentActiveId);
       setUploadQueue(filtered);
 
-      const activeItems = filtered.filter(i => i.status === 'uploading' || i.status === 'pending');
+      const activeItems = filtered.filter(
+        i => i.status === 'uploading' || i.status === 'pending' || i.status === 'uploaded_pending_metadata' || i.status === 'upload_needs_reconciliation'
+      );
       const completedItems = filtered.filter(i => i.status === 'completed');
       const failedItems = filtered.filter(i => i.status === 'failed');
 
