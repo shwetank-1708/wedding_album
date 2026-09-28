@@ -787,21 +787,49 @@ async function updateUserPlanDates(
   if (error) throw error;
 }
 
-async function deleteUser(
+export async function deleteUserAccount(
   supabaseAdmin: ReturnType<typeof getAdminClient>,
-  payload: Record<string, unknown>
+  uid: string
 ) {
-  const uid = String(payload.uid || "");
   if (!uid) {
     throw new Error("User id is required");
   }
 
   await resetUserData(supabaseAdmin, { uid });
 
-  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(uid);
-  if (authError) {
-    console.warn("[admin/control] Auth deletion warning:", authError.message);
+  const { error: likesError } = await supabaseAdmin.from("likes").delete().eq("user_id", uid);
+  if (likesError) throw likesError;
+
+  const { error: commentsError } = await supabaseAdmin.from("comments").delete().eq("user_id", uid);
+  if (commentsError) throw commentsError;
+
+  const { error: authoredRatingsError } = await supabaseAdmin.from("business_ratings").delete().eq("user_id", uid);
+  if (authoredRatingsError) throw authoredRatingsError;
+
+  const { data: ownedBusinesses, error: ownedBusinessesError } = await supabaseAdmin
+    .from("businesses")
+    .select("id")
+    .eq("created_by", uid);
+  if (ownedBusinessesError) throw ownedBusinessesError;
+
+  const ownedBusinessIds = (ownedBusinesses || []).map(business => business.id).filter(Boolean);
+  for (const chunk of chunkArray(ownedBusinessIds, 100)) {
+    const { error: businessRatingsError } = await supabaseAdmin
+      .from("business_ratings")
+      .delete()
+      .in("business_id", chunk);
+    if (businessRatingsError) throw businessRatingsError;
+
+    const { error: businessesError } = await supabaseAdmin.from("businesses").delete().in("id", chunk);
+    if (businessesError) throw businessesError;
   }
+
+  const auth = await getCachedBackblazeAuth();
+  const bucketId = requireEnv("B2_BUCKET_ID");
+  await deleteB2File(auth, bucketId, `profiles/${uid}/profile_pic.jpg`);
+
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(uid);
+  if (authError) throw authError;
 
   const { error: assignmentsError } = await supabaseAdmin
     .from("profile_assigned_events")
@@ -1417,7 +1445,7 @@ adminRouter.post("/", async (request: Request, response: ExpressResponse) => {
         return jsonResponse(response, { success: true, ...result });
       }
       case "deleteUser": {
-        await deleteUser(supabaseAdmin, payload);
+        await deleteUserAccount(supabaseAdmin, String(payload.uid || ""));
         return jsonResponse(response, { success: true });
       }
       case "deleteEvent": {

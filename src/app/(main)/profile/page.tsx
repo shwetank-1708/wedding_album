@@ -18,6 +18,7 @@ import {
     Pencil,
     Phone,
     Sparkles,
+    Trash2,
     Upload,
     User,
     Users,
@@ -160,6 +161,10 @@ export default function ProfilePage() {
     const [removingImage, setRemovingImage] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
     const [updatingPrivacy, setUpdatingPrivacy] = useState(false);
+    const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState("");
+    const [deletingAccount, setDeletingAccount] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -372,6 +377,34 @@ export default function ProfilePage() {
             setSaveError("Failed to remove profile photo.");
         } finally {
             setRemovingImage(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmation !== "DELETE" || deletingAccount) return;
+
+        setDeletingAccount(true);
+        setDeleteError("");
+        try {
+            const { data } = await supabase.auth.getSession();
+            const accessToken = data.session?.access_token;
+            if (!accessToken) throw new Error("Please sign in again before deleting your account.");
+
+            const response = await fetch(getApiUrl("/api/v1/account"), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ confirmation: deleteConfirmation }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Failed to delete your account.");
+
+            await logout();
+        } catch (error) {
+            setDeleteError(error instanceof Error ? error.message : "Failed to delete your account.");
+            setDeletingAccount(false);
         }
     };
 
@@ -626,6 +659,21 @@ export default function ProfilePage() {
                                 <LogOut className="h-4 w-4" />
                                 Sign Out
                             </button>
+
+                            <section className="rounded-3xl border border-rose-500/25 bg-rose-950/20 p-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-300">
+                                        <Trash2 className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-black text-white">Delete Account</h2>
+                                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Permanently removes your profile, hosted events, and uploaded media.</p>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={() => setShowDeleteAccount(true)} className="mt-4 w-full rounded-2xl border border-rose-500/35 px-4 py-3 text-sm font-black text-rose-300 transition hover:bg-rose-500/10">
+                                    Delete Account
+                                </button>
+                            </section>
                         </aside>
                     </div>
                 </section>
@@ -636,6 +684,35 @@ export default function ProfilePage() {
                     </div>
                 )}
             </main>
+
+            {showDeleteAccount && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 py-8" onMouseDown={() => !deletingAccount && setShowDeleteAccount(false)}>
+                    <div className="w-full max-w-md rounded-3xl border border-rose-500/30 bg-slate-950 p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-rose-300">Permanent action</p>
+                                <h2 className="mt-2 text-2xl font-black text-white">Delete your account?</h2>
+                            </div>
+                            <button type="button" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)} className="grid h-10 w-10 place-items-center rounded-full bg-slate-900 text-slate-300 disabled:opacity-50" aria-label="Close">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <p className="mt-4 text-sm font-semibold leading-6 text-slate-400">This permanently removes your profile, hosted events, uploaded photos and videos, comments, and likes. This cannot be undone.</p>
+                        <label className="mt-5 block text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                            Type DELETE to confirm
+                            <input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} disabled={deletingAccount} autoComplete="off" className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-base font-black text-white outline-none focus:border-rose-400" />
+                        </label>
+                        {deleteError && <p className="mt-3 text-sm font-bold text-rose-300">{deleteError}</p>}
+                        <div className="mt-6 flex gap-3">
+                            <button type="button" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)} className="flex-1 rounded-2xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-300 disabled:opacity-50">Cancel</button>
+                            <button type="button" disabled={deleteConfirmation !== "DELETE" || deletingAccount} onClick={handleDeleteAccount} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+                                {deletingAccount && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Delete permanently
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isEditing && (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm" onMouseDown={() => !saving && setIsEditing(false)}>

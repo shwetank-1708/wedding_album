@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -58,6 +58,8 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackCategory, setFeedbackCategory] = useState<'Bug' | 'Suggestion' | 'Other'>('Bug');
@@ -232,23 +234,36 @@ export default function SettingsScreen() {
 
   // Delete Account Handler
   const handleDeleteAccount = async () => {
-    if (!user?.uid) return;
-    
+    if (deleteConfirmation !== 'DELETE' || deletingAccount) return;
+
+    setDeletingAccount(true);
     try {
-      await updateUserProfile(user.uid, { discoverable: false });
-      
-      await supabase.from('profiles').update({
-        role: 'deleted',
-        email: null,
-        phone: null,
-      }).eq('id', user.uid);
-      
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) throw new Error('Please sign in again before deleting your account.');
+
+      const apiBaseUrl = (process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+      const response = await fetch(`${apiBaseUrl}/api/v1/account`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ confirmation: deleteConfirmation }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to delete account.');
+
       await logout();
-      Alert.alert('Account Deleted', 'Your EveBash account has been deleted permanently.');
       setDeleteModalVisible(false);
-    } catch (error: any) {
+      setDeleteConfirmation('');
+      Alert.alert('Account Deleted', 'Your EveBash account has been deleted permanently.');
+      router.replace('/login');
+    } catch (error: unknown) {
       console.error('Account deletion error:', error);
-      Alert.alert('Error', error?.message || 'Failed to delete account.');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete account.');
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -680,20 +695,36 @@ export default function SettingsScreen() {
               <Text style={styles.modalWarningText}>
                 Warning: This action is irreversible. All of your hosted event albums, photos shared, uploaded media, and profile details will be permanently wiped from EveBash databases.
               </Text>
+              <Text style={[styles.inputLabel, { marginTop: 18 }]}>Type DELETE to confirm</Text>
+              <TextInput
+                style={styles.textInput}
+                value={deleteConfirmation}
+                onChangeText={setDeleteConfirmation}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!deletingAccount}
+                placeholder="DELETE"
+                placeholderTextColor="#64748b"
+              />
             </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setDeleteModalVisible(false)}
+                onPress={() => {
+                  setDeleteModalVisible(false);
+                  setDeleteConfirmation('');
+                }}
+                disabled={deletingAccount}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, { backgroundColor: '#ef4444' }]}
+                style={[styles.saveBtn, { backgroundColor: '#ef4444', opacity: deleteConfirmation === 'DELETE' && !deletingAccount ? 1 : 0.45 }]}
                 onPress={handleDeleteAccount}
+                disabled={deleteConfirmation !== 'DELETE' || deletingAccount}
               >
-                <Text style={[styles.saveBtnText, { color: '#fff' }]}>Delete Permanently</Text>
+                {deletingAccount ? <ActivityIndicator size="small" color="#fff" /> : <Text style={[styles.saveBtnText, { color: '#fff' }]}>Delete Permanently</Text>}
               </TouchableOpacity>
             </View>
           </View>

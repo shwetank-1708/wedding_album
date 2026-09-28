@@ -17,6 +17,7 @@ import { permissionsRouter } from "./routes/permissions.js";
 import { runMediaWatchdog } from "./services/watchdog.js";
 import { startWatchdogScheduler } from "./services/watchdogScheduler.js";
 import { createSignupRouter } from "./routes/signup.js";
+import { accountRouter } from "./routes/account.js";
 
 // ── Process-Level Crash Protection ──────────────────────────────────────────
 // Prevent unhandled promise rejections from crashing the process (Node 16+)
@@ -95,6 +96,7 @@ app.use("/api/verify-payment", paymentsRouter);
 app.use("/api/v1/tenant-auth", tenantAuthRouter);
 app.use("/api/v1/permissions", permissionsRouter);
 app.use("/api/v1/signup", createSignupRouter());
+app.use("/api/v1/account", accountRouter);
 
 app.use((_request, response) => {
   response.status(404).json({ success: false, error: "Route not found." });
