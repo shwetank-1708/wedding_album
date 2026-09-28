@@ -55,20 +55,22 @@ def verify_qstash_signature(body: bytes, signature: str, url: str) -> bool:
     import json
     import time
 
-    current_key = os.environ.get("QSTASH_CURRENT_SIGNING_KEY")
-    next_key = os.environ.get("QSTASH_NEXT_SIGNING_KEY")
+    current_key = (os.environ.get("QSTASH_CURRENT_SIGNING_KEY") or "").strip().strip("\"'")
+    next_key = (os.environ.get("QSTASH_NEXT_SIGNING_KEY") or "").strip().strip("\"'")
 
     if not current_key and not next_key:
         print("[QStash Auth] Notice: No QStash signing keys configured in env. Skipping signature check.")
         return True
 
     if not signature:
+        print("[QStash Auth] Missing Upstash-Signature header.")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail="Missing Upstash-Signature header")
         raise RuntimeError("Missing Upstash-Signature header")
 
     parts = signature.strip().split(".")
     if len(parts) != 3:
+        print("[QStash Auth] Invalid Upstash-Signature JWT format.")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail="Invalid Upstash-Signature JWT format")
         raise RuntimeError("Invalid Upstash-Signature JWT format")
@@ -77,7 +79,10 @@ def verify_qstash_signature(body: bytes, signature: str, url: str) -> bool:
         rem = len(s) % 4
         if rem > 0:
             s += "=" * (4 - rem)
-        return base64.urlsafe_b64decode(s)
+        try:
+            return base64.urlsafe_b64decode(s)
+        except Exception:
+            return base64.b64decode(s)
 
     signed_content = f"{parts[0]}.{parts[1]}".encode("utf-8")
     provided_sig = b64url_decode(parts[2])
@@ -92,6 +97,7 @@ def verify_qstash_signature(body: bytes, signature: str, url: str) -> bool:
             break
 
     if not verified:
+        print("[QStash Auth] HMAC signature verification failed.")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature verification failed")
         raise RuntimeError("Upstash-Signature verification failed")
@@ -100,27 +106,47 @@ def verify_qstash_signature(body: bytes, signature: str, url: str) -> bool:
     try:
         claims = json.loads(b64url_decode(parts[1]).decode("utf-8"))
     except Exception as e:
+        print(f"[QStash Auth] Invalid JWT claims: {e}")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail=f"Invalid JWT claims: {e}")
         raise RuntimeError(f"Invalid JWT claims: {e}")
 
     now = int(time.time())
     if "exp" in claims and claims["exp"] < now - 60:
+        print("[QStash Auth] Upstash-Signature expired.")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature expired")
         raise RuntimeError("Upstash-Signature expired")
 
     if "nbf" in claims and claims["nbf"] > now + 300:
+        print("[QStash Auth] Upstash-Signature not yet valid.")
         if fastapi:
             raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature not yet valid")
         raise RuntimeError("Upstash-Signature not yet valid")
 
     # Validate body hash
-    body_hash = hashlib.sha256(body).hexdigest()
-    if claims.get("body") and claims["body"] != body_hash:
-        if fastapi:
-            raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature body hash mismatch")
-        raise RuntimeError("Upstash-Signature body hash mismatch")
+    # QStash sends SHA-256 hash encoded as Base64 (or b64url) in claims["body"]
+    body_bytes = body if isinstance(body, bytes) else str(body).encode("utf-8")
+    raw_digest = hashlib.sha256(body_bytes).digest()
+    body_hash_b64 = base64.b64encode(raw_digest).decode("utf-8")
+    body_hash_b64url = base64.urlsafe_b64encode(raw_digest).decode("utf-8").rstrip("=")
+    body_hash_hex = hashlib.sha256(body_bytes).hexdigest()
+
+    claim_body = claims.get("body")
+    if claim_body:
+        normalized_claim = claim_body.rstrip("=")
+        valid_hashes = {
+            body_hash_b64,
+            body_hash_b64url,
+            body_hash_hex,
+            body_hash_b64.rstrip("="),
+            body_hash_b64url.rstrip("=")
+        }
+        if claim_body not in valid_hashes and normalized_claim not in valid_hashes:
+            print(f"[QStash Auth] Body hash mismatch: claim={claim_body}, expected_b64={body_hash_b64}")
+            if fastapi:
+                raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature body hash mismatch")
+            raise RuntimeError("Upstash-Signature body hash mismatch")
 
     return True
 
