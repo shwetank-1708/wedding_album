@@ -586,6 +586,7 @@ async function flushMetadataBatchesInternal(): Promise<void> {
       const photosPayload = items.map(item => ({
         clientUploadId: item.id,
         storageKey: item.storageKey,
+        eventId: item.eventId || eventId,
         fileName: item.fileName,
         fileSize: item.fileSize,
         resourceType: item.mediaType === 'video' ? 'video' : 'image',

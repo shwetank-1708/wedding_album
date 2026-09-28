@@ -1225,10 +1225,18 @@ mediaRouter.post("/mobile/save-photo-batch", asyncRoute(async (request, response
   const completedIntentIds: string[] = [];
   let eventIdForNotification = "";
 
+  const rootEventId = String(request.body?.eventId || "");
+
   for (const photo of photos) {
     const clientUploadId = String(photo.clientUploadId || "");
     const storageKey = String(photo.storageKey || "");
-    const eventId = String(photo.eventId || "");
+    let eventId = String(photo.eventId || rootEventId || "");
+    if (!eventId && storageKey.startsWith("events/")) {
+      const parts = storageKey.split("/");
+      if (parts.length > 1 && parts[1]) {
+        eventId = parts[1];
+      }
+    }
     const fileName = String(photo.fileName || "");
     const fileSize = Number(photo.fileSize || 0);
     const duration = Number(photo.duration || 0);

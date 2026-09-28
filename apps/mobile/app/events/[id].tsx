@@ -2543,6 +2543,7 @@ export default function EventDetailScreen() {
     // Calculate progress percentage
     const progressSum = uploadQueue.reduce((sum, item) => {
       if (item.status === 'completed') return sum + 100;
+      if (item.status === 'failed') return sum;
       return sum + item.progress;
     }, 0);
     const overallPercent = total > 0 ? progressSum / (total * 100) * 100 : 0;
