@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { updateUserProfile } from './database';
 import { supabase } from './supabase';
 
 let Notifications: any = null;
@@ -12,7 +11,8 @@ if (!isExpoGo && Platform.OS !== 'web') {
     if (Notifications) {
       Notifications.setNotificationHandler({
         handleNotification: async () => ({
-          shouldShowAlert: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
           shouldPlaySound: true,
           shouldSetBadge: true,
         }),
@@ -72,8 +72,9 @@ export async function registerDeviceForPushNotifications(userId: string): Promis
       });
     }
 
-    // 4. Save to User Profile in Supabase
-    const success = await updateUserProfile(userId, { pushToken: token });
+    // 4. Save to User Profile in Supabase directly without circular import
+    const { error: updateError } = await supabase.from('profiles').update({ push_token: token }).eq('id', userId);
+    const success = !updateError;
     if (success) {
       console.log('[Notifications] Device push token successfully registered in database.');
     } else {

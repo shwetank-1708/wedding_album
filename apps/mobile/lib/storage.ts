@@ -26,8 +26,14 @@ export function getEndpointsForPath(path: string) {
 
     const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
     if (apiBaseUrl) {
-        endpoints.push(joinUrl(apiBaseUrl, path));
+        // Map stale Railway domain to active live domain if present
+        const normalized = apiBaseUrl.replace("evebash-production.up.railway.app", "api-staging.evebash.com");
+        endpoints.push(joinUrl(normalized, path));
     }
+
+    // Always include active production/staging Railway domains as fallback
+    endpoints.push(joinUrl("https://api-staging.evebash.com", path));
+    endpoints.push(joinUrl("https://evebash-production-0ae3.up.railway.app", path));
 
     // In development mode, allow local dev machine fallbacks
     if (__DEV__) {
