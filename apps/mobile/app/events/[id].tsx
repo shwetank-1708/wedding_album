@@ -1840,7 +1840,7 @@ export default function EventDetailScreen() {
           const data = await res.json();
           setMobileIndexingStatus(data);
           
-          const hasActiveUploads = uploadQueue.some(i => i.status === 'uploading' || i.status === 'pending');
+          const hasActiveUploads = uploadQueue.some(i => i.status === 'uploading' || i.status === 'pending' || i.status === 'uploaded_pending_metadata' || i.status === 'upload_needs_reconciliation');
           if (data.status === 'complete' && !hasActiveUploads) {
             clearInterval(pollInterval);
           }
@@ -2525,14 +2525,18 @@ export default function EventDetailScreen() {
   };
 
   const renderUploadProgressCard = () => {
-    const active = uploadQueue.filter(i => i.status === 'uploading' || i.status === 'pending');
+    const active = uploadQueue.filter(
+      i => i.status === 'uploading' || i.status === 'pending' || i.status === 'uploaded_pending_metadata' || i.status === 'upload_needs_reconciliation'
+    );
     const failed = uploadQueue.filter(i => i.status === 'failed');
 
     if (active.length === 0 && failed.length === 0) return null;
 
     const total = uploadQueue.length;
     const completed = uploadQueue.filter(i => i.status === 'completed').length;
-    const currentUploading = uploadQueue.find(i => i.status === 'uploading');
+    const currentUploading = uploadQueue.find(
+      i => i.status === 'uploading' || i.status === 'uploaded_pending_metadata' || i.status === 'upload_needs_reconciliation'
+    );
 
     // Calculate progress percentage
     const progressSum = uploadQueue.reduce((sum, item) => {
@@ -2554,9 +2558,13 @@ export default function EventDetailScreen() {
             </Text>
             {currentUploading && (
               <Text style={localStyles.progressCardSubtitle} numberOfLines={1}>
-                {currentUploading.progress >= 90
-                  ? `Processing ${currentUploading.fileName}...`
-                  : `${currentUploading.fileName} (${Math.round(currentUploading.progress)}%)`}
+                {currentUploading.status === 'uploaded_pending_metadata'
+                  ? `Finalizing ${currentUploading.fileName}...`
+                  : currentUploading.status === 'upload_needs_reconciliation'
+                    ? `Checking ${currentUploading.fileName}...`
+                    : currentUploading.progress >= 90
+                      ? `Finishing ${currentUploading.fileName}...`
+                      : `${currentUploading.fileName} (${Math.round(currentUploading.progress)}%)`}
               </Text>
             )}
             {failed.length > 0 && (

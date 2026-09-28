@@ -29,17 +29,20 @@ export function getEndpointsForPath(path: string) {
         endpoints.push(joinUrl(apiBaseUrl, path));
     }
 
-    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.developer?.hostUri;
-    const devHost = typeof hostUri === 'string' ? hostUri.split(':')[0] : '';
-    if (devHost) {
-        endpoints.push(`http://${devHost}:3000${path}`);
-    }
+    // In development mode, allow local dev machine fallbacks
+    if (__DEV__) {
+        const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.developer?.hostUri;
+        const devHost = typeof hostUri === 'string' ? hostUri.split(':')[0] : '';
+        if (devHost) {
+            endpoints.push(`http://${devHost}:3000${path}`);
+        }
 
-    if (Platform.OS === 'android') {
-        endpoints.push(`http://10.0.2.2:3000${path}`);
-    }
+        if (Platform.OS === 'android') {
+            endpoints.push(`http://10.0.2.2:3000${path}`);
+        }
 
-    endpoints.push(`http://localhost:8080${path}`);
+        endpoints.push(`http://localhost:8080${path}`);
+    }
 
     return Array.from(new Set(endpoints));
 }

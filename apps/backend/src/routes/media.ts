@@ -973,6 +973,353 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
   response.json({ success: true, processed: upsertRows.length });
 }));
 
+// ── MOBILE-SPECIFIC SECURE & DEBOUNCED MEDIA PIPELINE ─────────────────────────
+
+// Helper to check B2 file existence and size
+async function checkB2FileExists(auth: BackblazeAuth, bucketId: string, key: string): Promise<{ exists: boolean; contentLength?: number }> {
+  try {
+    const listResponse = await fetch(`${auth.apiUrl}/b2api/v3/b2_list_file_names`, {
+      method: "POST",
+      headers: {
+        Authorization: auth.authorizationToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ bucketId, startFileName: key, maxFileCount: 1, prefix: key }),
+    });
+
+    if (!listResponse.ok) return { exists: false };
+    const listData = await listResponse.json();
+    const file = listData.files?.find((item: { fileName: string; contentLength?: number }) => item.fileName === key);
+    if (!file) return { exists: false };
+    return { exists: true, contentLength: file.contentLength };
+  } catch (err) {
+    console.warn(`[MobileB2Check] Failed to check file existence for ${key}:`, err);
+    return { exists: false };
+  }
+}
+
+// Memory debounce timer map for event notifications: eventId -> NodeJS.Timeout
+const notificationTimers = new Map<string, NodeJS.Timeout>();
+
+async function flushEventNotification(eventId: string) {
+  notificationTimers.delete(eventId);
+  const supabaseAdmin = getSupabaseAdminClient();
+  try {
+    const { data: outboxItem, error } = await supabaseAdmin
+      .from("event_notifications_outbox")
+      .select("*")
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (error || !outboxItem) return;
+
+    const count = outboxItem.unsent_count || 1;
+    const uploaderUserId = outboxItem.uploader_user_id;
+
+    // Delete before sending to prevent duplicate sends
+    await supabaseAdmin
+      .from("event_notifications_outbox")
+      .delete()
+      .eq("event_id", eventId);
+
+    console.log(`[MobileOutbox] Flushing debounced notification for event ${eventId} (${count} photos)`);
+    await sendOwnerUploadNotification(
+      eventId,
+      uploaderUserId,
+      "📸 New photos uploaded",
+      `Someone added ${count} new photos to your event`,
+      { eventId }
+    );
+  } catch (err) {
+    console.error(`[MobileOutbox] Error flushing notification for event ${eventId}:`, err);
+  }
+}
+
+function debounceEventNotification(eventId: string, uploaderUserId: string, photoCount: number) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  background("MobileOutboxRecord", async () => {
+    try {
+      const { data: existing } = await supabaseAdmin
+        .from("event_notifications_outbox")
+        .select("*")
+        .eq("event_id", eventId)
+        .maybeSingle();
+
+      const now = new Date().toISOString();
+      if (!existing) {
+        await supabaseAdmin.from("event_notifications_outbox").insert({
+          event_id: eventId,
+          uploader_user_id: uploaderUserId,
+          unsent_count: photoCount,
+          first_unsent_at: now,
+          last_unsent_at: now,
+        });
+      } else {
+        const firstUnsentAt = new Date(existing.first_unsent_at).getTime();
+        const tenMinutesMs = 10 * 60 * 1000;
+        
+        await supabaseAdmin.from("event_notifications_outbox").update({
+          unsent_count: (existing.unsent_count || 0) + photoCount,
+          uploader_user_id: uploaderUserId,
+          last_unsent_at: now,
+        }).eq("event_id", eventId);
+
+        // Max wait check: if first_unsent_at is >= 10 minutes ago, flush immediately
+        if (Date.now() - firstUnsentAt >= tenMinutesMs) {
+          if (notificationTimers.has(eventId)) {
+            clearTimeout(notificationTimers.get(eventId)!);
+          }
+          await flushEventNotification(eventId);
+          return;
+        }
+      }
+
+      // Reset trailing 2-minute debounce timer
+      if (notificationTimers.has(eventId)) {
+        clearTimeout(notificationTimers.get(eventId)!);
+      }
+      const timer = setTimeout(() => {
+        void flushEventNotification(eventId);
+      }, 2 * 60 * 1000);
+      notificationTimers.set(eventId, timer);
+    } catch (err) {
+      console.warn(`[MobileOutbox] Notice on record/debounce for ${eventId}:`, err);
+    }
+  });
+}
+
+mediaRouter.post("/mobile/get-upload-url", asyncRoute(async (request, response) => {
+  const body = request.body || {};
+  const eventId = String(body.eventId || "").trim();
+  const resourceType = body.resourceType === "video" ? "video" : "image";
+  const fileName = String(body.fileName || "upload.bin");
+  const fileSize = Number(body.fileSize || 0);
+  const clientUploadId = String(body.clientUploadId || randomUUID());
+
+  if (!eventId) return jsonError(response, 400, "Missing eventId");
+
+  const userId = await getUploadUserId(request);
+  if (userId === "anonymous" && !(await validateAnonymousEvent(eventId))) {
+    return jsonError(response, 401, "Invalid event or unauthorized access");
+  }
+
+  // Deterministic storageKey including clientUploadId
+  const folder = resourceType === "video" ? "videos" : "photos";
+  const cleanName = sanitizeSegment(fileName) || `${folder.slice(0, -1)}.bin`;
+  const storageKey = `events/${sanitizeSegment(eventId)}/${folder}/${sanitizeSegment(userId)}-${sanitizeSegment(clientUploadId)}-${cleanName}`;
+
+  // Record upload intent
+  const supabaseAdmin = getSupabaseAdminClient();
+  try {
+    await supabaseAdmin.from("upload_intents").upsert({
+      client_upload_id: clientUploadId,
+      user_id: userId,
+      event_id: eventId,
+      storage_key: storageKey,
+      file_name: fileName,
+      media_type: resourceType,
+      declared_size: fileSize,
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "client_upload_id" });
+  } catch (intentErr) {
+    console.warn("[MobileMedia] upload_intents record notice:", intentErr);
+  }
+
+  const backblazeAuth = await getCachedBackblazeAuth();
+  const b2UploadData = await getCachedUploadUrl(backblazeAuth);
+
+  response.json({
+    uploadUrl: b2UploadData.uploadUrl,
+    authorizationToken: b2UploadData.authorizationToken,
+    storageKey,
+    clientUploadId,
+    mediaDomain: getMediaDomain(),
+  });
+}));
+
+mediaRouter.post("/mobile/reconcile-upload", asyncRoute(async (request, response) => {
+  const body = request.body || {};
+  const clientUploadId = String(body.clientUploadId || "").trim();
+  const storageKey = String(body.storageKey || "").trim();
+  const expectedSize = Number(body.expectedSize || 0);
+
+  if (!clientUploadId && !storageKey) {
+    return jsonError(response, 400, "Missing clientUploadId or storageKey");
+  }
+
+  const supabaseAdmin = getSupabaseAdminClient();
+  
+  // 1. Check if photo already exists in photos table
+  const photoId = storageKey ? storageKey.replace(/\//g, "_") : "";
+  if (photoId) {
+    const { data: existingPhoto } = await supabaseAdmin
+      .from("photos")
+      .select("id")
+      .eq("id", photoId)
+      .maybeSingle();
+    if (existingPhoto) {
+      response.json({ state: "completed", alreadySaved: true });
+      return;
+    }
+  }
+
+  // 2. Look up upload intent
+  let targetStorageKey = storageKey;
+  let targetSize = expectedSize;
+  if (clientUploadId) {
+    const { data: intent } = await supabaseAdmin
+      .from("upload_intents")
+      .select("*")
+      .eq("client_upload_id", clientUploadId)
+      .maybeSingle();
+
+    if (intent) {
+      targetStorageKey = intent.storage_key;
+      targetSize = Number(intent.declared_size) || targetSize;
+      if (intent.status === "completed") {
+        response.json({ state: "completed", alreadySaved: true });
+        return;
+      }
+    }
+  }
+
+  if (!targetStorageKey) {
+    response.json({ state: "not_found" });
+    return;
+  }
+
+  // 3. Check B2 remote state
+  const backblazeAuth = await getCachedBackblazeAuth();
+  const bucketId = requireEnv("B2_BUCKET_ID");
+  const b2Status = await checkB2FileExists(backblazeAuth, bucketId, targetStorageKey);
+
+  if (b2Status.exists) {
+    response.json({
+      state: "completed",
+      storageKey: targetStorageKey,
+      contentLength: b2Status.contentLength,
+      alreadySaved: false,
+    });
+    return;
+  }
+
+  response.json({ state: "not_found" });
+}));
+
+mediaRouter.post("/mobile/save-photo-batch", asyncRoute(async (request, response) => {
+  const photos = request.body?.photos;
+  if (!Array.isArray(photos) || photos.length === 0) {
+    return jsonError(response, 400, "Missing photos array");
+  }
+
+  const userId = await getUploadUserId(request);
+  const supabaseAdmin = getSupabaseAdminClient();
+  const backblazeAuth = await getCachedBackblazeAuth();
+  const bucketId = requireEnv("B2_BUCKET_ID");
+
+  const results: Array<{ clientUploadId: string; status: "saved" | "rejected" | "not_uploaded"; error?: string }> = [];
+  const upsertRows: unknown[] = [];
+  const imagePayloads: PhotoPayload[] = [];
+  const videoPayloads: Array<PhotoPayload & { fileSize?: number; duration?: number }> = [];
+  const completedIntentIds: string[] = [];
+  let eventIdForNotification = "";
+
+  for (const photo of photos) {
+    const clientUploadId = String(photo.clientUploadId || "");
+    const storageKey = String(photo.storageKey || "");
+    const eventId = String(photo.eventId || "");
+    const fileName = String(photo.fileName || "");
+    const fileSize = Number(photo.fileSize || 0);
+    const duration = Number(photo.duration || 0);
+
+    if (!storageKey || !eventId) {
+      results.push({ clientUploadId, status: "rejected", error: "Missing storageKey or eventId" });
+      continue;
+    }
+
+    if (!eventIdForNotification) eventIdForNotification = eventId;
+
+    // Verify remote file existence in B2
+    const b2Check = await checkB2FileExists(backblazeAuth, bucketId, storageKey);
+    if (!b2Check.exists) {
+      results.push({ clientUploadId, status: "not_uploaded", error: "File not present in B2 storage" });
+      continue;
+    }
+
+    const { row, url, photoId, isVideo } = toPhotoRow({
+      storageKey,
+      eventId,
+      fileName,
+      fileSize: b2Check.contentLength || fileSize,
+      userId,
+      resourceType: photo.resourceType,
+      duration,
+    });
+
+    upsertRows.push(row);
+    if (clientUploadId) completedIntentIds.push(clientUploadId);
+
+    if (isVideo && !photo.skipTranscode) {
+      videoPayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, fileSize, duration, user_id: userId });
+    } else if (!isVideo) {
+      imagePayloads.push({ id: photoId, storage_key: storageKey, event_id: eventId, url, width: null, height: null, user_id: userId, fileSize });
+    }
+
+    results.push({ clientUploadId, status: "saved" });
+  }
+
+  if (upsertRows.length > 0) {
+    const { error: dbError } = await safeUpsertPhotosBatch(supabaseAdmin, upsertRows);
+    if (dbError) {
+      return jsonError(response, 500, `Failed to save database records: ${dbError.message}`);
+    }
+
+    // Mark upload intents as completed
+    if (completedIntentIds.length > 0) {
+      background("UpdateUploadIntents", async () => {
+        await supabaseAdmin
+          .from("upload_intents")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .in("client_upload_id", completedIntentIds);
+      });
+    }
+
+    // Trigger video transcode tasks
+    if (videoPayloads.length > 0) {
+      await Promise.allSettled(
+        videoPayloads.map((video) => publishVideoTranscodeTask(video, video.fileSize))
+      );
+    }
+
+    // Trigger image previews & fast media tasks
+    if (imagePayloads.length > 0) {
+      try {
+        const outboxEntries = imagePayloads.map((img) => ({
+          photo_id: img.id,
+          job_type: "media_preview",
+          asset_version: 1,
+          status: "pending",
+        }));
+        await supabaseAdmin.from("processing_outbox").upsert(outboxEntries, { onConflict: "photo_id,job_type,asset_version" });
+      } catch (outboxErr) {
+        console.warn("[MobileSavePhotoBatch] Outbox batch upsert notice:", outboxErr);
+      }
+
+      background("MobileSavePhotoBatchFastMediaTrigger", () =>
+        Promise.allSettled(imagePayloads.map((img) => publishFastMediaTask({ ...img, asset_version: 1 })))
+      );
+    }
+
+    // Consolidated, debounced notification
+    if (eventIdForNotification) {
+      debounceEventNotification(eventIdForNotification, userId, upsertRows.length);
+    }
+  }
+
+  response.json({ success: true, processed: upsertRows.length, results });
+}));
+
 mediaRouter.post("/process-thumbnail", asyncRoute(async (request, response) => {
   const storageKey = String(request.body?.storageKey || "");
   const eventId = String(request.body?.eventId || "");
