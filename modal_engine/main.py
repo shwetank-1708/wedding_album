@@ -30,6 +30,100 @@ image = (
     )
 )
 
+# Lightweight image for Fast Media resizing (Zero AI dependencies, instant cold starts)
+media_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .apt_install("libgl1-mesa-glx", "libglib2.0-0")
+    .pip_install(
+        "fastapi[standard]",
+        "boto3",
+        "Pillow",
+        "supabase",
+        "requests",
+    )
+)
+
+def verify_qstash_signature(body: bytes, signature: str, url: str) -> bool:
+    """
+    Verifies Upstash-Signature JWT header against raw body bytes.
+    Validates HMAC-SHA256, expiration, not-before, and body SHA-256 hash.
+    Checks QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY for key rotation.
+    """
+    import hmac
+    import hashlib
+    import base64
+    import json
+    import time
+
+    current_key = os.environ.get("QSTASH_CURRENT_SIGNING_KEY")
+    next_key = os.environ.get("QSTASH_NEXT_SIGNING_KEY")
+
+    if not current_key and not next_key:
+        print("[QStash Auth] Notice: No QStash signing keys configured in env. Skipping signature check.")
+        return True
+
+    if not signature:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Missing Upstash-Signature header")
+        raise RuntimeError("Missing Upstash-Signature header")
+
+    parts = signature.strip().split(".")
+    if len(parts) != 3:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Invalid Upstash-Signature JWT format")
+        raise RuntimeError("Invalid Upstash-Signature JWT format")
+
+    def b64url_decode(s: str) -> bytes:
+        rem = len(s) % 4
+        if rem > 0:
+            s += "=" * (4 - rem)
+        return base64.urlsafe_b64decode(s)
+
+    signed_content = f"{parts[0]}.{parts[1]}".encode("utf-8")
+    provided_sig = b64url_decode(parts[2])
+
+    verified = False
+    for key in [current_key, next_key]:
+        if not key:
+            continue
+        expected_sig = hmac.new(key.encode("utf-8"), signed_content, hashlib.sha256).digest()
+        if hmac.compare_digest(provided_sig, expected_sig):
+            verified = True
+            break
+
+    if not verified:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature verification failed")
+        raise RuntimeError("Upstash-Signature verification failed")
+
+    # Validate JWT claims
+    try:
+        claims = json.loads(b64url_decode(parts[1]).decode("utf-8"))
+    except Exception as e:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail=f"Invalid JWT claims: {e}")
+        raise RuntimeError(f"Invalid JWT claims: {e}")
+
+    now = int(time.time())
+    if "exp" in claims and claims["exp"] < now - 60:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature expired")
+        raise RuntimeError("Upstash-Signature expired")
+
+    if "nbf" in claims and claims["nbf"] > now + 300:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature not yet valid")
+        raise RuntimeError("Upstash-Signature not yet valid")
+
+    # Validate body hash
+    body_hash = hashlib.sha256(body).hexdigest()
+    if claims.get("body") and claims["body"] != body_hash:
+        if fastapi:
+            raise fastapi.HTTPException(status_code=401, detail="Upstash-Signature body hash mismatch")
+        raise RuntimeError("Upstash-Signature body hash mismatch")
+
+    return True
+
 # Global model caches to persist AuraFace in memory across warm container invocations.
 _indexing_model = None
 _selfie_model = None
@@ -269,11 +363,13 @@ def process_single_photo(photo_data: dict):
             print(f"[{photo_id}] Saved {len(face_records)} face record(s) to Supabase.")
 
         # ── 7. Update photo row in Supabase ────────────────────────────────
+        photo_overhead_bytes = len(preview_bytes) + len(thumb_bytes)
         update_data = {
             "thumbnail_url": thumbnail_url,
             "preview_url": preview_url,
             "width": orig_w,
             "height": orig_h,
+            "overhead_size": photo_overhead_bytes,
             "face_indexed": True,
             "status": "processed"
         }
@@ -283,7 +379,7 @@ def process_single_photo(photo_data: dict):
             update_data.pop("status", None)
             supabase.table("photos").update(update_data).eq("id", photo_id).execute()
 
-        print(f"[{photo_id}] Updated photos table: face_indexed=True, thumbnails saved.")
+        print(f"[{photo_id}] Updated photos table: face_indexed=True, overhead_size={photo_overhead_bytes}B, thumbnails saved.")
 
         # ── 8. Log infrastructure cost ───────────────────────────────────
         duration = time.time() - start_time
@@ -341,6 +437,570 @@ def process_single_photo(photo_data: dict):
     except Exception as e:
         print(f"[{photo_id}] Error in process_single_photo: {e}")
         return {"status": "error", "photo_id": photo_id, "error": str(e)}
+
+
+# ==============================================================================
+# DECOUPLED 2-STAGE PIPELINE: STAGE 1 - FAST MEDIA PATH
+# ==============================================================================
+
+@app.function(
+    image=media_image,
+    cpu=0.5,
+    memory=768,
+    max_containers=15,
+    scaledown_window=60,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+def process_photo_preview(photo_data: dict):
+    """
+    STAGE 1: FAST MEDIA WORKER
+    Resizes raw original from B2 to 1600p preview & 480p thumbnail WebP.
+    Zero AI dependencies. Completes in seconds, immediately updating the gallery.
+    """
+    import time
+    import io
+    import uuid
+    import boto3
+    from PIL import Image, ImageOps
+    from supabase import create_client, Client
+
+    start_time = time.time()
+    photo_id = photo_data.get("id") or photo_data.get("photo_id")
+    asset_version = int(photo_data.get("asset_version") or 1)
+    storage_key = photo_data.get("storage_key") or photo_data.get("object_key")
+    event_id = photo_data.get("event_id")
+    user_id = photo_data.get("user_id")
+
+    if not photo_id or not storage_key:
+        print(f"[Preview] Missing required parameters: photo_id={photo_id}, storage_key={storage_key}")
+        return {"status": "error", "error": "Missing photo_id or storage_key"}
+
+    supabase: Client = create_client(
+        os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
+
+    token = str(uuid.uuid4())
+    claimed = supabase.rpc("claim_media_job", {
+        "p_photo_id": photo_id,
+        "p_token": token,
+        "p_asset_version": asset_version
+    }).execute()
+
+    if not claimed.data:
+        print(f"[{photo_id}] Media job already claimed or exceeded max retries. Skipping.")
+        return {"status": "skipped", "photo_id": photo_id}
+
+    try:
+        b2_client = boto3.client(
+            's3',
+            endpoint_url=f"https://{os.environ.get('B2_ENDPOINT')}",
+            aws_access_key_id=os.environ.get('B2_KEY_ID'),
+            aws_secret_access_key=os.environ.get('B2_APPLICATION_KEY')
+        )
+        bucket_name = os.environ.get('B2_BUCKET_NAME')
+
+        print(f"[{photo_id}] Downloading original photo for preview: {storage_key}")
+        resp = b2_client.get_object(Bucket=bucket_name, Key=storage_key)
+        raw_bytes = resp['Body'].read()
+
+        # Pillow decompression bomb protection
+        Image.MAX_IMAGE_PIXELS = 100_000_000
+        pil_img = Image.open(io.BytesIO(raw_bytes))
+        try:
+            pil_img = ImageOps.exif_transpose(pil_img)
+        except Exception:
+            pass
+        if pil_img.mode != "RGB":
+            pil_img = pil_img.convert("RGB")
+        orig_w, orig_h = pil_img.size
+
+        # 1600p Preview WebP (high-fidelity sweet spot for gallery & face detector)
+        preview_img = pil_img.copy()
+        preview_img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+        preview_buf = io.BytesIO()
+        preview_img.save(preview_buf, format="WEBP", quality=70, method=4)
+        preview_bytes = preview_buf.getvalue()
+
+        # 480p Thumbnail WebP (Retina-ready gallery feed cards)
+        thumb_img = pil_img.copy()
+        thumb_img.thumbnail((480, 480), Image.Resampling.LANCZOS)
+        thumb_buf = io.BytesIO()
+        thumb_img.save(thumb_buf, format="WEBP", quality=68, method=4)
+        thumb_bytes = thumb_buf.getvalue()
+
+        preview_key = f"{storage_key}-preview.webp"
+        thumb_key   = f"{storage_key}-thumbnail.webp"
+
+        b2_client.put_object(Bucket=bucket_name, Key=preview_key, Body=preview_bytes, ContentType="image/webp")
+        b2_client.put_object(Bucket=bucket_name, Key=thumb_key, Body=thumb_bytes, ContentType="image/webp")
+
+        media_domain = (
+            os.environ.get("MEDIA_DOMAIN")
+            or os.environ.get("CLOUDFLARE_DOMAIN")
+            or os.environ.get("NEXT_PUBLIC_MEDIA_DOMAIN")
+            or "media.evebash.com"
+        ).strip().replace("https://", "").replace("http://", "").rstrip("/")
+
+        preview_url = f"https://{media_domain}/{preview_key}"
+        thumbnail_url = f"https://{media_domain}/{thumb_key}"
+        overhead_bytes = len(preview_bytes) + len(thumb_bytes)
+
+        # Atomic completion in database
+        supabase.rpc("complete_media_job", {
+            "p_photo_id": photo_id,
+            "p_token": token,
+            "p_asset_version": asset_version,
+            "p_thumbnail_url": thumbnail_url,
+            "p_preview_url": preview_url,
+            "p_width": orig_w,
+            "p_height": orig_h,
+            "p_overhead_size": overhead_bytes
+        }).execute()
+
+        duration = time.time() - start_time
+        cpu_cores = 0.5
+        memory_gb = 0.75
+        rate_per_sec = (cpu_cores * 0.0000131) + (memory_gb * 0.00000222)
+        cost_inr = duration * rate_per_sec * 100.0
+
+        try:
+            log_payload = {
+                "photo_id": photo_id,
+                "event_id": event_id,
+                "function_name": "generate_photo_preview",
+                "worker_type": "Modal Preview Worker (0.5 vCPU • 768MB)",
+                "media_type": "photo",
+                "media_size": len(raw_bytes),
+                "cpu_cores": cpu_cores,
+                "memory_gb": memory_gb,
+                "gpu_type": "None",
+                "execution_time_seconds": duration,
+                "estimated_cost_inr": cost_inr,
+                "faces_detected": 0
+            }
+            if user_id:
+                log_payload["user_id"] = user_id
+            supabase.table("modal_cost_logs").insert(log_payload).execute()
+        except Exception as log_err:
+            print(f"[{photo_id}] Cost logging failed: {log_err}")
+
+        print(f"[{photo_id}] Fast Preview complete in {duration:.2f}s, ₹{cost_inr:.5f}. Photo is now live in gallery.")
+
+        # Immediately trigger FaceIndexer for fast async indexing
+        FaceIndexer().process.spawn({
+            "id": photo_id,
+            "photo_id": photo_id,
+            "asset_version": asset_version,
+            "storage_key": storage_key,
+            "event_id": event_id,
+            "user_id": user_id,
+            "preview_url": preview_url
+        })
+
+        return {"status": "success", "photo_id": photo_id, "preview_url": preview_url}
+
+    except Exception as e:
+        print(f"[{photo_id}] Fast Preview generation failed: {e}")
+        try:
+            supabase.table("photos").update({
+                "media_status": "failed",
+                "processing_error": str(e)[:1000]
+            }).eq("id", photo_id).execute()
+        except Exception:
+            pass
+        return {"status": "error", "photo_id": photo_id, "error": str(e)}
+
+
+@app.function(
+    image=media_image,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
+async def generate_photo_preview(request: fastapi.Request):
+    """
+    QStash webhook endpoint for Fast Media Path.
+    Verifies Upstash-Signature and spawns process_photo_preview asynchronously.
+    Returns HTTP 202 Accepted in ~10ms. Zero QStash timeout risk.
+    """
+    import json
+    body = await request.body()
+    signature = request.headers.get("Upstash-Signature", "")
+    url = str(request.url)
+    verify_qstash_signature(body, signature, url)
+
+    payload = json.loads(body.decode("utf-8")) if body else {}
+    photo_items = payload.get("photos") or ([payload] if payload.get("storage_key") or payload.get("id") or payload.get("photo_id") else [])
+
+    for item in photo_items:
+        process_photo_preview.spawn(item)
+
+    return {"accepted": True, "count": len(photo_items)}, 202
+
+
+# ==============================================================================
+# DECOUPLED 2-STAGE PIPELINE: STAGE 2 - ASYNC AI FACE PATH (FaceIndexer)
+# ==============================================================================
+
+@app.function(
+    image=media_image,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+@modal.fastapi_endpoint(method="POST")
+async def face_index_ingress(request: fastapi.Request):
+    """
+    Thin HTTP webhook for Stage 2 (Face Indexing).
+    Verifies Upstash-Signature and spawns FaceIndexer asynchronously.
+    Returns HTTP 202 Accepted in ~10ms. Zero QStash timeout risk.
+    """
+    import json
+    body = await request.body()
+    signature = request.headers.get("Upstash-Signature", "")
+    url = str(request.url)
+    verify_qstash_signature(body, signature, url)
+
+    payload = json.loads(body.decode("utf-8")) if body else {}
+    FaceIndexer().process.spawn(payload)
+    return {"accepted": True, "photo_id": payload.get("photo_id") or payload.get("id")}, 202
+
+
+@app.cls(
+    image=image,
+    cpu=1.0,
+    memory=2048,
+    max_containers=4,
+    scaledown_window=300,
+    retries=0,
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+class FaceIndexer:
+    @modal.enter()
+    def load_model(self):
+        """AuraFace model loads ONCE per container lifetime and stays warm in RAM."""
+        from insightface.app import FaceAnalysis
+        print("[FaceIndexer] Warming up AuraFace indexing model (640x640)...")
+        self.face_app = FaceAnalysis(
+            name="auraface",
+            root="/root/.insightface",
+            providers=["CPUExecutionProvider"]
+        )
+        self.face_app.prepare(ctx_id=-1, det_size=(640, 640), det_thresh=0.25)
+        print("[FaceIndexer] AuraFace model warm and ready in container RAM.")
+
+    @modal.method()
+    def process(self, photo_data: dict):
+        """
+        STAGE 2: ASYNCHRONOUS AI FACE VECTOR EXTRACTION
+        Processes a single photo's face embeddings with atomic replacement.
+        """
+        import time
+        import io
+        import uuid
+        import boto3
+        import numpy as np
+        import cv2
+        from PIL import Image
+        from supabase import create_client, Client
+
+        start_time = time.time()
+        photo_id = photo_data.get("id") or photo_data.get("photo_id")
+        asset_version = int(photo_data.get("asset_version") or 1)
+        storage_key = photo_data.get("storage_key") or photo_data.get("object_key")
+        event_id = photo_data.get("event_id")
+        user_id = photo_data.get("user_id")
+        preview_url = photo_data.get("preview_url")
+
+        if not photo_id or not storage_key:
+            return {"status": "error", "error": "Missing photo_id or storage_key"}
+
+        supabase: Client = create_client(
+            os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
+            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        )
+
+        token = str(uuid.uuid4())
+        claimed = supabase.rpc("claim_face_job", {
+            "p_photo_id": photo_id,
+            "p_token": token,
+            "p_asset_version": asset_version
+        }).execute()
+
+        if not claimed.data:
+            print(f"[{photo_id}] Face indexing job already claimed or max attempts reached.")
+            return {"status": "skipped", "photo_id": photo_id}
+
+        try:
+            b2_client = boto3.client(
+                's3',
+                endpoint_url=f"https://{os.environ.get('B2_ENDPOINT')}",
+                aws_access_key_id=os.environ.get('B2_KEY_ID'),
+                aws_secret_access_key=os.environ.get('B2_APPLICATION_KEY')
+            )
+            bucket_name = os.environ.get('B2_BUCKET_NAME')
+
+            preview_key = f"{storage_key}-preview.webp"
+            try:
+                resp = b2_client.get_object(Bucket=bucket_name, Key=preview_key)
+                img_bytes = resp['Body'].read()
+            except Exception:
+                resp = b2_client.get_object(Bucket=bucket_name, Key=storage_key)
+                img_bytes = resp['Body'].read()
+
+            Image.MAX_IMAGE_PIXELS = 100_000_000
+            pil_img = Image.open(io.BytesIO(img_bytes))
+            if pil_img.mode != "RGB":
+                pil_img = pil_img.convert("RGB")
+            img_rgb = np.array(pil_img)
+            img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            h, w, _ = img_bgr.shape
+
+            faces = self.face_app.get(img_bgr)
+            print(f"[{photo_id}] FaceIndexer found {len(faces)} face(s).")
+
+            face_records = []
+            for face in faces:
+                embedding = face.normed_embedding
+                if embedding is not None:
+                    face_records.append({
+                        "event_id": event_id,
+                        "image_url": preview_url or f"https://{os.environ.get('MEDIA_DOMAIN', 'media.evebash.com')}/{preview_key}",
+                        "width": w,
+                        "height": h,
+                        "descriptor": embedding.tolist()
+                    })
+
+            # Atomic face replacement protected by token and asset_version
+            supabase.rpc("replace_photo_faces", {
+                "p_photo_id": photo_id,
+                "p_token": token,
+                "p_asset_version": asset_version,
+                "p_faces": face_records
+            }).execute()
+
+            duration = time.time() - start_time
+            cpu_cores = 1.0
+            memory_gb = 2.0
+            rate_per_sec = (cpu_cores * 0.0000131) + (memory_gb * 0.00000222)
+            cost_inr = duration * rate_per_sec * 100.0
+
+            try:
+                log_payload = {
+                    "photo_id": photo_id,
+                    "event_id": event_id,
+                    "function_name": "FaceIndexer.process",
+                    "worker_type": "Modal Face Worker (1 vCPU • 2GB RAM)",
+                    "media_type": "photo",
+                    "media_size": len(img_bytes),
+                    "cpu_cores": cpu_cores,
+                    "memory_gb": memory_gb,
+                    "gpu_type": "None",
+                    "execution_time_seconds": duration,
+                    "estimated_cost_inr": cost_inr,
+                    "faces_detected": len(face_records)
+                }
+                if user_id:
+                    log_payload["user_id"] = user_id
+                supabase.table("modal_cost_logs").insert(log_payload).execute()
+            except Exception as log_err:
+                print(f"[{photo_id}] Face cost log failed: {log_err}")
+
+            print(f"[{photo_id}] Face indexing finished: {len(face_records)} faces saved in {duration:.2f}s (₹{cost_inr:.5f})")
+            return {"status": "success", "photo_id": photo_id, "faces": len(face_records)}
+
+        except Exception as e:
+            print(f"[{photo_id}] Face indexing error: {e}")
+            try:
+                supabase.table("photos").update({
+                    "face_status": "failed",
+                    "processing_error": str(e)[:1000]
+                }).eq("id", photo_id).execute()
+            except Exception:
+                pass
+            return {"status": "error", "photo_id": photo_id, "error": str(e)}
+
+
+# ==============================================================================
+# SELF-HEALING RECONCILER & OUTBOX DISPATCHER
+# ==============================================================================
+
+@app.function(
+    image=media_image,
+    schedule=modal.Cron("* * * * *"),
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+def sweep_stuck_jobs():
+    """
+    SELF-HEALING RECONCILER CRON (Runs every 60 seconds).
+    Recovers any stuck or orphaned jobs across both Fast Media and Face AI paths.
+    """
+    import os
+    from datetime import datetime, timezone, timedelta
+    from supabase import create_client, Client
+
+    supabase: Client = create_client(
+        os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
+    now = datetime.now(timezone.utc)
+    two_min_ago = (now - timedelta(minutes=2)).isoformat()
+    five_min_ago = (now - timedelta(minutes=5)).isoformat()
+
+    recovered_media = 0
+    recovered_face = 0
+    recovered_outbox = 0
+
+    # 1. Sweep stuck media jobs
+    try:
+        res = (
+            supabase.table("photos")
+            .select("id, storage_key, event_id, user_id, asset_version, media_status, media_lease_until")
+            .in_("media_status", ["pending", "failed", "processing"])
+            .lt("media_attempt", 3)
+            .lte("uploaded_at", two_min_ago)
+            .limit(100)
+            .execute()
+        )
+        for p in (res.data or []):
+            lease = p.get("media_lease_until")
+            is_expired = lease is None or lease < now.isoformat()
+            if p.get("media_status") in ["pending", "failed"] or is_expired:
+                print(f"[Reconciler] Recovering stuck media job for photo: {p['id']}")
+                process_photo_preview.spawn({
+                    "id": p["id"],
+                    "photo_id": p["id"],
+                    "storage_key": p.get("storage_key"),
+                    "event_id": p.get("event_id"),
+                    "user_id": p.get("user_id"),
+                    "asset_version": p.get("asset_version", 1)
+                })
+                recovered_media += 1
+    except Exception as err:
+        print(f"[Reconciler] Media sweep error: {err}")
+
+    # 2. Sweep stuck face jobs
+    try:
+        res = (
+            supabase.table("photos")
+            .select("id, storage_key, event_id, user_id, asset_version, preview_url, face_status, face_lease_until")
+            .eq("media_status", "ready")
+            .in_("face_status", ["pending", "failed", "indexing"])
+            .lt("face_attempt", 3)
+            .limit(100)
+            .execute()
+        )
+        for p in (res.data or []):
+            lease = p.get("face_lease_until")
+            is_expired = lease is None or lease < now.isoformat()
+            if p.get("face_status") in ["pending", "failed"] or is_expired:
+                print(f"[Reconciler] Recovering stuck face job for photo: {p['id']}")
+                FaceIndexer().process.spawn({
+                    "id": p["id"],
+                    "photo_id": p["id"],
+                    "storage_key": p.get("storage_key"),
+                    "event_id": p.get("event_id"),
+                    "user_id": p.get("user_id"),
+                    "asset_version": p.get("asset_version", 1),
+                    "preview_url": p.get("preview_url")
+                })
+                recovered_face += 1
+    except Exception as err:
+        print(f"[Reconciler] Face sweep error: {err}")
+
+    # 3. Sweep stuck outbox rows
+    try:
+        res = (
+            supabase.table("processing_outbox")
+            .select("*")
+            .in_("status", ["pending", "publishing"])
+            .lte("created_at", five_min_ago)
+            .limit(100)
+            .execute()
+        )
+        for row in (res.data or []):
+            photo_res = supabase.table("photos").select("*").eq("id", row["photo_id"]).maybe_single().execute()
+            p = photo_res.data
+            if p:
+                if row["job_type"] == "media_preview":
+                    process_photo_preview.spawn({
+                        "id": p["id"],
+                        "photo_id": p["id"],
+                        "storage_key": p.get("storage_key"),
+                        "event_id": p.get("event_id"),
+                        "user_id": p.get("user_id"),
+                        "asset_version": row.get("asset_version", 1)
+                    })
+                elif row["job_type"] == "face_index":
+                    FaceIndexer().process.spawn({
+                        "id": p["id"],
+                        "photo_id": p["id"],
+                        "storage_key": p.get("storage_key"),
+                        "event_id": p.get("event_id"),
+                        "user_id": p.get("user_id"),
+                        "asset_version": row.get("asset_version", 1),
+                        "preview_url": p.get("preview_url")
+                    })
+                recovered_outbox += 1
+    except Exception as err:
+        print(f"[Reconciler] Outbox sweep error: {err}")
+
+    if recovered_media > 0 or recovered_face > 0 or recovered_outbox > 0:
+        print(f"[Reconciler] Sweep complete: recovered {recovered_media} media, {recovered_face} face, {recovered_outbox} outbox jobs.")
+
+
+@app.function(
+    image=media_image,
+    schedule=modal.Cron("*/1 * * * *"),
+    secrets=[modal.Secret.from_dotenv(os.path.join(os.path.dirname(__file__), "../.env"))]
+)
+def dispatch_outbox_jobs():
+    """
+    OUTBOX DISPATCHER CRON (Runs every minute as scheduled backup).
+    Claims pending outbox rows atomically and dispatches them to their workers.
+    """
+    import os
+    from supabase import create_client, Client
+
+    supabase: Client = create_client(
+        os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
+
+    claimed = supabase.rpc("claim_outbox_batch", {"p_batch_size": 50, "p_lease_seconds": 60}).execute()
+    rows = claimed.data or []
+    if not rows:
+        return {"dispatched": 0}
+
+    dispatched = 0
+    for row in rows:
+        photo_id = row.get("photo_id")
+        job_type = row.get("job_type")
+        asset_ver = row.get("asset_version", 1)
+
+        photo_res = supabase.table("photos").select("*").eq("id", photo_id).maybe_single().execute()
+        photo = photo_res.data
+        if not photo:
+            continue
+
+        payload = {
+            "id": photo["id"],
+            "photo_id": photo["id"],
+            "asset_version": asset_ver,
+            "storage_key": photo.get("storage_key"),
+            "event_id": photo.get("event_id"),
+            "user_id": photo.get("user_id"),
+            "preview_url": photo.get("preview_url"),
+            "url": photo.get("url")
+        }
+
+        if job_type == "media_preview":
+            process_photo_preview.spawn(payload)
+            dispatched += 1
+        elif job_type == "face_index":
+            FaceIndexer().process.spawn(payload)
+            dispatched += 1
+
+    print(f"[OutboxDispatcher] Dispatched {dispatched} queued jobs.")
+    return {"dispatched": dispatched}
 
 
 @app.function(
@@ -840,10 +1500,14 @@ def _transcode_video_core(request: dict, hardware="cpu"):
                 ExtraArgs={"ContentType": "application/x-mpegURL", "CacheControl": "public, max-age=3600"}
             )
 
-        # 6. Update Supabase record
+        # 6. Calculate exact HLS overhead size & update Supabase record
+        total_hls_bytes = sum(f.stat().st_size for f in tmp_path.glob("**/*") if f.is_file())
+        print(f"[TranscodeVideo-{hardware.upper()}] Calculated exact HLS streaming overhead: {total_hls_bytes} bytes (~{total_hls_bytes / (1024 * 1024):.2f} MB)")
+
         update_data = {
             "url": hls_master_url,
             "thumbnail_url": poster_url,
+            "overhead_size": total_hls_bytes,
             "resource_type": "video",
             "media_type": "video",
             "status": "processed",

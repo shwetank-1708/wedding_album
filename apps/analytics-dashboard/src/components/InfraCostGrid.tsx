@@ -28,8 +28,19 @@ import {
   CreditCard,
   Layers,
   Percent,
+  Receipt,
+  PlusCircle,
 } from 'lucide-react';
-import { getAccessToken, getApiBaseUrl, runAdminAction, type AdminActionResult } from '../lib/adminApi';
+import {
+  getAccessToken,
+  getApiBaseUrl,
+  runAdminAction,
+  type AdminActionResult,
+  fetchInfraInvoices,
+  recordInfraInvoice,
+  deleteInfraInvoice,
+  type InfraInvoice,
+} from '../lib/adminApi';
 import { supabase } from '../lib/supabase';
 import { ModalLogo } from './ModalLogo';
 import { BackblazeLogo, BackblazeIcon } from './BackblazeLogo';
@@ -116,9 +127,27 @@ const computeModalLogCostInr = (log: any, usdToInrRate: number): number => {
 };
 
 export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, photos }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'total' | 'supabase' | 'backblaze' | 'cloudflare' | 'modal' | 'railway' | 'qstash' | 'razorpay'>('total');
+  const [activeSubTab, setActiveSubTab] = useState<'total' | 'supabase' | 'backblaze' | 'cloudflare' | 'modal' | 'railway' | 'qstash' | 'razorpay' | 'invoices'>('total');
   const [costChartMode, setCostChartMode] = useState<'actual' | 'simulated'>('actual');
   const [modalLogs, setModalLogs] = useState<any[]>([]);
+
+  // Vendor Infra Invoices States
+  const [infraInvoices, setInfraInvoices] = useState<InfraInvoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceProvider, setInvoiceProvider] = useState<'supabase' | 'railway' | 'cloudflare' | 'backblaze' | 'modal' | 'qstash' | 'other'>('supabase');
+  const [invoiceAmountUsd, setInvoiceAmountUsd] = useState('25.00');
+  const [invoiceAmountInr, setInvoiceAmountInr] = useState('2500');
+  const [invoicePaidDate, setInvoicePaidDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoicePeriodStart, setInvoicePeriodStart] = useState('');
+  const [invoicePeriodEnd, setInvoicePeriodEnd] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [submittingInvoice, setSubmittingInvoice] = useState(false);
+  const [invoiceProviderFilter, setInvoiceProviderFilter] = useState<string>('all');
+  const [invoiceTimeframeFilter, setInvoiceTimeframeFilter] = useState<'all' | 'timeframe'>('all');
+  const [invoiceToast, setInvoiceToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [invoiceRefreshKey, setInvoiceRefreshKey] = useState(0);
   
   // Interactive Simulator States
   const [supabaseTier, setSupabaseTier] = useState<'free' | 'pro'>('free');
@@ -753,6 +782,101 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
       isCancelled = true;
     };
   }, [timeFilter, dateRange.start.toISOString(), dateRange.end.toISOString(), billingRefreshKey]);
+
+  // Fetch real vendor infra invoices
+  useEffect(() => {
+    let isCancelled = false;
+    const loadInvoices = async () => {
+      setLoadingInvoices(true);
+      try {
+        const data = await fetchInfraInvoices();
+        if (!isCancelled) {
+          setInfraInvoices(data);
+          console.log(`[InfraCostGrid] Invoices state updated: ${data.length} total invoice(s) in memory`, data);
+        }
+      } catch (err) {
+        console.warn('[InfraCost] Failed to fetch infra invoices:', err);
+      } finally {
+        if (!isCancelled) {
+          setLoadingInvoices(false);
+        }
+      }
+    };
+
+    loadInvoices();
+    return () => {
+      isCancelled = true;
+    };
+  }, [invoiceRefreshKey]);
+
+  // Auto-dismiss invoice toast
+  useEffect(() => {
+    if (!invoiceToast) return;
+    const timer = setTimeout(() => setInvoiceToast(null), 7000);
+    return () => clearTimeout(timer);
+  }, [invoiceToast]);
+
+  const handleRecordInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingInvoice(true);
+    const invoicePayload = {
+      provider: invoiceProvider,
+      amount_usd: Number(invoiceAmountUsd) || 0,
+      amount_inr: Number(invoiceAmountInr) || 0,
+      paid_at: invoicePaidDate ? new Date(invoicePaidDate).toISOString() : new Date().toISOString(),
+      billing_period_start: invoicePeriodStart || undefined,
+      billing_period_end: invoicePeriodEnd || undefined,
+      invoice_number: invoiceNumber || undefined,
+      notes: invoiceNotes || undefined,
+    };
+    console.log('[InfraCostGrid] Submitting new invoice:', invoicePayload);
+
+    try {
+      const res = await recordInfraInvoice(invoicePayload);
+
+      if (res.success) {
+        console.log('[InfraCostGrid] Invoice successfully recorded:', res.invoice);
+        setShowInvoiceModal(false);
+        setInvoiceNotes('');
+        setInvoiceNumber('');
+        // Automatically switch to 'all' so any invoice (past or current) is immediately visible in the ledger
+        setInvoiceTimeframeFilter('all');
+        setInvoiceProviderFilter('all');
+        setInvoiceToast({
+          type: 'success',
+          message: `✓ Invoice #${res.invoice?.invoice_number || invoiceNumber || 'REC'} for ${res.invoice?.provider || invoiceProvider} ($${Number(invoiceAmountUsd).toFixed(2)} / ₹${Number(invoiceAmountInr).toLocaleString()}) recorded successfully! Showing in All Invoices.`
+        });
+        setInvoiceRefreshKey(k => k + 1);
+      } else {
+        console.error('[InfraCostGrid] Failed to record invoice:', res.error);
+        alert(res.error || 'Failed to record invoice');
+      }
+    } catch (err: any) {
+      console.error('[InfraCostGrid] Exception while recording invoice:', err);
+      alert(err?.message || 'Error recording invoice');
+    } finally {
+      setSubmittingInvoice(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this invoice record?')) return;
+    try {
+      const res = await deleteInfraInvoice(id);
+      if (res.success) {
+        console.log('[InfraCostGrid] Invoice deleted successfully:', id);
+        setInvoiceToast({
+          type: 'success',
+          message: '✓ Invoice record deleted successfully.'
+        });
+        setInvoiceRefreshKey(k => k + 1);
+      } else {
+        alert(res.error || 'Failed to delete invoice');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting invoice');
+    }
+  };
   
   // Storage Footprint calculations
   const totalStorage = useMemo(() => {
@@ -943,7 +1067,7 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     modalLogs.forEach(log => {
       const fn = log.function_name || 'process_single_photo';
       const isVideo = fn.includes('video') || log.media_type === 'video';
-      if (fn === 'process_single_photo') {
+      if (fn === 'process_single_photo' || fn === 'generate_photo_preview' || fn.includes('FaceIndexer')) {
         photosCount++;
       } else if (fn === 'find_matching_photos') {
         selfiesCount++;
@@ -983,12 +1107,40 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
   const modalWorkerBreakdown = useMemo(() => {
     const fleetTemplates = [
       {
-        key: 'photo',
-        name: 'Modal Photo Worker',
-        workerTypeDescription: 'Photo Face Vector Indexer',
-        specs: '1 vCPU • 1GB RAM',
+        key: 'preview',
+        name: 'Modal Preview Worker',
+        workerTypeDescription: 'Fast Media Resizer & WebP Generator',
+        specs: '0.5 vCPU • 768MB RAM',
         textColor: 'text-emerald-400',
         badgeStyle: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+        costPerSecUsd: (0.5 * 0.0000131) + (0.75 * 0.00000222), // $0.000008215/s
+        runs: 0,
+        totalDurationSeconds: 0,
+        dataSizeBytes: 0,
+        totalCostUsd: 0,
+        totalCostInr: 0,
+      },
+      {
+        key: 'face',
+        name: 'Modal Face Worker',
+        workerTypeDescription: 'AuraFace Vector Indexer (Warm RAM)',
+        specs: '1 vCPU • 2GB RAM',
+        textColor: 'text-indigo-400',
+        badgeStyle: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400',
+        costPerSecUsd: (1.0 * 0.0000131) + (2.0 * 0.00000222), // $0.00001754/s
+        runs: 0,
+        totalDurationSeconds: 0,
+        dataSizeBytes: 0,
+        totalCostUsd: 0,
+        totalCostInr: 0,
+      },
+      {
+        key: 'photo',
+        name: 'Modal Photo Worker (Legacy)',
+        workerTypeDescription: 'Combined Resize + Face Indexer (Legacy)',
+        specs: '1 vCPU • 1GB RAM',
+        textColor: 'text-teal-400',
+        badgeStyle: 'bg-teal-500/10 border-teal-500/30 text-teal-400',
         costPerSecUsd: (1.0 * 0.0000131) + (1.0 * 0.00000222), // $0.00001532/s
         runs: 0,
         totalDurationSeconds: 0,
@@ -1068,6 +1220,10 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         targetKey = 'selfie';
       } else if (fn === 'process_media_batch' || log.worker_type?.includes('Batch')) {
         targetKey = 'batch';
+      } else if (fn === 'generate_photo_preview' || log.worker_type?.includes('Preview')) {
+        targetKey = 'preview';
+      } else if (fn.includes('FaceIndexer') || fn.includes('face_index') || log.worker_type?.includes('Face Worker')) {
+        targetKey = 'face';
       } else {
         targetKey = 'photo';
       }
@@ -1256,13 +1412,85 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
     : razorpayStats.totalFeeInr * (1 / (timeframeFactor || 1));
   const projectedYearRazorpayUsd = projectedYearRazorpayInr / usdToInrRate;
 
+  // Logged Infra Invoices Aggregations
+  const loggedInvoicesForPeriod = useMemo(() => {
+    return infraInvoices.filter(inv => {
+      if (timeFilter === 'all') return true;
+      const paid = new Date(inv.paid_at).getTime();
+      return paid >= dateRange.start.getTime() && paid <= dateRange.end.getTime();
+    });
+  }, [infraInvoices, timeFilter, dateRange]);
+
+  const loggedInvoicesSummary = useMemo(() => {
+    let totalUsd = 0;
+    let totalInr = 0;
+    const byProvider: Record<string, { count: number; usd: number; inr: number }> = {};
+
+    loggedInvoicesForPeriod.forEach(inv => {
+      const p = (inv.provider || 'other').toLowerCase();
+      const u = Number(inv.amount_usd) || 0;
+      const i = Number(inv.amount_inr) || (u * usdToInrRate);
+      totalUsd += u;
+      totalInr += i;
+
+      if (!byProvider[p]) {
+        byProvider[p] = { count: 0, usd: 0, inr: 0 };
+      }
+      byProvider[p].count += 1;
+      byProvider[p].usd += u;
+      byProvider[p].inr += i;
+    });
+
+    return { totalUsd, totalInr, byProvider, count: loggedInvoicesForPeriod.length };
+  }, [loggedInvoicesForPeriod, usdToInrRate]);
+
+  // All-time Invoices Summary (for the comprehensive ledger view)
+  const allInvoicesSummary = useMemo(() => {
+    let totalUsd = 0;
+    let totalInr = 0;
+    const byProvider: Record<string, { count: number; usd: number; inr: number }> = {};
+
+    infraInvoices.forEach(inv => {
+      const p = (inv.provider || 'other').toLowerCase();
+      const u = Number(inv.amount_usd) || 0;
+      const i = Number(inv.amount_inr) || (u * usdToInrRate);
+      totalUsd += u;
+      totalInr += i;
+
+      if (!byProvider[p]) {
+        byProvider[p] = { count: 0, usd: 0, inr: 0 };
+      }
+      byProvider[p].count += 1;
+      byProvider[p].usd += u;
+      byProvider[p].inr += i;
+    });
+
+    return { totalUsd, totalInr, byProvider, count: infraInvoices.length };
+  }, [infraInvoices, usdToInrRate]);
+
+  // Which set of invoices to display in the ledger table
+  const displayedLedgerInvoices = useMemo(() => {
+    const list = invoiceTimeframeFilter === 'all' ? infraInvoices : loggedInvoicesForPeriod;
+    return list.filter(inv => invoiceProviderFilter === 'all' || inv.provider.toLowerCase() === invoiceProviderFilter.toLowerCase());
+  }, [invoiceTimeframeFilter, infraInvoices, loggedInvoicesForPeriod, invoiceProviderFilter]);
+
+  const activeLedgerSummary = invoiceTimeframeFilter === 'all' ? allInvoicesSummary : loggedInvoicesSummary;
+
+  const loggedSupabaseInvoicesUsd = loggedInvoicesSummary.byProvider['supabase']?.usd || 0;
+  const loggedRailwayInvoicesUsd = loggedInvoicesSummary.byProvider['railway']?.usd || 0;
+
   // Timeframe-adjusted operational costs (endured for the selected timeframe)
-  const timeframeSupabaseCost = supabaseTierCost * timeframeFactor;
+  // If actual invoices are logged for all-time / period, use them; otherwise use tier factor
+  const timeframeSupabaseCost = (timeFilter === 'all' && loggedSupabaseInvoicesUsd > 0)
+    ? loggedSupabaseInvoicesUsd
+    : (supabaseTierCost * timeframeFactor);
   const timeframeActualB2Cost = actualB2Cost * timeframeFactor;
   const timeframeSimulatedB2Cost = simulatedB2Cost * timeframeFactor;
   const timeframeActualCloudflareCost = actualCloudflareCost * timeframeFactor;
   const timeframeSimulatedCloudflareCost = simulatedCloudflareCost * timeframeFactor;
-  const timeframeActualRailwayCost = actualRailwayCost;
+  const timeframeActualRailwayCost = (timeFilter === 'all' && loggedRailwayInvoicesUsd > 0)
+    ? loggedRailwayInvoicesUsd
+    : actualRailwayCost;
   const timeframeSimulatedRailwayCost = evebashProductionRailwayMonthlyCost * timeframeFactor;
   const timeframeActualModalCostUsd = actualModalCost;
   const timeframeActualModalCostInr = actualModalCostInfo.inr;
@@ -1513,12 +1741,15 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
             {/* Refresh billing trigger */}
             <button
               type="button"
-              onClick={() => setBillingRefreshKey(k => k + 1)}
-              disabled={loadingBilling || loadingModalLogs || loadingPayments}
+              onClick={() => {
+                setBillingRefreshKey(k => k + 1);
+                setInvoiceRefreshKey(k => k + 1);
+              }}
+              disabled={loadingBilling || loadingModalLogs || loadingPayments || loadingInvoices}
               className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 shrink-0"
               title="Refresh Live API Billing Data"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingBilling || loadingModalLogs || loadingPayments ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingBilling || loadingModalLogs || loadingPayments || loadingInvoices ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
           </div>
         </div>
@@ -1617,6 +1848,13 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
       activeColor: 'bg-sky-600 text-white shadow-lg shadow-sky-600/20 border-sky-500/40',
       tagColor: 'text-sky-400 bg-sky-500/10 border-sky-500/20'
     },
+    {
+      id: 'invoices',
+      label: 'Invoices Ledger',
+      type: 'invoices',
+      activeColor: 'bg-teal-600 text-white shadow-lg shadow-teal-600/20 border-teal-500/40',
+      tagColor: 'text-teal-400 bg-teal-500/10 border-teal-500/20'
+    },
   ];
 
   return (
@@ -1636,6 +1874,19 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              setInvoiceProvider('supabase');
+              setInvoiceAmountUsd('25.00');
+              setInvoiceAmountInr('2500');
+              setShowInvoiceModal(true);
+            }}
+            className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl shadow-sm transition-all cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Log Infra Invoice</span>
+          </button>
           <div className="flex items-center gap-1.5 text-xs font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-xl shadow-sm">
             <Clock className="w-3.5 h-3.5 text-indigo-400" />
             <span>{timeframeLabel}</span>
@@ -1671,6 +1922,8 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
                 <QStashLogo className="h-4 w-auto shrink-0" />
               ) : tab.type === 'razorpay' ? (
                 <RazorpayLogo className="h-4 w-auto shrink-0" />
+              ) : tab.type === 'invoices' ? (
+                <Receipt className="w-3.5 h-3.5 shrink-0 text-teal-400" />
               ) : (
                 <DollarSign className="w-4 h-4 shrink-0" />
               )}
@@ -5231,6 +5484,482 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
           </div>
         </div>
       )}
+
+      {/* ── TAB PANEL: VENDOR INFRASTRUCTURE INVOICES LEDGER ── */}
+      {activeSubTab === 'invoices' && (
+        <div className="space-y-6">
+          {renderFilterBar('bg-teal-600', 'text-teal-400', 'border-teal-500/20')}
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="p-5 rounded-3xl bg-gradient-to-b from-[#111827] to-[#0c1322] border border-slate-800/80 shadow-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Recorded</span>
+                <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                  <Receipt className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-white font-mono">{activeLedgerSummary.count}</p>
+              <p className="text-[11px] text-slate-500">
+                {invoiceTimeframeFilter === 'all' ? 'All-time paid vendor bills' : `Paid bills within ${timeframeLabel}`}
+              </p>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-gradient-to-b from-[#111827] to-[#0c1322] border border-slate-800/80 shadow-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Outgoing (USD)</span>
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-emerald-400 font-mono">${activeLedgerSummary.totalUsd.toFixed(2)}</p>
+              <p className="text-[11px] text-slate-500">{invoiceTimeframeFilter === 'all' ? 'All recorded invoices combined' : `Within ${timeframeLabel}`}</p>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-gradient-to-b from-[#111827] to-[#0c1322] border border-slate-800/80 shadow-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Outgoing (INR)</span>
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-indigo-300 font-mono">₹{activeLedgerSummary.totalInr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+              <p className="text-[11px] text-slate-500">Converted at $1 = ₹{usdToInrRate}</p>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-gradient-to-b from-[#111827] to-[#0c1322] border border-slate-800/80 shadow-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Top Provider</span>
+                <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  <Layers className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-xl font-bold text-white uppercase font-mono">
+                {Object.keys(activeLedgerSummary.byProvider).sort((a, b) => (activeLedgerSummary.byProvider[b]?.usd || 0) - (activeLedgerSummary.byProvider[a]?.usd || 0))[0] || 'None'}
+              </p>
+              <p className="text-[11px] text-slate-500">Highest infrastructure expense</p>
+            </div>
+          </div>
+
+          {/* Toast Notification Banner */}
+          {invoiceToast && (
+            <div className={`p-4 rounded-2xl flex items-center justify-between border shadow-lg animate-fadeIn ${
+              invoiceToast.type === 'success' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+            }`}>
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{invoiceToast.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInvoiceToast(null)}
+                className="text-slate-400 hover:text-white text-sm font-bold ml-3 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+          )}
+
+          {/* Invoices Table Card */}
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-[#111827] to-[#0c1322] p-6 sm:p-7 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-teal-400" />
+                  <span>Itemized Vendor Invoices Ledger</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-1">
+                  Historical payments made for Supabase, Railway, Cloudflare, Backblaze, and Modal subscriptions.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={invoiceTimeframeFilter}
+                  onChange={e => setInvoiceTimeframeFilter(e.target.value as any)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-teal-500 cursor-pointer font-medium"
+                >
+                  <option value="all">All Invoices ({infraInvoices.length})</option>
+                  <option value="timeframe">Selected Timeframe: {timeframeLabel} ({loggedInvoicesForPeriod.length})</option>
+                </select>
+
+                <select
+                  value={invoiceProviderFilter}
+                  onChange={e => setInvoiceProviderFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs focus:outline-none focus:border-teal-500 cursor-pointer"
+                >
+                  <option value="all">All Providers</option>
+                  <option value="supabase">Supabase</option>
+                  <option value="railway">Railway</option>
+                  <option value="cloudflare">Cloudflare</option>
+                  <option value="backblaze">Backblaze</option>
+                  <option value="modal">Modal</option>
+                  <option value="qstash">Upstash QStash</option>
+                  <option value="other">Other</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 px-3.5 py-1.5 rounded-xl shadow-lg shadow-teal-600/20 transition-all cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Log Invoice</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Timeframe Info Bar (when restricted to timeframe and other invoices exist) */}
+            {invoiceTimeframeFilter === 'timeframe' && loggedInvoicesForPeriod.length < infraInvoices.length && (
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-300">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>
+                    Filtering by <strong>{timeframeLabel}</strong> ({loggedInvoicesForPeriod.length} of {infraInvoices.length} recorded invoice{infraInvoices.length === 1 ? '' : 's'}). {infraInvoices.length - loggedInvoicesForPeriod.length} other invoice{infraInvoices.length - loggedInvoicesForPeriod.length === 1 ? ' is' : 's are'} in earlier/later periods.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInvoiceTimeframeFilter('all')}
+                  className="font-bold underline text-white hover:text-teal-200 shrink-0 cursor-pointer"
+                >
+                  Show All ({infraInvoices.length})
+                </button>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-bold bg-slate-900/50">
+                    <th className="py-3 px-4">Provider</th>
+                    <th className="py-3 px-4">Paid Date</th>
+                    <th className="py-3 px-4">Billing Period</th>
+                    <th className="py-3 px-4">Invoice # / Ref</th>
+                    <th className="py-3 px-4">Notes</th>
+                    <th className="py-3 px-4 text-right">Amount (USD)</th>
+                    <th className="py-3 px-4 text-right">Amount (INR)</th>
+                    <th className="py-3 px-4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {displayedLedgerInvoices.map(inv => {
+                    const p = inv.provider.toLowerCase();
+                    return (
+                      <tr key={inv.id} className="hover:bg-slate-900/40 transition-colors">
+                        <td className="py-3 px-4 whitespace-nowrap font-sans font-bold flex items-center gap-2">
+                          {p === 'supabase' ? (
+                            <SupabaseLogo className="h-4 w-4 shrink-0" />
+                          ) : p === 'railway' ? (
+                            <RailwayLogo className="h-3.5 w-auto text-fuchsia-400 shrink-0" />
+                          ) : p === 'cloudflare' ? (
+                            <CloudflareLogo className="h-3.5 w-auto shrink-0" />
+                          ) : p === 'backblaze' ? (
+                            <BackblazeIcon className="h-4 w-auto shrink-0" />
+                          ) : p === 'modal' ? (
+                            <ModalLogo className="h-3.5 w-auto shrink-0" />
+                          ) : p === 'qstash' ? (
+                            <QStashLogo className="h-4 w-auto shrink-0" />
+                          ) : (
+                            <DollarSign className="w-4 h-4 text-slate-400 shrink-0" />
+                          )}
+                          <span className="capitalize text-white">{inv.provider}</span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-slate-300">
+                          {new Date(inv.paid_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-slate-400 text-[11px]">
+                          {inv.billing_period_start && inv.billing_period_end
+                            ? `${inv.billing_period_start} → ${inv.billing_period_end}`
+                            : '—'}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-slate-300">
+                          {inv.invoice_number ? <span className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-teal-300 border border-slate-700">{inv.invoice_number}</span> : '—'}
+                        </td>
+                        <td className="py-3 px-4 max-w-[200px] truncate text-slate-400 font-sans text-[11px]">
+                          {inv.notes || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap text-emerald-400 font-bold">
+                          ${Number(inv.amount_usd || 0).toFixed(2)}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap text-white font-bold">
+                          ₹{Number(inv.amount_inr || (Number(inv.amount_usd) * usdToInrRate)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInvoice(inv.id)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Delete Invoice Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {displayedLedgerInvoices.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-500 text-xs font-sans">
+                        <Receipt className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-50" />
+                        {infraInvoices.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-slate-300 font-semibold">
+                              No invoices match the current filters ({invoiceProviderFilter !== 'all' ? `Provider: ${invoiceProviderFilter}, ` : ''}{invoiceTimeframeFilter === 'timeframe' ? `Timeframe: ${timeframeLabel}` : ''}).
+                            </p>
+                            <p className="text-slate-500 text-[11px]">
+                              You have {infraInvoices.length} total invoice{infraInvoices.length === 1 ? '' : 's'} recorded in the ledger.
+                            </p>
+                            <div className="flex items-center justify-center gap-3 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setInvoiceTimeframeFilter('all');
+                                  setInvoiceProviderFilter('all');
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400 hover:bg-teal-500/20 font-bold transition-all cursor-pointer"
+                              >
+                                View All Invoices ({infraInvoices.length})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowInvoiceModal(true)}
+                                className="text-slate-400 hover:text-white underline text-xs font-medium cursor-pointer"
+                              >
+                                + Log Another Invoice
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-slate-400 font-medium">No vendor infrastructure invoices recorded yet.</p>
+                            <button
+                              type="button"
+                              onClick={() => setShowInvoiceModal(true)}
+                              className="block mx-auto mt-2 text-teal-400 hover:underline font-bold cursor-pointer"
+                            >
+                              + Log your first invoice
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LOG INFRA INVOICE MODAL ── */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-teal-400" />
+                <span>Log Vendor Invoice Payment</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowInvoiceModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordInvoice} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Provider *</label>
+                <select
+                  required
+                  value={invoiceProvider}
+                  onChange={e => {
+                    const p = e.target.value as any;
+                    setInvoiceProvider(p);
+                    if (p === 'supabase') {
+                      setInvoiceAmountUsd('25.00');
+                      setInvoiceAmountInr('2500');
+                      setInvoiceNotes('Supabase Pro Monthly Plan');
+                    } else if (p === 'railway') {
+                      setInvoiceAmountUsd('5.00');
+                      setInvoiceAmountInr('500');
+                      setInvoiceNotes('Railway Hobby Monthly Plan');
+                    } else if (p === 'cloudflare') {
+                      setInvoiceAmountUsd('20.00');
+                      setInvoiceAmountInr('2000');
+                      setInvoiceNotes('Cloudflare Zone Pro Plan');
+                    } else {
+                      setInvoiceNotes('');
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-500"
+                >
+                  <option value="supabase">Supabase ($25/mo Pro Plan)</option>
+                  <option value="railway">Railway ($5/mo Base + Usage)</option>
+                  <option value="cloudflare">Cloudflare (Zone / Workers)</option>
+                  <option value="backblaze">Backblaze B2 (Storage)</option>
+                  <option value="modal">Modal.com (AI Compute)</option>
+                  <option value="qstash">Upstash QStash (Queue)</option>
+                  <option value="other">Other Infrastructure</option>
+                </select>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoiceProvider('supabase');
+                    setInvoiceAmountUsd('25.00');
+                    setInvoiceAmountInr('2500');
+                    setInvoiceNotes('Supabase Pro Monthly Plan');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold cursor-pointer"
+                >
+                  Supabase Pro ($25)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoiceProvider('railway');
+                    setInvoiceAmountUsd('5.00');
+                    setInvoiceAmountInr('500');
+                    setInvoiceNotes('Railway Hobby Monthly Plan');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 text-[10px] font-bold cursor-pointer"
+                >
+                  Railway ($5)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvoiceProvider('cloudflare');
+                    setInvoiceAmountUsd('20.00');
+                    setInvoiceAmountInr('2000');
+                    setInvoiceNotes('Cloudflare Pro Plan');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold cursor-pointer"
+                >
+                  Cloudflare ($20)
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Amount (USD $) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={invoiceAmountUsd}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setInvoiceAmountUsd(val);
+                      const n = Number(val);
+                      if (!isNaN(n)) setInvoiceAmountInr((n * usdToInrRate).toFixed(0));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Amount (INR ₹)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={invoiceAmountInr}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setInvoiceAmountInr(val);
+                      const n = Number(val);
+                      if (!isNaN(n)) setInvoiceAmountUsd((n / usdToInrRate).toFixed(2));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Billing Period Start (Optional)</label>
+                  <input
+                    type="date"
+                    value={invoicePeriodStart}
+                    onChange={e => setInvoicePeriodStart(e.target.value)}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Billing Period End (Optional)</label>
+                  <input
+                    type="date"
+                    value={invoicePeriodEnd}
+                    onChange={e => setInvoicePeriodEnd(e.target.value)}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Payment Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={invoicePaidDate}
+                    onChange={e => setInvoicePaidDate(e.target.value)}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Invoice / Receipt #</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. INV-2026-001"
+                    value={invoiceNumber}
+                    onChange={e => setInvoiceNumber(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Notes / Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Pro tier monthly invoice renewal"
+                  value={invoiceNotes}
+                  onChange={e => setInvoiceNotes(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingInvoice}
+                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold shadow-lg shadow-teal-600/30 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {submittingInvoice ? 'Saving...' : 'Record Invoice'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

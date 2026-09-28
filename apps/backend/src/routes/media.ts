@@ -22,6 +22,8 @@ import {
 } from "../backblaze.js";
 import {
   publishDelayedModalTrigger,
+  publishFastMediaTask,
+  publishFaceIndexTask,
   publishManifestAssemblyTask,
   publishModalBatchTask,
   publishVideoTranscodeTask,
@@ -765,7 +767,7 @@ mediaRouter.post("/upload/chunk/complete", asyncRoute(async (request, response) 
     finishResult = await finishLargeFile(backblazeAuth, fileId, partSha1Array);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("No active upload for") && !message.includes("already_finished") && !message.includes("bad_request")) {
+    if (!message.includes("No active upload for") && !message.includes("already_finished")) {
       throw error;
     }
   }
@@ -870,7 +872,34 @@ mediaRouter.post("/save-photo", asyncRoute(async (request, response) => {
       console.error(`[SavePhoto] QStash dispatch error for ${photoId}:`, err);
     }
   } else {
-    background("SavePhotoModalTrigger", () => publishModalBatchTask([{ id: photoId, storage_key: storageKey, event_id: eventId, url, user_id: userId, fileSize }]));
+    // Stage 1 Fast Media Path:
+    // Insert outbox entry for job durability & trigger fast media preview worker
+    let assetVersion = 1;
+    try {
+      const { data: outboxData } = await supabaseAdmin.from("processing_outbox").upsert({
+        photo_id: photoId,
+        job_type: "media_preview",
+        asset_version: 1,
+        status: "pending"
+      }, { onConflict: "photo_id,job_type,asset_version" }).select().maybeSingle();
+      if (outboxData?.asset_version) {
+        assetVersion = outboxData.asset_version;
+      }
+    } catch (outboxErr) {
+      console.warn(`[SavePhoto] Outbox upsert notice for ${photoId}:`, outboxErr);
+    }
+
+    background("SavePhotoFastMediaTrigger", () =>
+      publishFastMediaTask({
+        id: photoId,
+        storage_key: storageKey,
+        event_id: eventId,
+        url,
+        user_id: userId,
+        fileSize,
+        asset_version: assetVersion,
+      })
+    );
   }
 
   response.json({ success: true, url, photoId });
@@ -917,7 +946,22 @@ mediaRouter.post("/save-photo-batch", asyncRoute(async (request, response) => {
   }
 
   if (imagePayloads.length > 0) {
-    background("SavePhotoBatchModalTrigger", () => publishModalBatchTask(imagePayloads));
+    // Record outbox rows for all images in batch
+    try {
+      const outboxEntries = imagePayloads.map((img) => ({
+        photo_id: img.id,
+        job_type: "media_preview",
+        asset_version: 1,
+        status: "pending",
+      }));
+      await supabaseAdmin.from("processing_outbox").upsert(outboxEntries, { onConflict: "photo_id,job_type,asset_version" });
+    } catch (outboxErr) {
+      console.warn("[SavePhotoBatch] Outbox batch upsert notice:", outboxErr);
+    }
+
+    background("SavePhotoBatchFastMediaTrigger", () =>
+      Promise.allSettled(imagePayloads.map((img) => publishFastMediaTask({ ...img, asset_version: 1 }))),
+    );
   }
 
   if (firstEventId) {
@@ -1194,6 +1238,7 @@ mediaRouter.post("/rotate", asyncRoute(async (request, response) => {
       width: rotatedMetadata.width || null,
       height: rotatedMetadata.height || null,
       size: rotatedBuffer.length,
+      overhead_size: thumbnailBuffer.length + previewBuffer.length,
     })
     .eq("id", photoId);
   if (updateError) throw updateError;

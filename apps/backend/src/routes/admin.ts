@@ -150,13 +150,21 @@ function keyFromMediaUrl(value: string) {
 function addMediaKeyVariants(target: Set<string>, key: string) {
   const cleanKey = key.trim().replace(/^\/+/, "");
   if (!cleanKey) return;
-  target.add(cleanKey);
-  target.add(`${cleanKey}-thumbnail.webp`);
-  target.add(`${cleanKey}-preview.webp`);
+  target.add(cleanKey.toLowerCase());
+  target.add(`${cleanKey.toLowerCase()}-thumbnail.webp`);
+  target.add(`${cleanKey.toLowerCase()}-preview.webp`);
 }
 
 function isManagedB2MediaFile(fileName: string) {
-  return fileName.startsWith("events/") || fileName.startsWith("profiles/");
+  return (
+    fileName.startsWith("events/") ||
+    fileName.startsWith("hls/") ||
+    fileName.startsWith("profiles/") ||
+    fileName.startsWith("tmp/") ||
+    fileName.startsWith("raw/") ||
+    fileName.startsWith("temp/") ||
+    fileName.startsWith("uploads/")
+  );
 }
 
 async function listAllB2Files(auth: BackblazeAuth, bucketId: string) {
@@ -209,18 +217,35 @@ async function deleteB2FileVersion(auth: BackblazeAuth, file: B2ListedFile) {
 
 async function getReferencedB2Keys(supabaseAdmin: ReturnType<typeof getAdminClient>) {
   const referencedKeys = new Set<string>();
+  const activeEventIds = new Set<string>();
   const pageSize = 1000;
 
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabaseAdmin
+      .from("events")
+      .select("id")
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    for (const row of data || []) {
+      if (row.id) activeEventIds.add(String(row.id).toLowerCase());
+    }
+
+    if (!data || data.length < pageSize) break;
+  }
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseAdmin
       .from("photos")
-      .select("storage_key")
+      .select("id, storage_key")
       .range(from, from + pageSize - 1);
 
     if (error) throw error;
 
     for (const row of data || []) {
       if (row.storage_key) addMediaKeyVariants(referencedKeys, String(row.storage_key));
+      if (row.id) referencedKeys.add(String(row.id).toLowerCase());
     }
 
     if (!data || data.length < pageSize) break;
@@ -241,19 +266,75 @@ async function getReferencedB2Keys(supabaseAdmin: ReturnType<typeof getAdminClie
     if (!data || data.length < pageSize) break;
   }
 
-  return referencedKeys;
+  return { referencedKeys, activeEventIds };
 }
 
 async function inspectBackblazeOrphans(supabaseAdmin: ReturnType<typeof getAdminClient>) {
   const auth = await getCachedBackblazeAuth();
   const bucketId = requireEnv("B2_BUCKET_ID");
-  const [files, referencedKeys] = await Promise.all([
+  const [files, { referencedKeys, activeEventIds }] = await Promise.all([
     listAllB2Files(auth, bucketId),
     getReferencedB2Keys(supabaseAdmin),
   ]);
 
   const managedFiles = files.filter(file => file.fileName && isManagedB2MediaFile(file.fileName));
-  const orphanFiles = managedFiles.filter(file => !referencedKeys.has(file.fileName));
+  const orphanFiles = managedFiles.filter(file => {
+    const fn = file.fileName;
+    const cleanKey = fn.replace(/^\/+/, "");
+    const topPrefix = cleanKey.split("/")[0];
+
+    // Temp/raw/build artifacts are always orphaned
+    if (topPrefix === "tmp" || topPrefix === "raw" || topPrefix === "temp" || topPrefix === "uploads") {
+      return true;
+    }
+
+    let eventId: string | null = null;
+    let isHls = false;
+
+    if (cleanKey.startsWith("events/")) {
+      const parts = cleanKey.split("/");
+      if (parts.length > 1) eventId = parts[1].toLowerCase();
+    } else if (cleanKey.startsWith("hls/events/")) {
+      const parts = cleanKey.split("/");
+      if (parts.length > 2) eventId = parts[2].toLowerCase();
+      isHls = true;
+    } else if (cleanKey.startsWith("hls/")) {
+      isHls = true;
+    }
+
+    if (eventId) {
+      if (!activeEventIds.has(eventId)) {
+        // Event was deleted from database
+        return true;
+      }
+
+      // Event exists; check if individual media or video was deleted
+      if (isHls) {
+        const cleanNoHls = cleanKey.replace(/^hls\//, "");
+        const hlsBase = cleanNoHls
+          .split("/1080p/")[0]
+          .split("/720p/")[0]
+          .split("/480p/")[0]
+          .split("/master.m3u8")[0]
+          .split("/poster.jpg")[0]
+          .toLowerCase();
+        return !referencedKeys.has(hlsBase);
+      } else {
+        const baseKey = cleanKey
+          .replace("-thumbnail.webp", "")
+          .replace("-preview.webp", "")
+          .toLowerCase();
+        return !referencedKeys.has(baseKey);
+      }
+    }
+
+    if (cleanKey.startsWith("profiles/")) {
+      return !referencedKeys.has(cleanKey.toLowerCase());
+    }
+
+    return true;
+  });
+
   const orphanBytes = orphanFiles.reduce((sum, file) => sum + (Number(file.contentLength ?? file.size ?? 0) || 0), 0);
   const totalBytes = managedFiles.reduce((sum, file) => sum + (Number(file.contentLength ?? file.size ?? 0) || 0), 0);
 
@@ -1184,14 +1265,23 @@ async function deleteBackblazeOrphans(supabaseAdmin: ReturnType<typeof getAdminC
   let deletedBytes = 0;
   const failedFiles: string[] = [];
 
-  for (const file of scan.orphanFiles) {
-    const deleted = await deleteB2FileVersion(scan.auth, file);
-    if (deleted) {
-      deletedFiles += 1;
-      deletedBytes += Number(file.contentLength ?? file.size ?? 0) || 0;
-    } else {
-      failedFiles.push(file.fileName);
-    }
+  // Batch delete with concurrency 25 to avoid HTTP gateway timeouts
+  const concurrency = 25;
+  const filesToDelete = scan.orphanFiles;
+
+  for (let i = 0; i < filesToDelete.length; i += concurrency) {
+    const chunk = filesToDelete.slice(i, i + concurrency);
+    await Promise.all(
+      chunk.map(async (file) => {
+        const deleted = await deleteB2FileVersion(scan.auth, file);
+        if (deleted) {
+          deletedFiles += 1;
+          deletedBytes += Number(file.contentLength ?? file.size ?? 0) || 0;
+        } else {
+          failedFiles.push(file.fileName);
+        }
+      })
+    );
   }
 
   return {

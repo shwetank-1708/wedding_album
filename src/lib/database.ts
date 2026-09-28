@@ -2342,7 +2342,7 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
         }
 
         // 2. Fetch photos metadata and delete B2 assets for all photos associated with this event
-        const { data: photos } = await supabase.from('photos').select('id, size, media_type, uploaded_at').eq('event_id', eventId);
+        const { data: photos } = await supabase.from('photos').select('id, size, overhead_size, media_type, uploaded_at').eq('event_id', eventId);
         const { data: eventData } = await supabase.from('events').select('title, created_by, created_at').eq('id', eventId).maybeSingle();
 
         if (photos && photos.length > 0) {
@@ -2357,7 +2357,7 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
 
         // 3. Record compact 1-row financial ledger entry so Backblaze byte-hours and transactions can be accurately billed
         try {
-            const totalBytes = (photos || []).reduce((s: number, p: any) => s + (Number(p.size) || 0), 0);
+            const totalBytes = (photos || []).reduce((s: number, p: any) => s + (Number(p.size) || 0) + (Number(p.overhead_size) || 0), 0);
             const photosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() !== 'video').length;
             const videosCount = (photos || []).filter((p: any) => String(p.media_type || '').toLowerCase() === 'video').length;
             const earliestUpload = photos && photos.length > 0
@@ -2523,11 +2523,11 @@ export async function getUserTotalStorage(identifiers: string | string[]): Promi
         const ids = Array.isArray(identifiers) ? identifiers : [identifiers];
         const { data, error } = await supabase
             .from('photos')
-            .select('size')
+            .select('size, overhead_size')
             .in('user_id', ids);
 
         if (error) throw error;
-        return (data || []).reduce((acc, p) => acc + (p.size || 0), 0);
+        return (data || []).reduce((acc, p: any) => acc + (Number(p.size) || 0) + (Number(p.overhead_size) || 0), 0);
     } catch (error) {
         console.error("Error calculating total storage:", error);
         return 0;

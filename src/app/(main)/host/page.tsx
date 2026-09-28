@@ -2177,7 +2177,12 @@ function DashboardContent() {
             if (user.email) identifiers.push(user.email);
             if (user.phone) identifiers.push(user.phone);
             const currentUsage = await getUserTotalStorage(identifiers);
-            const selectedUploadSize = selectedFiles.reduce((total, file) => total + file.size, 0);
+            const selectedUploadSize = selectedFiles.reduce((total, file) => {
+                const isVideo = file.type.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm", "m4v"].includes(file.name.split('.').pop()?.toLowerCase() || "");
+                // For videos, factor in ~35% overhead for adaptive bitrate HLS streaming chunks (.ts files)
+                const estimatedSize = isVideo ? Math.round(file.size * 1.35) : file.size;
+                return total + estimatedSize;
+            }, 0);
 
             if (currentUsage >= currentPlan.storageBytes) {
                 setMessage(`You've reached your ${currentPlan.storageLabel} storage limit. Upgrade your plan for more storage.`);

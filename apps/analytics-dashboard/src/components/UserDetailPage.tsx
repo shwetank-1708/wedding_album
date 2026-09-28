@@ -435,7 +435,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     const statsByEventId = new Map<string, EventStats>();
 
     userPhotos.forEach(p => {
-      const size = Number(p.size) || 0;
+      const size = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
       const mediaType = String(p.mediaType || '').toLowerCase();
       const resourceType = String(p.resourceType || '').toLowerCase();
       const rawFormat = String((p as any).format || '').toLowerCase();
@@ -476,7 +476,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     let totalVideoCount = 0;
 
     userPhotos.forEach(p => {
-      const size = Number(p.size) || 0;
+      const size = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
       const mediaType = String(p.mediaType || '').toLowerCase();
       const resourceType = String(p.resourceType || '').toLowerCase();
       const rawFormat = String((p as any).format || '').toLowerCase();
@@ -816,6 +816,21 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     let totalPhotoSeconds = 0;
     let totalPhotoRuns = 0;
 
+    let totalPreviewActualUsd = 0;
+    let totalPreviewActualInr = 0;
+    let totalPreviewSeconds = 0;
+    let totalPreviewRuns = 0;
+
+    let totalFaceActualUsd = 0;
+    let totalFaceActualInr = 0;
+    let totalFaceSeconds = 0;
+    let totalFaceRuns = 0;
+
+    let totalLegacyPhotoActualUsd = 0;
+    let totalLegacyPhotoActualInr = 0;
+    let totalLegacyPhotoSeconds = 0;
+    let totalLegacyPhotoRuns = 0;
+
     let totalBatchActualUsd = 0;
     let totalBatchActualInr = 0;
     let totalBatchSeconds = 0;
@@ -925,6 +940,16 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
         mediaType === 'batch' || 
         workerType.includes('batch');
 
+      const isPreview = 
+        fn === 'generate_photo_preview' || 
+        fn === 'process_photo_preview' || 
+        workerType.includes('preview');
+
+      const isFace = 
+        fn.includes('faceindexer') || 
+        fn === 'face_index_ingress' || 
+        workerType.includes('face worker');
+
       let gpuRateUsd = 0;
       if (isGpu) {
         if (gpuType.toLowerCase().includes('a10g')) gpuRateUsd = 0.0002778; // $1.00/hr
@@ -1001,7 +1026,11 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
           eventStats.totalInr += costInr;
           eventStats.totalSeconds += dur;
         }
-      } else {
+      } else if (isPreview) {
+        totalPreviewActualUsd += costUsd;
+        totalPreviewActualInr += costInr;
+        totalPreviewSeconds += dur;
+        totalPreviewRuns += 1;
         totalPhotoActualUsd += costUsd;
         totalPhotoActualInr += costInr;
         totalPhotoSeconds += dur;
@@ -1009,11 +1038,43 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
         if (eventStats) {
           eventStats.photoUsd += costUsd;
           eventStats.photoInr += costInr;
-          eventStats.photoSeconds += dur;
-          eventStats.photoRuns += 1;
           eventStats.totalUsd += costUsd;
           eventStats.totalInr += costInr;
           eventStats.totalSeconds += dur;
+          eventStats.photoRuns += 1;
+        }
+      } else if (isFace) {
+        totalFaceActualUsd += costUsd;
+        totalFaceActualInr += costInr;
+        totalFaceSeconds += dur;
+        totalFaceRuns += 1;
+        totalPhotoActualUsd += costUsd;
+        totalPhotoActualInr += costInr;
+        totalPhotoSeconds += dur;
+        totalPhotoRuns += 1;
+        if (eventStats) {
+          eventStats.photoUsd += costUsd;
+          eventStats.photoInr += costInr;
+          eventStats.totalUsd += costUsd;
+          eventStats.totalInr += costInr;
+          eventStats.totalSeconds += dur;
+        }
+      } else {
+        totalLegacyPhotoActualUsd += costUsd;
+        totalLegacyPhotoActualInr += costInr;
+        totalLegacyPhotoSeconds += dur;
+        totalLegacyPhotoRuns += 1;
+        totalPhotoActualUsd += costUsd;
+        totalPhotoActualInr += costInr;
+        totalPhotoSeconds += dur;
+        totalPhotoRuns += 1;
+        if (eventStats) {
+          eventStats.photoUsd += costUsd;
+          eventStats.photoInr += costInr;
+          eventStats.totalUsd += costUsd;
+          eventStats.totalInr += costInr;
+          eventStats.totalSeconds += dur;
+          eventStats.photoRuns += 1;
         }
       }
     });
@@ -1037,7 +1098,8 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     const avgObservedVideoGpuCost = avgObservedVideoGpuCostUsd * usdToInrRate;
     const avgObservedVideoCost = avgObservedVideoCostUsd * usdToInrRate;
 
-    let lifetimePhotosCount = totalPhotoRuns;
+    const uniquePhotoComputeRuns = Math.max(totalPreviewRuns, totalFaceRuns, totalLegacyPhotoRuns);
+    let lifetimePhotosCount = uniquePhotoComputeRuns;
     let lifetimeVideosCount = totalVideoRuns;
     let unloggedPhotos = 0;
     let unloggedVideos = 0;
@@ -1045,9 +1107,9 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     if (economicsWindow.isAllTime) {
       const deletedArchivePhotoCount = deletedEvents.reduce((s, d) => s + (Number(d.photosCount) || 0), 0);
       const deletedArchiveVideoCount = deletedEvents.reduce((s, d) => s + (Number(d.videosCount) || 0), 0);
-      lifetimePhotosCount = Math.max(activePhotos + deletedArchivePhotoCount, totalPhotoRuns);
+      lifetimePhotosCount = Math.max(activePhotos + deletedArchivePhotoCount, uniquePhotoComputeRuns);
       lifetimeVideosCount = Math.max(activeVideos + deletedArchiveVideoCount, totalVideoRuns);
-      unloggedPhotos = Math.max(0, lifetimePhotosCount - totalPhotoRuns);
+      unloggedPhotos = Math.max(0, lifetimePhotosCount - uniquePhotoComputeRuns);
       unloggedVideos = Math.max(0, lifetimeVideosCount - totalVideoRuns);
     } else {
       const uploadsInWindow = photos.filter(p => {
@@ -1059,9 +1121,9 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
         return !isVid;
       }).length;
       const windowVidCount = uploadsInWindow.length - windowImgCount;
-      lifetimePhotosCount = Math.max(windowImgCount, totalPhotoRuns);
+      lifetimePhotosCount = Math.max(windowImgCount, uniquePhotoComputeRuns);
       lifetimeVideosCount = Math.max(windowVidCount, totalVideoRuns);
-      unloggedPhotos = Math.max(0, lifetimePhotosCount - totalPhotoRuns);
+      unloggedPhotos = Math.max(0, lifetimePhotosCount - uniquePhotoComputeRuns);
       unloggedVideos = Math.max(0, lifetimeVideosCount - totalVideoRuns);
     }
 
@@ -1108,6 +1170,18 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
       totalPhotoActualInr,
       totalPhotoSeconds,
       totalPhotoRuns,
+      totalPreviewActualUsd,
+      totalPreviewActualInr,
+      totalPreviewSeconds,
+      totalPreviewRuns,
+      totalFaceActualUsd,
+      totalFaceActualInr,
+      totalFaceSeconds,
+      totalFaceRuns,
+      totalLegacyPhotoActualUsd,
+      totalLegacyPhotoActualInr,
+      totalLegacyPhotoSeconds,
+      totalLegacyPhotoRuns,
       totalBatchActualUsd,
       totalBatchActualInr,
       totalBatchSeconds,
@@ -1204,7 +1278,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
 
       galleryPhotos.forEach(p => {
         meteredPhotoIds.add(p.id);
-        const pBytes = Number(p.size) || 0;
+        const pBytes = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
         const pGb = pBytes / (1024 * 1024 * 1024);
         const rawTime = p.uploadedAt ? new Date(p.uploadedAt).getTime() : (event.createdAt ? new Date(event.createdAt).getTime() : windowStartMs);
         const pStart = !isNaN(rawTime) && rawTime > 0 ? rawTime : windowStartMs;
@@ -1287,7 +1361,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
 
       galleryPhotos.forEach(p => {
         meteredPhotoIds.add(p.id);
-        const pBytes = Number(p.size) || 0;
+        const pBytes = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
         const pGb = pBytes / (1024 * 1024 * 1024);
         const rawTime = p.uploadedAt ? new Date(p.uploadedAt).getTime() : (event.createdAt ? new Date(event.createdAt).getTime() : windowStartMs);
         const pStart = !isNaN(rawTime) && rawTime > 0 ? rawTime : windowStartMs;
@@ -1378,7 +1452,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
 
       standalonePhotos.forEach(p => {
         meteredPhotoIds.add(p.id);
-        const pBytes = Number(p.size) || 0;
+        const pBytes = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
         totalBytes += pBytes;
         const pGb = pBytes / (1024 * 1024 * 1024);
         const rawTime = p.uploadedAt ? new Date(p.uploadedAt).getTime() : windowStartMs;
@@ -1727,7 +1801,7 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
     let lifetimeGbHours = 0;
 
     userPhotos.forEach(p => {
-      const pBytes = Number(p.size) || 0;
+      const pBytes = (Number(p.size) || 0) + (Number(p.overheadSize) || 0);
       const pGb = pBytes / (1024 * 1024 * 1024);
       const rawTime = p.uploadedAt ? new Date(p.uploadedAt).getTime() : (user.createdAt ? new Date(user.createdAt).getTime() : now);
       const pStart = !isNaN(rawTime) && rawTime > 0 ? rawTime : (now - 30 * 86400000);
@@ -4361,32 +4435,52 @@ export const UserDetailPage: React.FC<UserDetailPageProps> = ({
 
             {/* Modular Worker Breakdown (3 Cards across full row) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Photo AI Worker */}
+              {/* Photo Processing Fleet */}
               <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80 space-y-2 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between font-semibold text-slate-200">
                     <span className="flex items-center gap-1.5 text-sm">
                       <ImageIcon className="w-4 h-4 text-sky-400" />
-                      Photo AI Worker
+                      Photo Processing Fleet
                     </span>
                     <span className="font-mono text-white font-bold text-sm">{fmtCost(costBreakdown.modalPhotoUsd)}</span>
                   </div>
                   <div className="text-[11px] font-mono text-slate-400 mt-1">
-                    <code>process_single_photo</code> &bull; <code>process_media_batch</code>
+                    <code>generate_photo_preview</code> &bull; <code>FaceIndexer</code>
                   </div>
                   <div className="text-xs text-slate-400 mt-2 space-y-1.5">
+                    {/* Fast Preview Worker */}
                     <div className="flex justify-between items-baseline">
-                      <span>Single Photo (Worker):</span>
+                      <span className="text-emerald-400 font-medium">⚡ Fast Preview (0.5 vCPU):</span>
                       <span className="font-mono text-slate-200">
-                        {fmtCost(actualComputeMetrics.totalPhotoActualUsd)} <span className="text-[11px] text-slate-400">({actualComputeMetrics.lifetimePhotosCount} photos &bull; {actualComputeMetrics.totalPhotoSeconds.toFixed(1)}s)</span>
+                        {fmtCost(actualComputeMetrics.totalPreviewActualUsd)} <span className="text-[11px] text-slate-400">({actualComputeMetrics.totalPreviewRuns} runs &bull; {actualComputeMetrics.totalPreviewSeconds.toFixed(1)}s)</span>
                       </span>
                     </div>
+                    {/* Face Indexer */}
                     <div className="flex justify-between items-baseline">
-                      <span>Batch Dispatcher:</span>
+                      <span className="text-indigo-400 font-medium">🧠 Face Indexer (1.0 vCPU):</span>
                       <span className="font-mono text-slate-200">
-                        {fmtCost(actualComputeMetrics.totalBatchActualUsd, 3)} <span className="text-[11px] text-slate-400">({actualComputeMetrics.totalBatchRuns} batches &bull; {actualComputeMetrics.totalBatchSeconds.toFixed(1)}s)</span>
+                        {fmtCost(actualComputeMetrics.totalFaceActualUsd)} <span className="text-[11px] text-slate-400">({actualComputeMetrics.totalFaceRuns} runs &bull; {actualComputeMetrics.totalFaceSeconds.toFixed(1)}s)</span>
                       </span>
                     </div>
+                    {/* Legacy Worker (if any historical runs exist) */}
+                    {actualComputeMetrics.totalLegacyPhotoRuns > 0 && (
+                      <div className="flex justify-between items-baseline text-slate-400">
+                        <span>Legacy Worker (1 vCPU):</span>
+                        <span className="font-mono text-slate-300">
+                          {fmtCost(actualComputeMetrics.totalLegacyPhotoActualUsd)} <span className="text-[11px]">({actualComputeMetrics.totalLegacyPhotoRuns} runs)</span>
+                        </span>
+                      </div>
+                    )}
+                    {/* Legacy Batch Dispatcher (if any historical runs exist) */}
+                    {actualComputeMetrics.totalBatchRuns > 0 && (
+                      <div className="flex justify-between items-baseline text-slate-400">
+                        <span>Legacy Dispatcher:</span>
+                        <span className="font-mono text-slate-300">
+                          {fmtCost(actualComputeMetrics.totalBatchActualUsd, 3)} <span className="text-[11px]">({actualComputeMetrics.totalBatchRuns} runs)</span>
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-1 border-t border-slate-800/60">
                       <span>Total Execution:</span>
                       <span className="font-mono text-slate-300">{(actualComputeMetrics.totalPhotoSeconds + actualComputeMetrics.totalBatchSeconds).toFixed(1)}s</span>

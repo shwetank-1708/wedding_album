@@ -94,6 +94,102 @@ export async function publishModalBatchTask(
   }
 }
 
+export async function publishFastMediaTask(
+  photo: PhotoPayload & { fileSize?: number; size?: number; asset_version?: number },
+): Promise<boolean> {
+  const qstashToken = process.env.QSTASH_TOKEN;
+  if (!qstashToken) {
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Fast media preview task will not run.");
+    return false;
+  }
+
+  const targetUrl = (
+    process.env.MODAL_PREVIEW_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-generate-photo-preview.modal.run"
+  ).trim();
+
+  try {
+    const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${qstashToken}`,
+        "Content-Type": "application/json",
+        "Upstash-Timeout": "120s",
+        "Upstash-Deduplication-Id": `media-${photo.id}-v${photo.asset_version || 1}`,
+      },
+      body: JSON.stringify({
+        photo_id: photo.id,
+        id: photo.id,
+        storage_key: photo.storage_key,
+        event_id: photo.event_id,
+        user_id: photo.user_id,
+        url: photo.url,
+        asset_version: photo.asset_version || 1,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`QStash publish failed with status ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log(`[QStash] Successfully published fast media task for ${photo.id}. Message ID: ${result.messageId}`);
+    return true;
+  } catch (error) {
+    console.error(`[QStash] Error publishing fast media task for ${photo.id}:`, error);
+    return false;
+  }
+}
+
+export async function publishFaceIndexTask(
+  photo: { id: string; storage_key: string; event_id: string; user_id?: string; preview_url?: string; asset_version?: number },
+): Promise<boolean> {
+  const qstashToken = process.env.QSTASH_TOKEN;
+  if (!qstashToken) {
+    console.warn("[QStash] QSTASH_TOKEN is not configured. Face index task will not run.");
+    return false;
+  }
+
+  const targetUrl = (
+    process.env.MODAL_FACE_INGRESS_URL ||
+    "https://shwetank-sarthak--wedding-media-engine-face-index-ingress.modal.run"
+  ).trim();
+
+  try {
+    const response = await fetch(`https://qstash-us-east-1.upstash.io/v2/publish/${targetUrl}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${qstashToken}`,
+        "Content-Type": "application/json",
+        "Upstash-Timeout": "120s",
+        "Upstash-Deduplication-Id": `face-${photo.id}-v${photo.asset_version || 1}`,
+      },
+      body: JSON.stringify({
+        photo_id: photo.id,
+        id: photo.id,
+        storage_key: photo.storage_key,
+        event_id: photo.event_id,
+        user_id: photo.user_id,
+        preview_url: photo.preview_url,
+        asset_version: photo.asset_version || 1,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`QStash publish failed with status ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log(`[QStash] Successfully published face index task for ${photo.id}. Message ID: ${result.messageId}`);
+    return true;
+  } catch (error) {
+    console.error(`[QStash] Error publishing face index task for ${photo.id}:`, error);
+    return false;
+  }
+}
+
 export async function publishInternalJob(
   endpoint: string,
   payload: Record<string, unknown>,

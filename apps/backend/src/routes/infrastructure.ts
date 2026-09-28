@@ -49,7 +49,10 @@ infrastructureRouter.get("/supabase-billing", async (request, response) => {
 
   try {
     const managementKey = requireEnv("SUPABASE_MGMT_KEY");
-    const projectUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+    const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || process.env.SUPABASE_URL?.trim();
+    if (!projectUrl) {
+      throw new Error("NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL is not configured");
+    }
     const projectRef = projectUrl.match(/https:\/\/(.*?)\.supabase\./)?.[1];
 
     if (!projectRef) {
@@ -711,6 +714,104 @@ infrastructureRouter.get("/razorpay-billing", async (request, response) => {
   } catch (error) {
     return response.status(500).json({
       error: error instanceof Error ? error.message : "Failed to fetch Razorpay billing.",
+    });
+  }
+});
+
+// ── Vendor Infrastructure Invoices Ledger ──────────────────────────────────
+infrastructureRouter.get("/infra-invoices", async (request, response) => {
+  if (!(await authorize(request, response))) return;
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("infra_invoices")
+      .select("*")
+      .order("paid_at", { ascending: false });
+
+    if (error) throw error;
+    return response.json({ success: true, invoices: data || [] });
+  } catch (error: any) {
+    return response.status(500).json({
+      success: false,
+      error: error?.message || "Failed to fetch infrastructure invoices",
+    });
+  }
+});
+
+infrastructureRouter.post("/infra-invoices", async (request, response) => {
+  if (!(await authorize(request, response))) return;
+
+  try {
+    const {
+      provider,
+      amount_usd,
+      amount_inr,
+      billing_period_start,
+      billing_period_end,
+      invoice_number,
+      notes,
+      paid_at,
+    } = request.body || {};
+
+    if (!provider || typeof provider !== "string") {
+      return response.status(400).json({ success: false, error: "Provider name is required" });
+    }
+
+    const numUsd = Number(amount_usd) || 0;
+    const numInr = Number(amount_inr) || (numUsd > 0 ? numUsd * 100 : 0);
+
+    if (numUsd <= 0 && numInr <= 0) {
+      return response.status(400).json({ success: false, error: "A valid positive amount is required" });
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("infra_invoices")
+      .insert({
+        provider: provider.toLowerCase().trim(),
+        amount_usd: numUsd > 0 ? numUsd : (numInr / 100),
+        amount_inr: numInr > 0 ? numInr : (numUsd * 100),
+        billing_period_start: billing_period_start || null,
+        billing_period_end: billing_period_end || null,
+        invoice_number: invoice_number ? String(invoice_number).trim() : null,
+        notes: notes ? String(notes).trim() : null,
+        paid_at: paid_at ? new Date(paid_at).toISOString() : new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return response.status(201).json({ success: true, invoice: data });
+  } catch (error: any) {
+    return response.status(500).json({
+      success: false,
+      error: error?.message || "Failed to record infrastructure invoice",
+    });
+  }
+});
+
+infrastructureRouter.delete("/infra-invoices/:id", async (request, response) => {
+  if (!(await authorize(request, response))) return;
+
+  try {
+    const { id } = request.params;
+    if (!id) {
+      return response.status(400).json({ success: false, error: "Invoice ID is required" });
+    }
+
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("infra_invoices")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    return response.json({ success: true });
+  } catch (error: any) {
+    return response.status(500).json({
+      success: false,
+      error: error?.message || "Failed to delete infrastructure invoice",
     });
   }
 });

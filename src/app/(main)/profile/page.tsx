@@ -560,6 +560,7 @@ export default function ProfilePage() {
                                     <div className="rounded-2xl bg-slate-900 p-4">
                                         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Storage Used</p>
                                         <p className="mt-1 text-xl font-black text-white">{formatBytes(storageUsed)}</p>
+                                        <p className="mt-1 text-[11px] font-medium text-slate-500">Includes original media & streaming assets</p>
                                     </div>
                                     <div className="rounded-2xl bg-slate-900 p-4">
                                         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Active Plan</p>

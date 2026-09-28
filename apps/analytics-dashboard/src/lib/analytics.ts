@@ -217,6 +217,7 @@ export interface Photo {
   id: string;
   eventId: string;
   size: number;
+  overheadSize?: number;
   mediaType: string;
   resourceType?: string;
   userId?: string;
@@ -237,6 +238,8 @@ export async function fetchPhotos(): Promise<Photo[]> {
 
     // The photos table schema uses uploaded_at (not created_at) and does not have duration.
     const candidateColumns = [
+      'id, event_id, size, overhead_size, media_type, resource_type, user_id, storage_key, url, format, uploaded_at',
+      'id, event_id, size, overhead_size, media_type, resource_type, user_id, url, uploaded_at',
       'id, event_id, size, media_type, resource_type, user_id, storage_key, url, format, uploaded_at',
       'id, event_id, size, media_type, resource_type, user_id, url, uploaded_at',
       'id, event_id, size, media_type, resource_type, user_id, url',
@@ -298,6 +301,7 @@ export async function fetchPhotos(): Promise<Photo[]> {
         id: d.id,
         eventId: d.event_id || '',
         size: Number(d.size) || 0,
+        overheadSize: Number(d.overhead_size) || 0,
         mediaType: isVid ? 'video' : (d.media_type || 'photo'),
         resourceType: isVid ? 'video' : (d.resource_type || ''),
         userId: d.user_id || '',
@@ -1018,7 +1022,7 @@ export function computeDashboardStats(
     .slice(0, 5)
     .map(({ name, emailOrPhone, type, time }) => ({ name, emailOrPhone, type, time }));
 
-  const totalStorage = photos.reduce((sum, p) => sum + (Number(p.size) || 0), 0);
+  const totalStorage = photos.reduce((sum, p) => sum + (Number(p.size) || 0) + (Number(p.overheadSize) || 0), 0);
 
   return {
     totalUsers,
