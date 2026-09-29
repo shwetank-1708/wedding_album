@@ -335,6 +335,22 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
           workerSpecs = '4 vCPU • 4GB RAM';
           workerBadge = 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400';
           workerTextColor = 'text-cyan-400';
+        } else if (log.worker_type.includes('Preview')) {
+          workerSpecs = '0.5 vCPU • 768MB RAM';
+          workerBadge = 'bg-teal-500/10 border-teal-500/20 text-teal-300';
+          workerTextColor = 'text-teal-300';
+        } else if (log.worker_type.includes('Face Worker')) {
+          workerSpecs = '1 vCPU • 2GB RAM';
+          workerBadge = 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400';
+          workerTextColor = 'text-indigo-400';
+        } else if (log.worker_type.includes('Outbox Dispatcher')) {
+          workerSpecs = '0.125 vCPU • 768MB RAM';
+          workerBadge = 'bg-amber-500/10 border-amber-500/20 text-amber-300';
+          workerTextColor = 'text-amber-300';
+        } else if (log.worker_type.includes('Watchdog') || log.worker_type.includes('Reconciler')) {
+          workerSpecs = '0.125 vCPU • 768MB RAM';
+          workerBadge = 'bg-rose-500/10 border-rose-500/20 text-rose-400';
+          workerTextColor = 'text-rose-400';
         }
       } else if (fn === 'process_video_gpu' || log.gpu_type === 'l4') {
         workerTitle = 'Modal GPU Worker';
@@ -357,6 +373,26 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         workerSpecs = '0.125 vCPU • 1GB RAM';
         workerBadge = 'bg-blue-500/10 border-blue-500/20 text-blue-400';
         workerTextColor = 'text-blue-400';
+      } else if (fn === 'generate_photo_preview' || fn === 'process_photo_preview') {
+        workerTitle = 'Modal Preview Worker';
+        workerSpecs = '0.5 vCPU • 768MB RAM';
+        workerBadge = 'bg-teal-500/10 border-teal-500/20 text-teal-300';
+        workerTextColor = 'text-teal-300';
+      } else if (fn.includes('FaceIndexer') || fn.includes('face_index')) {
+        workerTitle = 'Modal Face Worker';
+        workerSpecs = '1 vCPU • 2GB RAM';
+        workerBadge = 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400';
+        workerTextColor = 'text-indigo-400';
+      } else if (fn === 'dispatch_outbox_jobs') {
+        workerTitle = 'Modal Outbox Dispatcher';
+        workerSpecs = '0.125 vCPU • 768MB RAM';
+        workerBadge = 'bg-amber-500/10 border-amber-500/20 text-amber-300';
+        workerTextColor = 'text-amber-300';
+      } else if (fn === 'sweep_stuck_jobs') {
+        workerTitle = 'Modal Watchdog Reconciler';
+        workerSpecs = '0.125 vCPU • 768MB RAM';
+        workerBadge = 'bg-rose-500/10 border-rose-500/20 text-rose-400';
+        workerTextColor = 'text-rose-400';
       }
 
       const isSubGallery = Boolean(event?.parentId) || event?.type === 'sub';
@@ -1204,6 +1240,34 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         totalCostUsd: 0,
         totalCostInr: 0,
       },
+      {
+        key: 'outbox_dispatcher',
+        name: 'Modal Outbox Dispatcher',
+        workerTypeDescription: 'Async Queue Dispatcher & Ingestion Bridge',
+        specs: '0.125 vCPU • 768MB RAM',
+        textColor: 'text-amber-300',
+        badgeStyle: 'bg-amber-500/10 border-amber-500/30 text-amber-300',
+        costPerSecUsd: (0.125 * 0.0000131) + (0.75 * 0.00000222), // $0.0000033025/s
+        runs: 0,
+        totalDurationSeconds: 0,
+        dataSizeBytes: 0,
+        totalCostUsd: 0,
+        totalCostInr: 0,
+      },
+      {
+        key: 'watchdog',
+        name: 'Modal Watchdog Reconciler',
+        workerTypeDescription: 'Self-Healing Queue & Lease Watchdog',
+        specs: '0.125 vCPU • 768MB RAM',
+        textColor: 'text-rose-400',
+        badgeStyle: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
+        costPerSecUsd: (0.125 * 0.0000131) + (0.75 * 0.00000222), // $0.0000033025/s
+        runs: 0,
+        totalDurationSeconds: 0,
+        dataSizeBytes: 0,
+        totalCostUsd: 0,
+        totalCostInr: 0,
+      },
     ];
 
     modalLogs.forEach(log => {
@@ -1220,10 +1284,14 @@ export const InfraCostGrid: React.FC<Props> = ({ stats, users, events, guests, p
         targetKey = 'selfie';
       } else if (fn === 'process_media_batch' || log.worker_type?.includes('Batch')) {
         targetKey = 'batch';
-      } else if (fn === 'generate_photo_preview' || log.worker_type?.includes('Preview')) {
+      } else if (fn === 'generate_photo_preview' || fn === 'process_photo_preview' || log.worker_type?.includes('Preview')) {
         targetKey = 'preview';
       } else if (fn.includes('FaceIndexer') || fn.includes('face_index') || log.worker_type?.includes('Face Worker')) {
         targetKey = 'face';
+      } else if (fn === 'dispatch_outbox_jobs' || log.worker_type?.includes('Outbox Dispatcher')) {
+        targetKey = 'outbox_dispatcher';
+      } else if (fn === 'sweep_stuck_jobs' || log.worker_type?.includes('Watchdog') || log.worker_type?.includes('Reconciler')) {
+        targetKey = 'watchdog';
       } else {
         targetKey = 'photo';
       }

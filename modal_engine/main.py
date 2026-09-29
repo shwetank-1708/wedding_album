@@ -594,7 +594,7 @@ def process_photo_preview(photo_data: dict):
             log_payload = {
                 "photo_id": photo_id,
                 "event_id": event_id,
-                "function_name": "generate_photo_preview",
+                "function_name": "process_photo_preview",
                 "worker_type": "Modal Preview Worker (0.5 vCPU • 768MB)",
                 "media_type": "photo",
                 "media_size": len(raw_bytes),
@@ -860,9 +860,11 @@ def sweep_stuck_jobs():
     Recovers any stuck or orphaned jobs across both Fast Media and Face AI paths.
     """
     import os
+    import time
     from datetime import datetime, timezone, timedelta
     from supabase import create_client, Client
 
+    start_time = time.time()
     supabase: Client = create_client(
         os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
         os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -972,6 +974,28 @@ def sweep_stuck_jobs():
     if recovered_media > 0 or recovered_face > 0 or recovered_outbox > 0:
         print(f"[Reconciler] Sweep complete: recovered {recovered_media} media, {recovered_face} face, {recovered_outbox} outbox jobs.")
 
+    duration = time.time() - start_time
+    cpu_cores = 0.125
+    memory_gb = 0.75
+    rate_per_sec = (cpu_cores * 0.0000131) + (memory_gb * 0.00000222)
+    cost_inr = duration * rate_per_sec * 100.0
+
+    if recovered_media > 0 or recovered_face > 0 or recovered_outbox > 0 or now.minute % 15 == 0:
+        try:
+            supabase.table("modal_cost_logs").insert({
+                "function_name": "sweep_stuck_jobs",
+                "worker_type": "Modal Watchdog Reconciler (0.125 vCPU • 768MB)",
+                "media_type": "cron",
+                "cpu_cores": cpu_cores,
+                "memory_gb": memory_gb,
+                "gpu_type": "None",
+                "execution_time_seconds": duration,
+                "estimated_cost_inr": cost_inr,
+                "faces_detected": 0
+            }).execute()
+        except Exception as log_err:
+            print(f"[Reconciler] Cost log notice: {log_err}")
+
 
 @app.function(
     image=media_image,
@@ -984,8 +1008,11 @@ def dispatch_outbox_jobs():
     Claims pending outbox rows atomically and dispatches them to their workers.
     """
     import os
+    import time
+    from datetime import datetime, timezone
     from supabase import create_client, Client
 
+    start_time = time.time()
     supabase: Client = create_client(
         os.environ.get("NEXT_PUBLIC_SUPABASE_URL"),
         os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -994,6 +1021,24 @@ def dispatch_outbox_jobs():
     claimed = supabase.rpc("claim_outbox_batch", {"p_batch_size": 50, "p_lease_seconds": 60}).execute()
     rows = claimed.data or []
     if not rows:
+        now = datetime.now(timezone.utc)
+        if now.minute % 15 == 0:
+            duration = time.time() - start_time
+            rate_per_sec = (0.125 * 0.0000131) + (0.75 * 0.00000222)
+            try:
+                supabase.table("modal_cost_logs").insert({
+                    "function_name": "dispatch_outbox_jobs",
+                    "worker_type": "Modal Outbox Dispatcher (0.125 vCPU • 768MB)",
+                    "media_type": "cron",
+                    "cpu_cores": 0.125,
+                    "memory_gb": 0.75,
+                    "gpu_type": "None",
+                    "execution_time_seconds": duration,
+                    "estimated_cost_inr": duration * rate_per_sec * 100.0,
+                    "faces_detected": 0
+                }).execute()
+            except Exception:
+                pass
         return {"dispatched": 0}
 
     dispatched = 0
@@ -1026,6 +1071,28 @@ def dispatch_outbox_jobs():
             dispatched += 1
 
     print(f"[OutboxDispatcher] Dispatched {dispatched} queued jobs.")
+
+    duration = time.time() - start_time
+    cpu_cores = 0.125
+    memory_gb = 0.75
+    rate_per_sec = (cpu_cores * 0.0000131) + (memory_gb * 0.00000222)
+    cost_inr = duration * rate_per_sec * 100.0
+
+    try:
+        supabase.table("modal_cost_logs").insert({
+            "function_name": "dispatch_outbox_jobs",
+            "worker_type": "Modal Outbox Dispatcher (0.125 vCPU • 768MB)",
+            "media_type": "cron",
+            "cpu_cores": cpu_cores,
+            "memory_gb": memory_gb,
+            "gpu_type": "None",
+            "execution_time_seconds": duration,
+            "estimated_cost_inr": cost_inr,
+            "faces_detected": 0
+        }).execute()
+    except Exception as log_err:
+        print(f"[OutboxDispatcher] Cost log notice: {log_err}")
+
     return {"dispatched": dispatched}
 
 
