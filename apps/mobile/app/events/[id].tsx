@@ -2565,9 +2565,11 @@ export default function EventDetailScreen() {
                   ? `Finalizing ${currentUploading.fileName}...`
                   : currentUploading.status === 'upload_needs_reconciliation'
                     ? `Checking ${currentUploading.fileName}...`
-                    : currentUploading.progress >= 90
-                      ? `Finishing ${currentUploading.fileName}...`
-                      : `${currentUploading.fileName} (${Math.round(currentUploading.progress)}%)`}
+                    : currentUploading.retryCount && currentUploading.retryCount > 0
+                      ? `Retrying ${currentUploading.fileName} (${Math.round(currentUploading.progress)}%)...`
+                      : currentUploading.progress >= 90
+                        ? `Finishing ${currentUploading.fileName}...`
+                        : `${currentUploading.fileName} (${Math.round(currentUploading.progress)}%)`}
               </Text>
             )}
             {failed.length > 0 && (

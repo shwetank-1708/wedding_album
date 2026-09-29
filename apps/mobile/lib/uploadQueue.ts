@@ -27,7 +27,7 @@ const PROGRESS_NOTIFICATION_ID = 'media-upload-progress';
 const CHANNEL_PROGRESS = 'upload-progress';
 const CHANNEL_COMPLETE = 'upload-completion';
 
-const CONCURRENCY = 3;
+const CONCURRENCY = 1;
 const MAX_UPLOAD_RETRIES = 3;
 const UPLOAD_DIR_NAME = 'evebash_uploads/';
 
@@ -519,22 +519,23 @@ async function uploadWorker(item: UploadQueueItem) {
     // Trigger metadata batch flusher
     void flushMetadataBatches();
   } catch (err: any) {
-    console.error(`[UploadQueue] Error uploading ${item.fileName}:`, err);
     const retries = (item.retryCount || 0) + 1;
 
     if (retries < MAX_UPLOAD_RETRIES) {
-      console.log(`[UploadQueue] Retrying ${item.fileName} (attempt ${retries}/${MAX_UPLOAD_RETRIES})...`);
+      console.warn(`[UploadQueue] Transient upload issue on ${item.fileName} (${err?.message || err}). Retrying attempt ${retries}/${MAX_UPLOAD_RETRIES}...`);
       await mutateQueue(q => {
         const target = q.find(i => i.id === item.id);
         if (target) {
           target.status = 'pending';
           target.retryCount = retries;
           target.progress = 0;
+          target.storageKey = undefined; // Force acquiring fresh upload URL on retry
         }
       });
       // Backoff before slot is retried
-      await new Promise(res => setTimeout(res, 1500 * retries));
+      await new Promise(res => setTimeout(res, 2000 * retries));
     } else {
+      console.error(`[UploadQueue] Permanent upload failure for ${item.fileName} after ${MAX_UPLOAD_RETRIES} attempts:`, err);
       await mutateQueue(q => {
         const target = q.find(i => i.id === item.id);
         if (target) {
