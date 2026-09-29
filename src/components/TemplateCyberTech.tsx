@@ -108,7 +108,7 @@ export function TemplateCyberTech({ event, children }: TemplateCyberTechProps) {
                                 src={event.coverImage}
                                 alt={event.title}
                                 fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                                className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-100"
                                 priority
                             />
                             {/* Tech Cyber Corner Markers */}

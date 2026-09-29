@@ -1,5 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 @import "tailwindcss";
+@import "./royal-emerald.css";
+@import "./gallery-refinements.css";
 
 /* Suppress Native Browser Video Controls (Overflow 3-Dots & Picture-in-Picture) */
 video::-webkit-media-controls-overflow-button,
@@ -13,7 +15,8 @@ video::-webkit-media-controls-picture-in-picture-button {
 
 :root {
   --font-inter: 'Inter', Helvetica, Arial, sans-serif;
-  --font-playfair: var(--font-inter);
+  --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-playfair: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-lato: var(--font-inter);
   --color-royal-maroon: #594C3D;
   --color-royal-gold: #CA9C68;
@@ -50,9 +53,9 @@ video::-webkit-media-controls-picture-in-picture-button {
   --color-royal-cream: var(--color-royal-cream);
   --color-royal-green: var(--color-royal-green);
 
-  --font-serif: var(--font-inter);
+  --font-serif: var(--font-serif);
   --font-sans: var(--font-inter);
-  --font-playfair: var(--font-inter);
+  --font-playfair: var(--font-playfair);
   --font-lato: var(--font-inter);
 }
 

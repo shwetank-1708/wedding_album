@@ -1,0 +1,77 @@
+/* Shared controls inherit the selected gallery palette, never the app shell. */
+.event-template-shell .font-serif { font-family: Georgia, 'Times New Roman', serif; }
+.themed-gallery-content :is([class*="text-stone-"], [class*="text-gold-"]) { color: var(--event-template-muted); }
+.themed-gallery-content :is(h2, [class*="text-stone-800"], [class*="text-stone-900"]) { color: var(--event-template-text); }
+.themed-gallery-content [data-royal-control],
+.themed-gallery-content [role="switch"] {
+  background: var(--event-template-panel);
+  color: var(--event-template-text);
+  border-color: var(--event-template-border);
+}
+.themed-gallery-content [data-royal-control="share"] span { color: var(--event-template-text); }
+.themed-gallery-content [data-royal-control="source"] { flex-wrap: wrap; }
+.themed-gallery-content select {
+  min-width: 0; max-width: 100%; flex: 1 1 10rem;
+  background: var(--event-template-panel); color: var(--event-template-text);
+  border-color: var(--event-template-border);
+}
+.themed-gallery-content [data-royal-control="segments"] { max-width: 100%; }
+.themed-gallery-content [data-royal-control="segments"] button { padding-inline: clamp(.6rem, 3vw, 1.25rem); }
+.themed-gallery-content [data-royal-control="segments"] [aria-pressed="true"] {
+  background: var(--event-template-accent); color: var(--event-template-on-accent);
+}
+.themed-gallery-content [role="switch"][aria-checked="true"] { border-color: var(--event-template-accent); }
+.themed-gallery-content :is(button, select, a):focus-visible {
+  outline: 2px solid var(--event-template-text); outline-offset: 4px;
+}
+.themed-gallery-content .gallery-masonry { padding-inline: 0; width: 100%; max-width: none; }
+.themed-gallery-content .gallery-media-card {
+  background: var(--event-template-panel); border-color: var(--event-template-border);
+  transform: none !important;
+}
+.themed-gallery-content .gallery-card-actions {
+  background: var(--event-template-panel); border-color: var(--event-template-border);
+  color: var(--event-template-text);
+}
+.themed-gallery-content .gallery-card-actions :is(button, span, svg) { color: var(--event-template-text); }
+.themed-gallery-content .gallery-card-actions .fill-rose-500 { fill: currentColor; }
+.themed-gallery-content .gallery-media-card:only-child { max-width: 36rem; margin-inline: auto; }
+.themed-gallery-content .gallery-media-card video { object-fit: contain; }
+/* Decorative motion stays in the entrance transitions rather than looping. */
+.event-template-shell :is(.animate-bounce, .animate-pulse, .animate-ping) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .event-template-shell *, [data-viewer-theme] * {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}
+[data-viewer-theme] {
+  background: var(--viewer-background); color: var(--viewer-text);
+}
+[data-viewer-theme] .viewer-themed-control {
+  background: var(--viewer-panel); color: var(--viewer-text); border-color: var(--viewer-border);
+}
+[data-viewer-theme] .viewer-themed-control:hover { border-color: var(--viewer-text); }
+[data-viewer-theme] .viewer-themed-page,
+[data-viewer-theme] .viewer-comments-panel {
+  background: var(--viewer-panel); color: var(--viewer-text); border-color: var(--viewer-border);
+}
+[data-viewer-theme] .viewer-comments-panel form { background: var(--viewer-background); }
+[data-viewer-theme] textarea {
+  background: var(--viewer-background); color: var(--viewer-text); border-color: var(--viewer-border);
+}
+[data-viewer-theme] textarea::placeholder { color: var(--viewer-muted); opacity: 1; }
+[data-viewer-theme] .viewer-comments-panel :is(.opacity-45, .opacity-60, .opacity-70) { color: var(--viewer-muted); opacity: 1; }
+[data-viewer-theme] :is(button, textarea):focus-visible { outline: 2px solid var(--viewer-text); outline-offset: 3px; }
+
+@media (min-width: 640px) {
+  .themed-gallery-content .gallery-masonry:not(.royal-masonry) > div:first-child { column-count: min(2, var(--gallery-count, 2)); }
+}
+@media (min-width: 768px) {
+  .themed-gallery-content .gallery-masonry:not(.royal-masonry) > div:first-child { column-count: min(3, var(--gallery-count, 3)); }
+}
+
+.find-you-gallery [data-gallery-panel] { background: var(--event-template-panel); color: var(--event-template-text); border-color: var(--event-template-border); }
+.find-you-gallery button[data-gallery-panel]:hover:not(:disabled) { border-color: var(--event-template-text); }
+.find-you-gallery button:disabled { cursor: not-allowed; }
+.find-you-gallery h2 { color: var(--event-template-text); }

@@ -547,7 +547,7 @@ function EventPageContent() {
     const activeGalleryMessage = activeGallery ? activeGallery.description : event.description;
 
     const renderContent = () => (
-        <div className="contents">
+        <div className={cn("contents themed-gallery-content", displayEvent.templateId === "royal" && "royal-gallery-content")}>
             <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <button
                     onClick={() => {
@@ -563,6 +563,7 @@ function EventPageContent() {
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={handleShare}
+                        data-royal-control="share"
                         className="flex items-center space-x-2 px-6 py-3 bg-white border border-stone-200 text-stone-600 rounded-full text-sm font-bold hover:bg-stone-50 transition-all shadow-sm hover:shadow-md group active:scale-95"
                     >
                         <AnimatePresence mode="wait">
@@ -606,13 +607,14 @@ function EventPageContent() {
                     </p>
                 )}
 
-                <div className="mt-10 inline-flex rounded-2xl border border-stone-200 bg-white p-1 shadow-sm">
+                <div data-royal-control="segments" className="mt-10 inline-flex rounded-2xl border border-stone-200 bg-white p-1 shadow-sm">
                     {([
                         { id: "photos", label: `Photos (${displayedPhotoCount})` },
                         { id: "videos", label: `Videos (${displayedVideoCount})` },
                     ] as const).map((item) => (
                         <button
                             key={item.id}
+                            aria-pressed={galleryMediaTab === item.id}
                             type="button"
                             onClick={() => setGalleryMediaTab(item.id)}
                             className={cn(
@@ -628,7 +630,7 @@ function EventPageContent() {
                 </div>
                 <div className="mt-4">
                     {isPrimaryGalleryView ? (
-                    <label className="flex w-full max-w-md items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left shadow-sm">
+                    <label data-royal-control="source" className="flex w-full max-w-md items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left shadow-sm">
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-700">
                             <Layers3 className="h-4 w-4" />
                         </span>
@@ -738,6 +740,8 @@ function EventPageContent() {
             ref={containerRef}
             style={{
                 "--event-template-primary": templateChrome.background,
+                "--event-template-panel": templateChrome.panel,
+                "--event-template-on-accent": templateChrome.onAccent,
                 "--event-template-text": templateChrome.text,
                 "--event-template-muted": templateChrome.muted,
                 "--event-template-accent": templateChrome.accent,

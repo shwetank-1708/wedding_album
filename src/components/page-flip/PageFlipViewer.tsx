@@ -8,7 +8,8 @@ import { ThumbnailDrawer, VIEWER_LAYOUT_COMPONENTS } from "./PageFlipLayouts";
 import { PageFlipPage } from "./PageFlipPage";
 import { PageFlipProgress } from "./PageFlipProgress";
 import { PageFlipSocialBar } from "./PageFlipSocialBar";
-import { getPageFlipThemeConfig } from "./pageFlipThemes";
+import { getWebLightboxTheme } from "@/lib/webTemplateTheme";
+import { TEMPLATE_ID_TO_PAGE_FLIP_THEME, getPageFlipThemeConfig } from "./pageFlipThemes";
 import { getVisiblePageFlipIndexes } from "./pageFlipNavigation";
 import { usePageFlipNavigation } from "./usePageFlipNavigation";
 import { useSwipeNavigation } from "./useSwipeNavigation";
@@ -107,6 +108,7 @@ export function PageFlipViewer({
   onClose,
   onIndexChange,
 }: PageFlipViewerProps) {
+  const palette = getWebLightboxTheme(Object.keys(TEMPLATE_ID_TO_PAGE_FLIP_THEME).find((id) => TEMPLATE_ID_TO_PAGE_FLIP_THEME[id] === theme));
   const themeConfig = useMemo(() => getPageFlipThemeConfig(theme), [theme]);
   const resolvedLayout = viewerLayout || themeConfig.layout || "bottom-filmstrip";
   const config = useMemo<PageFlipThemeConfig>(() => ({
@@ -401,6 +403,8 @@ export function PageFlipViewer({
       role="dialog"
       aria-modal="true"
       aria-label="Page flip media viewer"
+      data-viewer-theme={theme}
+      style={{ "--viewer-background": palette.background, "--viewer-panel": palette.panel, "--viewer-text": palette.text, "--viewer-muted": palette.muted, "--viewer-border": palette.border } as React.CSSProperties}
       className={cn("fixed inset-0 z-[9999] overflow-hidden text-white transition-colors duration-300", config.backgroundClass)}
       {...swipeHandlers}
     >

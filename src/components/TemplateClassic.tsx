@@ -20,19 +20,19 @@ export function TemplateClassic({ event, children }: TemplateClassicProps) {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8f5f2] text-slate-800 font-sans selection:bg-rose-200">
+        <div className="min-h-screen bg-[#F7F2EB] text-slate-800 font-sans selection:bg-rose-200">
             {/* Main Content */}
-            <main className="pt-32 pb-20 px-4 max-w-4xl mx-auto text-center min-h-screen flex flex-col justify-center">
+            <main className="pt-28 pb-14 md:pt-32 md:pb-20 px-4 max-w-4xl mx-auto text-center min-h-screen flex flex-col justify-center">
 
                 {/* Title Section */}
                 <ScrollReveal>
-                    <h1 className="text-6xl md:text-9xl font-serif text-slate-900 mb-8 tracking-tighter leading-none">
+                    <h1 className="text-5xl sm:text-6xl md:text-8xl font-serif text-slate-900 mb-8 tracking-tighter leading-none">
                         {event.title}
                     </h1>
                 </ScrollReveal>
 
                 <ScrollReveal delay={0.2}>
-                    <div className="w-24 h-1 bg-rose-400 mx-auto mb-12" />
+                    <div className="w-24 h-1 bg-[#64764c] mx-auto mb-12" />
                 </ScrollReveal>
 
                 <ScrollReveal delay={0.3}>
@@ -66,7 +66,7 @@ export function TemplateClassic({ event, children }: TemplateClassicProps) {
                 <ScrollReveal delay={0.6}>
                     <button
                         onClick={scrollToContent}
-                        className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full hover:bg-rose-500 transition-colors duration-300 shadow-lg"
+                        className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full hover:bg-[#64764c] transition-colors duration-300 shadow-lg"
                     >
                         <span className="uppercase tracking-widest text-sm font-medium">Open Guest Gallery</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
@@ -82,7 +82,7 @@ export function TemplateClassic({ event, children }: TemplateClassicProps) {
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl font-serif italic text-slate-800">The Gallery</h2>
-                            <div className="w-12 h-0.5 bg-rose-400 mx-auto mt-4" />
+                            <div className="w-12 h-0.5 bg-[#64764c] mx-auto mt-4" />
                         </div>
                         {children}
                     </div>
@@ -90,7 +90,7 @@ export function TemplateClassic({ event, children }: TemplateClassicProps) {
             )}
 
             {/* Footer */}
-            <footer className="py-12 text-center text-slate-600 text-sm uppercase tracking-widest bg-[#f8f5f2]">
+            <footer className="py-12 text-center text-slate-600 text-sm uppercase tracking-widest bg-[#F7F2EB]">
                 {event.title} — {new Date().getFullYear()}
             </footer>
         </div>

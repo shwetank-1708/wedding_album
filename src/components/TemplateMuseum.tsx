@@ -14,7 +14,7 @@ export function TemplateMuseum({ event, children }: TemplateMuseumProps) {
         <div className="min-h-screen bg-[#0D1117] text-[#A7B7C9] font-sans selection:bg-[#263544] selection:text-[#A7B7C9]">
 
             {/* Header */}
-            <header className="pt-40 pb-20 px-4 md:px-12 max-w-[90rem] mx-auto">
+            <header className="pt-28 pb-12 md:pt-36 md:pb-20 px-4 md:px-12 max-w-[90rem] mx-auto">
                 <div className="grid grid-cols-12 gap-8">
                     <div className="col-span-12 md:col-span-8">
                         <ScrollReveal>
@@ -24,7 +24,7 @@ export function TemplateMuseum({ event, children }: TemplateMuseumProps) {
                         </ScrollReveal>
                         <ScrollReveal delay={0.1}>
                             <p className="text-xs font-bold uppercase tracking-widest text-[#798FAF]">
-                                Exhibit {new Date().getFullYear()} • Collection No. 001
+                                Event Collection{event.date ? ` • ${event.date}` : ""}
                             </p>
                         </ScrollReveal>
                     </div>
@@ -53,8 +53,8 @@ export function TemplateMuseum({ event, children }: TemplateMuseumProps) {
                 </main>
             )}
 
-            <footer className="py-12 border-t border-[#1C2430] mx-12">
-                <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-[#798FAF] font-mono">
+            <footer className="py-12 border-t border-[#1C2430] mx-4 md:mx-12">
+                <div className="flex flex-wrap gap-4 justify-between items-center text-[10px] uppercase tracking-widest text-[#798FAF] font-mono">
                     <p>MUSEUM OF MEMORIES</p>
                     <p>{event.date}</p>
                 </div>

@@ -1,7 +1,8 @@
+import { GALLERY_PRESETS } from "./galleryPresets";
 import type { LightboxTheme } from "@/components/ui/Lightbox";
 
 export const WEB_LIGHTBOX_THEMES: Record<string, LightboxTheme> = {
-    royal: { background: "#02231c", panel: "rgba(2,35,28,0.82)", tile: "#021a15", text: "#fcfbf7", muted: "#a3b899", accent: "#ca9c69", accentBg: "rgba(202,156,105,0.18)", border: "rgba(202,156,105,0.28)", radius: 18, useSerif: true },
+    royal: { background: "#02231c", panel: "#0a3027", tile: "#163d32", text: "#f3eee2", muted: "#bdc9b9", accent: "#ca9c69", accentBg: "rgba(202,156,105,0.18)", border: "rgba(202,156,105,0.28)", radius: 18, useSerif: true },
     classic: { background: "#F7F2EB", panel: "#ffffff", tile: "#ffffff", text: "#2C352E", muted: "#6E7B6C", accent: "#8B9A6E", accentBg: "rgba(139,154,110,0.12)", border: "#EAE2D6", radius: 0, useSerif: true },
     hero: { background: "#000000", panel: "rgba(255,255,255,0.04)", tile: "#09090b", text: "#ffffff", muted: "#94a3b8", accent: "#ca9c69", accentBg: "rgba(202,156,105,0.12)", border: "rgba(202,156,105,0.22)", radius: 12, useSerif: true },
     ethereal: { background: "#F8FAFC", panel: "#EEF2F6", tile: "#ffffff", text: "#1E293B", muted: "#64748B", accent: "#4A6984", accentBg: "#E2E8F0", border: "rgba(74,105,132,0.18)", radius: 2, useSerif: true },
@@ -35,29 +36,44 @@ export const WEB_LIGHTBOX_THEMES: Record<string, LightboxTheme> = {
     bohemian: { background: "#2f1b12", panel: "rgba(250,245,234,0.95)", tile: "#faf5ea", text: "#38241b", muted: "#7d6457", accent: "#73863a", accentBg: "rgba(115,134,58,0.16)", border: "rgba(115,134,58,0.3)", radius: 22, useSerif: true },
 };
 
+// Hero, navigation, gallery controls and media viewer use the same palette.
+for (const [id, preset] of Object.entries(GALLERY_PRESETS)) {
+    const existing = WEB_LIGHTBOX_THEMES[id];
+    if (!existing || id === "neon" || id === "cyber_tech") continue;
+    WEB_LIGHTBOX_THEMES[id] = { ...existing, background: preset.background,
+        panel: preset.surface, tile: preset.surface, text: preset.text,
+        muted: preset.muted, accent: preset.accent, border: preset.border };
+}
+Object.assign(WEB_LIGHTBOX_THEMES.scrapbook, { background: "#f6f1e8", panel: "#fffaf2", tile: "#fffaf2", text: "#263331", muted: "#56645f" });
+Object.assign(WEB_LIGHTBOX_THEMES.bohemian, { background: "#f3e8d3", panel: "#faf5ea", tile: "#faf5ea", muted: "#705747" });
+WEB_LIGHTBOX_THEMES.classic.muted = "#596653";
+WEB_LIGHTBOX_THEMES.polaroid.muted = "#705747";
+WEB_LIGHTBOX_THEMES.brutalist.muted = "#c0b49e";
+
 export function getWebLightboxTheme(templateId?: string): LightboxTheme {
     return WEB_LIGHTBOX_THEMES[templateId || "hero"] || WEB_LIGHTBOX_THEMES.hero;
 }
 
-function getReadableTextColor(background: string) {
+export function getReadableTextColor(background: string) {
     const hex = background.replace("#", "");
     if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
-
-    const red = parseInt(hex.slice(0, 2), 16) / 255;
-    const green = parseInt(hex.slice(2, 4), 16) / 255;
-    const blue = parseInt(hex.slice(4, 6), 16) / 255;
-    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-
-    return luminance > 0.72 ? "#0f172a" : "#ffffff";
+    const [r, g, b] = [0, 2, 4].map((offset) => {
+        const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? "#000000" : "#ffffff";
 }
 
 export function getWebTemplateChrome(templateId?: string) {
     const theme = getWebLightboxTheme(templateId);
     const background = theme.background || "#000000";
-    const text = getReadableTextColor(background);
+    const text = theme.text || getReadableTextColor(background);
 
     return {
         background,
+        panel: theme.panel || background,
+        onAccent: getReadableTextColor(theme.accent || background),
         text,
         accent: theme.accent || text,
         border: theme.border || "rgba(255,255,255,0.16)",

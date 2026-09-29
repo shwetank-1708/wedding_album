@@ -1,0 +1,77 @@
+/* Royal Emerald only: shared gallery markup retains every other theme's styles. */
+.royal-gallery-content, .royal-masonry, [data-viewer-theme="royal-emerald"] {
+  --royal-ivory: #f3eee2;
+  --royal-muted: #bdc9b9;
+  --royal-gold: #ca9c69;
+  --royal-line: #ca9c694d;
+  --royal-surface: #0a3027;
+}
+.royal-gallery-content :is([class*="text-stone-"], [class*="text-gold-"]) { color: var(--royal-muted); }
+.royal-gallery-content :is(h2, [class*="text-stone-800"], [class*="text-stone-900"]) { color: var(--royal-ivory); }
+.royal-gallery-content [data-royal-control] {
+  background: #082b23e8;
+  color: var(--royal-ivory);
+  border-color: var(--royal-line);
+  box-shadow: 0 4px 18px #0002;
+}
+.royal-gallery-content [data-royal-control="source"] { flex-wrap: wrap; }
+.royal-gallery-content [data-royal-control="source"] select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 10rem;
+  background: #123b30;
+  border-color: var(--royal-line);
+  color: var(--royal-ivory);
+  color-scheme: dark;
+}
+.royal-gallery-content [data-royal-control="source"] .bg-stone-100 { background: #ca9c691a; color: var(--royal-gold); }
+.royal-gallery-content [data-royal-control="segments"] { display: inline-flex; max-width: 100%; }
+.royal-gallery-content [data-royal-control="segments"] button { padding-inline: clamp(.75rem, 3vw, 1.25rem); }
+.royal-gallery-content [data-royal-control="segments"] [aria-pressed="true"] {
+  background: #ca9c69;
+  color: #021a15;
+}
+.royal-gallery-content [data-royal-control="share"]:hover { background: #123b30; border-color: var(--royal-gold); }
+.royal-gallery-content [data-royal-control="share"] span { color: var(--royal-ivory); }
+.royal-gallery-content [role="switch"] { background: #082b23; border-color: var(--royal-line); }
+.royal-gallery-content [role="switch"][aria-checked="true"] { border-color: var(--royal-gold); }
+.royal-gallery-content [role="switch"] .bg-white { background: #ca9c69; }
+.royal-gallery-content :is(button, select):focus-visible,
+.royal-masonry button:focus-visible,
+[data-viewer-theme="royal-emerald"] :is(button, textarea):focus-visible {
+  outline: 2px solid #ca9c69;
+  outline-offset: 4px;
+}
+.royal-masonry { width: 100%; max-width: none; padding-inline: 0; }
+.royal-masonry > div:first-child {
+  columns: 1;
+  column-gap: 1.25rem;
+  /* Cards already supply their own margin: avoid a second space-y gap. */
+}
+.royal-masonry .gallery-media-card {
+  margin-block: 0 1.25rem;
+  background: #06271f;
+  border-color: var(--royal-line);
+  break-inside: avoid;
+}
+.royal-masonry .gallery-card-actions { background: #0a3027; border-color: #ca9c6933; }
+.royal-masonry .gallery-card-actions :is(button, span, svg) { color: var(--royal-muted); }
+.royal-masonry .gallery-card-actions button:hover :is(span, svg),
+.royal-masonry .gallery-card-actions button:hover,
+.royal-masonry .gallery-card-actions .fill-rose-500 { color: var(--royal-gold); }
+@media (min-width: 640px) { .royal-masonry > div:first-child { column-count: min(2, var(--royal-count)); } }
+@media (min-width: 1024px) { .royal-masonry > div:first-child { column-count: min(3, var(--royal-count)); column-gap: 1.5rem; } }
+@media (min-width: 1440px) { .royal-masonry > div:first-child { column-count: min(4, var(--royal-count)); } }
+/* Keep a single portrait comfortable on wide screens instead of stretching it. */
+.royal-masonry .gallery-media-card:only-child { max-width: 36rem; margin-inline: auto; }
+[data-viewer-theme="royal-emerald"] { color: var(--royal-ivory); background: #021a15; }
+[data-viewer-theme="royal-emerald"] .viewer-comments-panel { background: #0a3027; color: var(--royal-ivory); border-color: var(--royal-line); }
+[data-viewer-theme="royal-emerald"] .viewer-comments-panel form { background: #08281f; }
+[data-viewer-theme="royal-emerald"] textarea { background: #163d32; color: var(--royal-ivory); border-color: var(--royal-line); }
+[data-viewer-theme="royal-emerald"] textarea::placeholder { color: var(--royal-muted); opacity: 1; }
+[data-viewer-theme="royal-emerald"] .viewer-comments-panel :is(.opacity-45, .opacity-60, .opacity-70) { opacity: 1; color: var(--royal-muted); }
+[data-viewer-theme="royal-emerald"] button[aria-pressed="true"] { color: var(--royal-gold); }
+
+.royal-masonry .gallery-card-actions .fill-rose-500 { fill: var(--royal-gold); }
+
+.royal-masonry .gallery-media-card video { object-fit: contain; }

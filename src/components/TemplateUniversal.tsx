@@ -4,378 +4,8 @@ import Image from "next/image";
 import { Event } from "@/lib/database";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
-type TemplateVariant = "split" | "poster" | "gallery" | "terminal" | "soft" | "editorial";
-
-type TemplatePreset = {
-  id: string;
-  label: string;
-  eyebrow: string;
-  cta: string;
-  variant: TemplateVariant;
-  background: string;
-  surface: string;
-  text: string;
-  muted: string;
-  accent: string;
-  accentAlt: string;
-  border: string;
-  glow: string;
-  imageFilter?: string;
-  serif?: boolean;
-};
-
-const PRESETS: Record<string, TemplatePreset> = {
-  ethereal: {
-    id: "ethereal",
-    label: "Ethereal Mist",
-    eyebrow: "Fine Art Album",
-    cta: "Enter The Mist",
-    variant: "soft",
-    background: "#f8fafc",
-    surface: "rgba(238,242,246,0.82)",
-    text: "#1e293b",
-    muted: "#64748b",
-    accent: "#4a6984",
-    accentAlt: "#dbe6ef",
-    border: "rgba(74,105,132,0.24)",
-    glow: "rgba(74,105,132,0.18)",
-    imageFilter: "saturate(0.86) contrast(0.96) brightness(1.04)",
-    serif: true,
-  },
-  neon: {
-    id: "neon",
-    label: "Neon Party",
-    eyebrow: "After Dark Edition",
-    cta: "Light Up Gallery",
-    variant: "poster",
-    background: "#070611",
-    surface: "rgba(18,16,35,0.84)",
-    text: "#f8f7ff",
-    muted: "#b9b1d9",
-    accent: "#ff3df2",
-    accentAlt: "#66e8ff",
-    border: "rgba(255,61,242,0.34)",
-    glow: "rgba(255,61,242,0.32)",
-    imageFilter: "saturate(1.24) contrast(1.06)",
-  },
-  pastel: {
-    id: "pastel",
-    label: "Pastel Dream",
-    eyebrow: "Soft Memory Journal",
-    cta: "Open Dream",
-    variant: "soft",
-    background: "#fff7f4",
-    surface: "rgba(255,255,255,0.78)",
-    text: "#4d4542",
-    muted: "#9a8583",
-    accent: "#c9768b",
-    accentAlt: "#d5b4dc",
-    border: "rgba(201,118,139,0.24)",
-    glow: "rgba(213,180,220,0.28)",
-    imageFilter: "saturate(0.9) brightness(1.04)",
-    serif: true,
-  },
-  golden_years: {
-    id: "golden_years",
-    label: "Golden Years",
-    eyebrow: "Legacy Celebration",
-    cta: "View Legacy",
-    variant: "gallery",
-    background: "#160f09",
-    surface: "#241a10",
-    text: "#faf5ea",
-    muted: "#bdab97",
-    accent: "#e5a93c",
-    accentAlt: "#f5cb7a",
-    border: "rgba(229,169,60,0.28)",
-    glow: "rgba(229,169,60,0.2)",
-    imageFilter: "sepia(0.15) saturate(1.05)",
-    serif: true,
-  },
-  vintage: {
-    id: "vintage",
-    label: "Vintage Noir",
-    eyebrow: "Archive Issue",
-    cta: "Open Archive",
-    variant: "editorial",
-    background: "#0f0e0b",
-    surface: "#1c1812",
-    text: "#f2e7d2",
-    muted: "#c7a96b",
-    accent: "#b89145",
-    accentAlt: "#efe0bd",
-    border: "rgba(184,145,69,0.32)",
-    glow: "rgba(184,145,69,0.2)",
-    imageFilter: "sepia(0.28) contrast(0.96) brightness(0.9)",
-    serif: true,
-  },
-  rose: {
-    id: "rose",
-    label: "Rose Garden",
-    eyebrow: "Floral Keepsake",
-    cta: "Enter Garden",
-    variant: "soft",
-    background: "#280a14",
-    surface: "#3b1622",
-    text: "#fceee9",
-    muted: "#cfa89e",
-    accent: "#d8a47f",
-    accentAlt: "#e2bcb0",
-    border: "rgba(216,164,127,0.3)",
-    glow: "rgba(216,164,127,0.2)",
-    imageFilter: "saturate(1.02) contrast(1.04)",
-    serif: true,
-  },
-  minimal_love: {
-    id: "minimal_love",
-    label: "Minimal Love",
-    eyebrow: "Anniversary Editorial",
-    cta: "View Story",
-    variant: "editorial",
-    background: "#1f1d1d",
-    surface: "#282422",
-    text: "#f8f5f0",
-    muted: "#b8aea5",
-    accent: "#ff5252",
-    accentAlt: "#ff7676",
-    border: "rgba(255,82,82,0.25)",
-    glow: "rgba(255,82,82,0.18)",
-    imageFilter: "saturate(0.92) contrast(1.02)",
-    serif: true,
-  },
-  diamond: {
-    id: "diamond",
-    label: "Diamond Luxe",
-    eyebrow: "Crystal Ceremony",
-    cta: "Reveal Moments",
-    variant: "split",
-    background: "#f5f7fb",
-    surface: "rgba(255,255,255,0.86)",
-    text: "#172033",
-    muted: "#667085",
-    accent: "#a7b7d8",
-    accentAlt: "#eef2ff",
-    border: "rgba(126,149,190,0.3)",
-    glow: "rgba(126,149,190,0.2)",
-    imageFilter: "saturate(0.82) brightness(1.05)",
-    serif: true,
-  },
-  blush: {
-    id: "blush",
-    label: "Blush Romance",
-    eyebrow: "Modern Romance",
-    cta: "Open Romance",
-    variant: "soft",
-    background: "#fff1f2",
-    surface: "rgba(255,255,255,0.82)",
-    text: "#4c1d28",
-    muted: "#9f6b78",
-    accent: "#e87993",
-    accentAlt: "#ffd5de",
-    border: "rgba(232,121,147,0.25)",
-    glow: "rgba(232,121,147,0.22)",
-    imageFilter: "saturate(0.94) brightness(1.04)",
-    serif: true,
-  },
-  garden: {
-    id: "garden",
-    label: "Botanical Garden",
-    eyebrow: "Botanical Register",
-    cta: "Walk The Gallery",
-    variant: "gallery",
-    background: "#f4f1e8",
-    surface: "rgba(255,252,246,0.9)",
-    text: "#1a3322",
-    muted: "#6b7f67",
-    accent: "#2e6f40",
-    accentAlt: "#b7d2a8",
-    border: "rgba(46,111,64,0.24)",
-    glow: "rgba(46,111,64,0.2)",
-    imageFilter: "saturate(0.9) contrast(0.98)",
-    serif: true,
-  },
-  midnight_glam: {
-    id: "midnight_glam",
-    label: "Midnight Glam",
-    eyebrow: "Velvet Night",
-    cta: "Enter Night",
-    variant: "poster",
-    background: "#07070b",
-    surface: "rgba(20,18,28,0.86)",
-    text: "#fff8ee",
-    muted: "#b9a88e",
-    accent: "#CA9C68",
-    accentAlt: "#7c3aed",
-    border: "rgba(212,175,55,0.34)",
-    glow: "rgba(124,58,237,0.24)",
-    imageFilter: "contrast(1.02) brightness(0.86)",
-    serif: true,
-  },
-  modern_lounge: {
-    id: "modern_lounge",
-    label: "Modern Lounge",
-    eyebrow: "Private Lounge",
-    cta: "Step Inside",
-    variant: "split",
-    background: "#111827",
-    surface: "rgba(30,41,59,0.82)",
-    text: "#f8fafc",
-    muted: "#cbd5e1",
-    accent: "#38bdf8",
-    accentAlt: "#64748b",
-    border: "rgba(148,163,184,0.26)",
-    glow: "rgba(56,189,248,0.22)",
-    imageFilter: "saturate(0.9) brightness(0.92)",
-  },
-  elegant_night: {
-    id: "elegant_night",
-    label: "Elegant Night",
-    eyebrow: "Evening Reception",
-    cta: "Open Evening",
-    variant: "gallery",
-    background: "#0b1018",
-    surface: "rgba(18,24,38,0.88)",
-    text: "#f8fafc",
-    muted: "#a8b3c5",
-    accent: "#c7a76c",
-    accentAlt: "#f4d28c",
-    border: "rgba(199,167,108,0.28)",
-    glow: "rgba(199,167,108,0.2)",
-    imageFilter: "contrast(1.02) brightness(0.9)",
-    serif: true,
-  },
-  tech_sleek: {
-    id: "tech_sleek",
-    label: "Tech Sleek",
-    eyebrow: "Future Archive",
-    cta: "Initialize Gallery",
-    variant: "terminal",
-    background: "#040c1a",
-    surface: "#0a182b",
-    text: "#f0f8ff",
-    muted: "#7ba4cc",
-    accent: "#00a2ff",
-    accentAlt: "#66c2ff",
-    border: "rgba(0,162,255,0.3)",
-    glow: "rgba(0,162,255,0.25)",
-    imageFilter: "saturate(1.08) contrast(1.04) brightness(0.95)",
-  },
-  executive: {
-    id: "executive",
-    label: "Executive Suite",
-    eyebrow: "Private Portfolio",
-    cta: "Open Suite",
-    variant: "split",
-    background: "#08111f",
-    surface: "rgba(15,23,42,0.9)",
-    text: "#f8fafc",
-    muted: "#a7b2c5",
-    accent: "#d4b474",
-    accentAlt: "#516070",
-    border: "rgba(212,180,116,0.26)",
-    glow: "rgba(212,180,116,0.18)",
-    imageFilter: "saturate(0.84) contrast(1.02) brightness(0.9)",
-    serif: true,
-  },
-  vibrant: {
-    id: "vibrant",
-    label: "Vibrant Energy",
-    eyebrow: "Color Edition",
-    cta: "Open Energy",
-    variant: "poster",
-    background: "#f5f3ff",
-    surface: "rgba(255,255,255,0.86)",
-    text: "#27104d",
-    muted: "#6d5f91",
-    accent: "#8b5cf6",
-    accentAlt: "#f97316",
-    border: "rgba(139,92,246,0.26)",
-    glow: "rgba(249,115,22,0.22)",
-    imageFilter: "saturate(1.16) contrast(1.02)",
-  },
-  zen: {
-    id: "zen",
-    label: "Zen Garden",
-    eyebrow: "Calm Collection",
-    cta: "Enter Calm",
-    variant: "editorial",
-    background: "#f5f5f4",
-    surface: "#ffffff",
-    text: "#292524",
-    muted: "#78716c",
-    accent: "#57534e",
-    accentAlt: "#d6d3d1",
-    border: "rgba(87,83,78,0.18)",
-    glow: "rgba(87,83,78,0.12)",
-    imageFilter: "saturate(0.78) contrast(0.96)",
-    serif: true,
-  },
-  cyber_tech: {
-    id: "cyber_tech",
-    label: "Cyber Tech",
-    eyebrow: "System Gallery",
-    cta: "Run Gallery",
-    variant: "terminal",
-    background: "#05070c",
-    surface: "rgba(9,13,22,0.9)",
-    text: "#e6fbff",
-    muted: "#75f6ff",
-    accent: "#00f0ff",
-    accentAlt: "#ff2bd6",
-    border: "rgba(0,240,255,0.36)",
-    glow: "rgba(0,240,255,0.3)",
-    imageFilter: "saturate(1.18) contrast(1.08) brightness(0.82)",
-  },
-  retro_arcade: {
-    id: "retro_arcade",
-    label: "Retro Arcade",
-    eyebrow: "Arcade Network",
-    cta: "Explore Gallery",
-    variant: "poster",
-    background: "#ffc200",
-    surface: "#121212",
-    text: "#121212",
-    muted: "#374151",
-    accent: "#121212",
-    accentAlt: "#ffc200",
-    border: "rgba(18,18,18,0.28)",
-    glow: "rgba(255,194,0,0.35)",
-    imageFilter: "contrast(1.08) brightness(1.02)",
-  },
-  academic_editorial: {
-    id: "academic_editorial",
-    label: "Academic Editorial",
-    eyebrow: "Campus Journal",
-    cta: "Read Gallery",
-    variant: "editorial",
-    background: "#fcfaf7",
-    surface: "#ffffff",
-    text: "#111827",
-    muted: "#6b7280",
-    accent: "#800020",
-    accentAlt: "#d6a15f",
-    border: "rgba(128,0,32,0.2)",
-    glow: "rgba(128,0,32,0.12)",
-    imageFilter: "saturate(0.85) contrast(0.98)",
-    serif: true,
-  },
-  neon_carnival: {
-    id: "neon_carnival",
-    label: "Neon Carnival",
-    eyebrow: "Festival Lights",
-    cta: "Enter Carnival",
-    variant: "poster",
-    background: "#06030a",
-    surface: "rgba(18,8,30,0.88)",
-    text: "#fff7ff",
-    muted: "#e9b8ff",
-    accent: "#d946ef",
-    accentAlt: "#22d3ee",
-    border: "rgba(217,70,239,0.32)",
-    glow: "rgba(217,70,239,0.28)",
-    imageFilter: "saturate(1.22) contrast(1.04) brightness(0.88)",
-  },
-};
+import { GALLERY_PRESETS, type TemplateVariant } from "@/lib/galleryPresets";
+import { getReadableTextColor } from "@/lib/webTemplateTheme";
 
 interface TemplateUniversalProps {
   event: Event;
@@ -383,20 +13,9 @@ interface TemplateUniversalProps {
   presetId: string;
 }
 
-const darkPresets = new Set([
-  "neon",
-  "vintage",
-  "midnight_glam",
-  "modern_lounge",
-  "elegant_night",
-  "tech_sleek",
-  "executive",
-  "cyber_tech",
-  "neon_carnival",
-]);
 
 function scrollToContent() {
-  document.getElementById("event-content")?.scrollIntoView({ behavior: "smooth" });
+  document.getElementById("event-content")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
 function getVariantClasses(variant: TemplateVariant) {
@@ -417,8 +36,7 @@ function getVariantClasses(variant: TemplateVariant) {
 }
 
 export function TemplateUniversal({ event, children, presetId }: TemplateUniversalProps) {
-  const preset = PRESETS[presetId] || PRESETS.zen;
-  const isDark = darkPresets.has(preset.id);
+  const preset = GALLERY_PRESETS[presetId] || GALLERY_PRESETS.zen;
   const imageShape =
     preset.variant === "poster"
       ? "rounded-[2rem] rotate-[-1deg]"
@@ -460,7 +78,7 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
         }}
       />
 
-      <main className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-10 px-5 pb-16 pt-28 md:px-10 lg:px-12">
+      <main className="mx-auto grid min-h-[80svh] max-w-7xl grid-cols-1 gap-10 px-5 pb-16 pt-28 md:px-10 lg:px-12">
         <div className={`grid grid-cols-1 gap-10 ${getVariantClasses(preset.variant)}`}>
           <ScrollReveal className={preset.variant === "poster" ? "lg:order-2" : ""}>
             <div
@@ -479,7 +97,7 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
                     fill
                     priority
                     className="object-cover"
-                    style={{ filter: preset.imageFilter }}
+
                   />
                 ) : (
                   <div className="h-full w-full" style={{ backgroundColor: preset.surface }} />
@@ -498,19 +116,19 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
             <section
               className="border p-6 shadow-xl backdrop-blur-xl md:p-8 lg:p-10"
               style={{
-                backgroundColor: preset.variant === "terminal" ? "#020617cc" : preset.surface,
+                backgroundColor: preset.surface,
                 borderColor: preset.border,
                 borderRadius: preset.variant === "editorial" ? 0 : 28,
               }}
             >
               <p
                 className="mb-4 text-[10px] font-black uppercase tracking-[0.28em]"
-                style={{ color: preset.accent }}
+                style={{ color: preset.muted }}
               >
                 {preset.eyebrow}
               </p>
               <h1
-                className={`${preset.serif ? "font-serif" : "font-sans"} text-4xl font-black leading-[0.95] tracking-tight md:text-6xl lg:text-7xl`}
+                className={`${preset.serif ? "font-serif" : "font-sans"} text-4xl break-words text-balance font-black leading-[1.08] tracking-tight md:text-6xl lg:text-7xl`}
                 style={{ color: preset.text }}
               >
                 {event.title}
@@ -523,7 +141,7 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
                 <button
                   onClick={scrollToContent}
                   className="rounded-full px-6 py-3 text-xs font-black uppercase tracking-[0.18em] transition-transform hover:-translate-y-0.5"
-                  style={{ backgroundColor: preset.accent, color: isDark ? "#050505" : "#ffffff" }}
+                  style={{ backgroundColor: preset.accent, color: getReadableTextColor(preset.accent) }}
                 >
                   {preset.cta}
                 </button>
@@ -542,7 +160,7 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
       {children && (
         <section id="event-content" className="relative z-10 px-5 pb-20 md:px-10 lg:px-12">
           <div
-            className={`web-template-${preset.id} mx-auto max-w-7xl border p-5 md:p-8 lg:p-10`}
+            className={`web-template-${preset.id} mx-auto max-w-7xl border p-3 sm:p-5 md:p-8`}
             style={{
               backgroundColor: preset.surface,
               borderColor: preset.border,
@@ -551,7 +169,7 @@ export function TemplateUniversal({ event, children, presetId }: TemplateUnivers
           >
             <div className="mb-10 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: preset.accent }}>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: preset.muted }}>
                   Event Collection
                 </p>
                 <h2

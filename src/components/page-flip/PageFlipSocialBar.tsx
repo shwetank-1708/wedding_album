@@ -240,37 +240,37 @@ export function PageFlipSocialBar({
       )}>
         <div className={cn("flex max-w-[min(94vw,980px)] flex-wrap items-center justify-center gap-2 rounded-2xl border px-3 py-3 shadow-2xl backdrop-blur-2xl", config.pageClass)}>
           {showLikes && (
-            <button type="button" onClick={handleToggleLike} disabled={likePending} className={cn(actionClass, isLiked && "text-rose-300")} aria-pressed={isLiked} aria-label={isLiked ? "Unlike media" : "Like media"}>
+            <button type="button" onClick={handleToggleLike} disabled={likePending} className={cn(actionClass, isLiked && "text-rose-300")} aria-pressed={isLiked} aria-label={isLiked ? "Unlike media" : "Like media"} title={isLiked ? "Unlike media" : "Like media"}>
               {likePending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />}
               {likes.length}
             </button>
           )}
           {showComments && (
-            <button type="button" onClick={() => setCommentDrawerOpen((open) => !open)} className={actionClass} aria-label={commentDrawerVisible ? "Close comments" : "Open comments"} aria-pressed={commentDrawerVisible}>
+            <button type="button" onClick={() => setCommentDrawerOpen((open) => !open)} className={actionClass} aria-label={commentDrawerVisible ? "Close comments" : "Open comments"} title={commentDrawerVisible ? "Close comments" : "Open comments"} aria-pressed={commentDrawerVisible}>
               <MessageCircle className="h-4 w-4" />
               {comments.length}
             </button>
           )}
           {showShare && (
-            <button type="button" onClick={handleShare} className={actionClass} aria-label="Share gallery media">
+            <button type="button" onClick={handleShare} className={actionClass} aria-label="Share gallery media" title="Share gallery media">
               {shareCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
               <span className="hidden sm:inline">{shareCopied ? "Copied" : "Share"}</span>
             </button>
           )}
           {showDownload && (
-            <button type="button" onClick={onDownload} className={actionClass} aria-label="Download original media">
+            <button type="button" onClick={onDownload} className={actionClass} aria-label="Download original media" title="Download original media">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Download</span>
             </button>
           )}
           {showFullscreen && (
-            <button type="button" onClick={onFullscreen} className={actionClass} aria-label="Open fullscreen">
+            <button type="button" onClick={onFullscreen} className={actionClass} aria-label="Open fullscreen" title="Open fullscreen">
               <Maximize2 className="h-4 w-4" />
               <span className="hidden sm:inline">Fullscreen</span>
             </button>
           )}
           {showFindYou && (
-            <button type="button" onClick={onFindYou} className={actionClass} aria-label="Find me in this gallery">
+            <button type="button" onClick={onFindYou} className={actionClass} aria-label="Find me in this gallery" title="Find me in this gallery">
               <UserSearch className="h-4 w-4" />
               <span className="hidden sm:inline">Find You</span>
             </button>
@@ -292,14 +292,14 @@ export function PageFlipSocialBar({
           aria-modal="true"
           aria-label="Media comments"
         >
-          <button type="button" className={cn("absolute inset-0 cursor-default", useSidePanelComments && "md:hidden")} onClick={handleCloseComments} aria-label="Close comments" />
-          <div className={cn("absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-3xl border md:inset-y-0 md:left-auto md:right-0 md:w-[min(420px,92vw)] md:max-h-none md:rounded-l-3xl md:rounded-tr-none", useSidePanelComments && "md:pointer-events-auto md:w-[420px]", config.pageClass)}>
+          <button type="button" className={cn("absolute inset-0 cursor-default", useSidePanelComments && "md:hidden")} onClick={handleCloseComments} aria-label="Close comments" title="Close comments" />
+          <div className={cn("viewer-comments-panel absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col overflow-hidden rounded-t-3xl border md:inset-y-0 md:left-auto md:right-0 md:w-[min(420px,92vw)] md:max-h-none md:rounded-l-3xl md:rounded-tr-none", useSidePanelComments && "md:pointer-events-auto md:w-[420px]", config.pageClass)}>
             <div className="flex items-center justify-between border-b border-current/10 px-5 py-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] opacity-70">Comments</p>
                 <p className="text-sm opacity-70">{comments.length} shared thoughts</p>
               </div>
-              <button type="button" onClick={handleCloseComments} className={cn("flex h-11 w-11 items-center justify-center rounded-full border", config.controlClass)} aria-label={useSidePanelComments ? "Close viewer" : "Close comments"}>
+              <button type="button" onClick={handleCloseComments} className={cn("flex h-11 w-11 items-center justify-center rounded-full border", config.controlClass)} aria-label={useSidePanelComments ? "Close viewer" : "Close comments"} title={useSidePanelComments ? "Close viewer" : "Close comments"}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -405,7 +405,7 @@ export function PageFlipSocialBar({
                   className="min-h-11 flex-1 resize-none rounded-2xl border border-current/10 bg-black/20 px-4 py-3 text-sm outline-none focus-visible:ring-2"
                   maxLength={1000}
                 />
-                <button type="submit" disabled={!commentText.trim() || commentPending} className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full border", config.controlClass)} aria-label="Submit comment">
+                <button type="submit" disabled={!commentText.trim() || commentPending} className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full border", config.controlClass)} aria-label="Submit comment" title="Submit comment">
                   {commentPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
               </div>
@@ -417,9 +417,9 @@ export function PageFlipSocialBar({
 
       {expandedProfileImage && (
         <div className="fixed inset-0 z-[155] flex items-center justify-center bg-black/70 p-6 backdrop-blur-md" role="dialog" aria-modal="true" aria-label={`${expandedProfileImage.name}'s profile picture`}>
-          <button type="button" className="absolute inset-0 cursor-zoom-out" onClick={() => setExpandedProfileImage(null)} aria-label="Close profile picture" />
+          <button type="button" className="absolute inset-0 cursor-zoom-out" onClick={() => setExpandedProfileImage(null)} aria-label="Close profile picture" title="Close profile picture" />
           <div className={cn("relative w-full max-w-sm rounded-3xl border p-4 shadow-2xl", config.pageClass)}>
-            <button type="button" onClick={() => setExpandedProfileImage(null)} className={cn("absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border", config.controlClass)} aria-label="Close profile picture">
+            <button type="button" onClick={() => setExpandedProfileImage(null)} className={cn("absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border", config.controlClass)} aria-label="Close profile picture" title="Close profile picture">
               <X className="h-4 w-4" />
             </button>
             <div className="aspect-square overflow-hidden rounded-2xl bg-black/20">

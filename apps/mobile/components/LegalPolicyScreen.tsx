@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,10 +7,16 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAppTheme } from '@/context/ThemeContext';
 import { Fonts, MidnightColors } from '@/constants/theme';
 
-type PolicySection = {
-  title: string;
-  paragraphs: string[];
-};
+import { policyTextParts, type PolicySection } from '../../../shared/legal';
+
+function PolicyText({ text }: { text: string }) {
+  return <>{policyTextParts(text).map((part, index) => part.href ? (
+    <Text key={index} accessibilityRole="link" style={{ color: '#38bdf8', textDecorationLine: 'underline' }}
+      onPress={() => Linking.openURL(part.href!).catch(() => Alert.alert('Unable to open link', part.text))}>
+      {part.text}
+    </Text>
+  ) : part.text)}</>;
+}
 
 type LegalPolicyScreenProps = {
   title: string;
@@ -66,9 +72,9 @@ export function LegalPolicyScreen({
           {sections.map((section) => (
             <View key={section.title} style={styles.section}>
               <Text style={styles.sectionTitle}>{section.title}</Text>
-              {section.paragraphs.map((paragraph) => (
-                <Text key={paragraph} style={styles.paragraph}>
-                  {paragraph}
+              {section.blocks.map((block, index) => (
+                <Text key={index} style={[styles.paragraph, block.kind === 'heading' && { fontWeight: 'bold' }]}>
+                  {block.kind === 'bullet' ? '• ' : ''}<PolicyText text={block.text} />
                 </Text>
               ))}
             </View>
@@ -77,7 +83,7 @@ export function LegalPolicyScreen({
           <View style={styles.supportBox}>
             <Text style={styles.supportText}>
               For questions about these policies, contact us at{' '}
-              <Text style={styles.supportEmail}>support@evebash.com</Text>.
+              <PolicyText text="support@evebash.com" />.
             </Text>
           </View>
         </View>

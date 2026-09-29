@@ -48,7 +48,7 @@ export function TemplateScrapbook({ event, children }: TemplateScrapbookProps) {
                     font-weight: 800 !important;
                 }
                 .scrapbook-gallery-override p {
-                    color: #74827d !important;
+                    color: #56645f !important;
                 }
             ` }} />
 
@@ -62,7 +62,7 @@ export function TemplateScrapbook({ event, children }: TemplateScrapbookProps) {
 
             {/* Background Doodles & Stamps */}
             <div className="fixed top-28 left-8 w-36 h-36 border-4 border-dashed border-[#d9826b]/40 rounded-full opacity-40 pointer-events-none -rotate-12 z-0" />
-            <div className="fixed bottom-36 right-8 w-40 h-40 border-4 border-[#74827d]/30 pointer-events-none rotate-45 transform opacity-30 z-0" />
+            <div className="fixed bottom-36 right-8 w-40 h-40 border-4 border-[#56645f]/30 pointer-events-none rotate-45 transform opacity-30 z-0" />
 
             {/* Main Header */}
             <main className="pt-36 pb-20 px-4 max-w-5xl mx-auto flex flex-col items-center justify-center text-center relative z-10">
@@ -89,7 +89,7 @@ export function TemplateScrapbook({ event, children }: TemplateScrapbookProps) {
                             <div className="absolute -top-3 right-6 w-24 h-6 bg-amber-200/80 border-t border-b border-amber-300/60 backdrop-blur-sm rotate-6 z-20 shadow-sm" />
 
                             <div className="bg-[#fffdf9] border-2 border-[#e2d9cd] p-6 rounded-2xl shadow-md -rotate-1">
-                                <p className="font-serif italic text-lg md:text-xl text-[#74827d] leading-relaxed">
+                                <p className="font-serif italic text-lg md:text-xl text-[#56645f] leading-relaxed">
                                     &quot;{event.description}&quot;
                                 </p>
                             </div>

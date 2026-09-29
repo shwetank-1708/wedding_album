@@ -1,12 +1,10 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { Event } from "@/lib/database";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
-import { cn } from "@/lib/utils";
-import { Crown, Sparkles, Calendar, MapPin, ArrowRight, ShieldCheck, Heart } from "lucide-react";
+import { Crown, Calendar, MapPin, ArrowRight, Heart } from "lucide-react";
 
 interface TemplateRoyalProps {
     event: Event;
@@ -14,6 +12,7 @@ interface TemplateRoyalProps {
 }
 
 export function TemplateRoyal({ event, children }: TemplateRoyalProps) {
+    const location = "location" in event && typeof event.location === "string" ? event.location : "";
     const heroImageSrc = event.coverImage || "/royal_emerald_palace_hero.jpg";
 
     const scrollToContent = () => {
@@ -56,24 +55,24 @@ export function TemplateRoyal({ event, children }: TemplateRoyalProps) {
                     </ScrollReveal>
 
                     <ScrollReveal delay={0.2}>
-                        <p className="text-[#a3b899] text-base md:text-lg font-light leading-relaxed max-w-xl">
+                        <p className="text-[#bdc9b9] text-base md:text-lg font-light leading-relaxed max-w-xl">
                             {event.description || "Entering a realm of imperial splendour and timeless elegance. Celebrating a monumental union of love, heritage, and royal celebrations."}
                         </p>
                     </ScrollReveal>
 
                     {/* Metadata Pill Indicators */}
                     <ScrollReveal delay={0.3}>
-                        <div className="flex flex-wrap gap-4 text-xs font-sans text-[#a3b899] pt-2">
+                        <div className="flex flex-wrap gap-4 text-xs font-sans text-[#bdc9b9] pt-2">
                             {event.date && (
                                 <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#021a15]/80 border border-[#cca43b]/25">
                                     <Calendar className="w-3.5 h-3.5 text-[#cca43b]" />
                                     <span>{event.date}</span>
                                 </div>
                             )}
-                            {(event as any).location && (
+                            {location && (
                                 <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#021a15]/80 border border-[#cca43b]/25">
                                     <MapPin className="w-3.5 h-3.5 text-[#cca43b]" />
-                                    <span>{(event as any).location}</span>
+                                    <span>{location}</span>
                                 </div>
                             )}
                         </div>
@@ -143,18 +142,18 @@ export function TemplateRoyal({ event, children }: TemplateRoyalProps) {
             {/* Content Area for Gallery & Photos */}
             {children && (
                 <main className="relative z-10 bg-[#021a15]/60 min-h-screen border-t border-[#cca43b]/15 py-8">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
                         {children}
                     </div>
                 </main>
             )}
 
             {/* Footer */}
-            <footer className="relative z-10 py-16 text-center border-t border-[#cca43b]/20 bg-[#021a15]">
+            <footer className="relative z-10 px-6 py-16 text-center border-t border-[#cca43b]/20 bg-[#021a15]">
                 <div className="flex items-center justify-center gap-2 mb-3 text-[#cca43b]">
                     <Crown className="w-5 h-5" />
                 </div>
-                <p className="text-[#a3b899] text-xs font-sans tracking-[0.25em] uppercase">
+                <p className="text-[#bdc9b9] text-xs font-sans tracking-[0.25em] uppercase">
                     Elegantly Captured • Royal Emerald Edition
                 </p>
             </footer>

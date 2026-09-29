@@ -19,16 +19,8 @@ export function TemplateEditorial({ event, children }: TemplateEditorialProps) {
 
                     <div className="col-span-12 lg:col-span-8">
                         <ScrollReveal>
-                            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.5vw] xl:text-[7vw] leading-[0.88] font-black tracking-tighter uppercase mb-4 text-[#111827] break-words max-w-full">
-                                {event.title.split(' ')[0]}
-                                {event.title.split(' ').length > 1 && (
-                                    <>
-                                        <br />
-                                        <span className="text-[#111827] block mt-1">
-                                            {event.title.split(' ').slice(1).join(' ')}
-                                        </span>
-                                    </>
-                                )}
+                            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[6.5vw] xl:text-[7vw] leading-[1.02] text-balance font-black tracking-tighter uppercase mb-4 text-[#111827] break-words max-w-full">
+                                {event.title}
                             </h1>
                         </ScrollReveal>
                     </div>
@@ -48,19 +40,19 @@ export function TemplateEditorial({ event, children }: TemplateEditorialProps) {
 
             {/* Hero Image Band */}
             {event.coverImage && (
-                <section className="w-full h-[60vh] md:h-[80vh] relative overflow-hidden border-b-4 border-black">
+                <section className="w-full h-[45svh] md:h-[65svh] relative overflow-hidden border-b-4 border-black">
                     <Image
                         src={event.coverImage}
                         alt={event.title}
                         fill
-                        className="object-contain bg-white grayscale hover:grayscale-0 transition-all duration-700"
+                        className="object-contain bg-white transition-all duration-700"
                         priority
                     />
                     <div className="absolute inset-0 bg-black/10" />
 
                     <div className="absolute bottom-8 left-8 bg-white/95 backdrop-blur p-4 border border-black max-w-sm shadow-md">
                         <p className="text-xs font-mono uppercase tracking-tight text-[#111827]">
-                            Featured Collection • {new Date().getFullYear()} • Vol. 1
+                            Featured Collection{event.date ? ` • ${event.date}` : ""}
                         </p>
                     </div>
                 </section>
@@ -72,7 +64,7 @@ export function TemplateEditorial({ event, children }: TemplateEditorialProps) {
                     <div className="max-w-[90rem] mx-auto">
                         <div className="flex items-center justify-between border-b border-black pb-4 mb-12">
                             <h2 className="text-4xl font-bold uppercase tracking-tighter text-[#111827]">Galleries</h2>
-                            <span className="font-mono text-xl text-[#374151]">(08)</span>
+
                         </div>
                         {children}
                     </div>

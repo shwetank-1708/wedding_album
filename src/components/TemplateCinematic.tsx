@@ -62,13 +62,13 @@ export function TemplateCinematic({
                             src={event.coverImage}
                             alt={event.title}
                             fill
-                            className="object-contain opacity-50 block md:hidden"
+                            className="object-contain opacity-85 block md:hidden"
                             priority
                         />
                     )}
                     {event.coverImage && (
                         <div
-                            className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 will-change-transform"
+                            className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70 will-change-transform"
                             style={{
                                 backgroundImage: `url(${event.coverImage})`,
                                 transform: 'scale(1.05)',
@@ -180,7 +180,7 @@ export function TemplateCinematic({
                             eventSlug={event.id}
                             disableDownload={isShared && !user}
                             gridClassName="gap-3 md:gap-6 lg:px-12"
-                            itemClassName="bg-[#1c1c20] rounded-xl border border-white/5 opacity-85 hover:opacity-100 hover:scale-[1.02] hover:shadow-[0_20px_40px_-15px_rgba(230,43,58,0.25)] hover:z-10 transition-all duration-500 ease-out"
+                            itemClassName="bg-[#1c1c20] rounded-xl border border-white/5 opacity-100 hover:scale-[1.02] hover:shadow-[0_20px_40px_-15px_rgba(230,43,58,0.25)] hover:z-10 transition-all duration-500 ease-out"
                             lightboxClassName="font-mono [&_.bg-white]:bg-gray-900 [&_.text-slate-900]:text-white [&_.text-stone-600]:text-gray-300 [&_.border-stone-100]:border-gray-800 [&_input]:bg-black [&_input]:text-white [&_input]:border-gray-800 [&_button.bg-slate-900]:bg-[#ef4444] [&_button.bg-slate-900]:hover:bg-[#dc2626]"
                             lightboxTheme={getWebLightboxTheme(event.templateId)}
                             templateId={event.templateId}

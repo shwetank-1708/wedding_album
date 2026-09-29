@@ -1,0 +1,4108 @@
+{
+  "privacy-policy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "September 28, 2026",
+    "description": "EveBash respects your privacy and is committed to handling personal information responsibly and transparently. This Privacy Policy explains how EveBash collects, uses, stores, processes, shares, and protects personal information when people use our websites, mobile applications, accounts, event galleries, media-sharing features, business features, subscriptions, payment features, find You functionality, and related services. By using EveBash, you acknowledge the practices described in this Privacy Policy. Where consent is required by applicable law, we will request appropriate consent before carrying out the relevant processing.",
+    "sections": [
+      {
+        "title": "1. Scope of This Privacy Policy",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "This Privacy Policy applies to personal information processed through EveBash, including information relating to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "account holders;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event organizers and hosts;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery owners;"
+          },
+          {
+            "kind": "bullet",
+            "text": "guests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "photographers and other media contributors;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "visitors to our website;"
+          },
+          {
+            "kind": "bullet",
+            "text": "mobile application users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "people contacting EveBash support; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other individuals whose personal information may be processed through the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Some photographs and videos uploaded by users may contain images of people who do not themselves have an EveBash account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The treatment of such information may depend on the circumstances, the person who uploaded the content, applicable privacy law, and the EveBash feature being used."
+          }
+        ]
+      },
+      {
+        "title": "2. Information We Collect",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "The information EveBash processes depends on how you use the Services. We may process the following categories of information."
+          },
+          {
+            "kind": "heading",
+            "text": "2.1 Account Information"
+          },
+          {
+            "kind": "paragraph",
+            "text": "When you create or maintain an EveBash account, we may process information such as:"
+          },
+          {
+            "kind": "bullet",
+            "text": "name;"
+          },
+          {
+            "kind": "bullet",
+            "text": "email address;"
+          },
+          {
+            "kind": "bullet",
+            "text": "phone number, where provided or required;"
+          },
+          {
+            "kind": "bullet",
+            "text": "profile photograph;"
+          },
+          {
+            "kind": "bullet",
+            "text": "username or profile information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "account type;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "account preferences;"
+          },
+          {
+            "kind": "bullet",
+            "text": "language or regional settings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "subscription status; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "account creation and activity information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Passwords and authentication credentials are handled through the authentication systems used by EveBash and should not be stored by EveBash in readable plaintext form."
+          },
+          {
+            "kind": "heading",
+            "text": "2.2 Authentication Information"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may use authentication providers and technologies to support:"
+          },
+          {
+            "kind": "bullet",
+            "text": "email and password authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "email verification;"
+          },
+          {
+            "kind": "bullet",
+            "text": "password recovery;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Google sign-in;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Apple sign-in; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other supported authentication methods."
+          },
+          {
+            "kind": "paragraph",
+            "text": "When you use a third-party login provider, EveBash may receive information permitted by that provider, such as your name, email address, account identifier, or profile information."
+          },
+          {
+            "kind": "heading",
+            "text": "2.3 Event Information"
+          },
+          {
+            "kind": "paragraph",
+            "text": "When an event is created or managed through EveBash, we may process information such as:"
+          },
+          {
+            "kind": "bullet",
+            "text": "event name;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event type;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event description;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event date;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event location where provided;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event organizer information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery settings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "invitations;"
+          },
+          {
+            "kind": "bullet",
+            "text": "guest information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access permissions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event branding;"
+          },
+          {
+            "kind": "bullet",
+            "text": "comments and interactions; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other information supplied by the event organizer."
+          },
+          {
+            "kind": "heading",
+            "text": "2.4 Photos, Videos and Other Media"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash is a digital gallery and media platform. Users may upload:"
+          },
+          {
+            "kind": "bullet",
+            "text": "photographs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "thumbnails;"
+          },
+          {
+            "kind": "bullet",
+            "text": "profile images;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event artwork;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business portfolio media; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other files supported by the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Media may contain information about identifiable people. EveBash processes uploaded media to provide the Services requested by users and event organizers."
+          }
+        ]
+      },
+      {
+        "title": "3. Media Processing",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Depending on the features being used, uploaded photographs and videos may undergo technical processing including:"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "upload validation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "format validation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "image resizing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "thumbnail generation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "preview generation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "compression;"
+          },
+          {
+            "kind": "bullet",
+            "text": "video transcoding;"
+          },
+          {
+            "kind": "bullet",
+            "text": "streaming preparation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "video thumbnail extraction;"
+          },
+          {
+            "kind": "bullet",
+            "text": "metadata extraction;"
+          },
+          {
+            "kind": "bullet",
+            "text": "indexing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "integrity checking;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content moderation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access-control processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "caching; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "delivery through content-delivery infrastructure."
+          },
+          {
+            "kind": "paragraph",
+            "text": "These processes are performed to operate, secure, optimize, and deliver EveBash galleries and related features."
+          }
+        ]
+      },
+      {
+        "title": "4. Find You and Facial Processing",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may provide a feature called Find You or similar functionality that helps an authorized user locate photographs in an eligible gallery in which they may appear."
+          },
+          {
+            "kind": "paragraph",
+            "text": "When Find You is used, EveBash may process a photograph or image submitted by the user for facial matching."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Technical processing may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "detecting a face in an image;"
+          },
+          {
+            "kind": "bullet",
+            "text": "preparing or aligning the facial region;"
+          },
+          {
+            "kind": "bullet",
+            "text": "generating a mathematical facial representation or embedding;"
+          },
+          {
+            "kind": "bullet",
+            "text": "comparing that representation with compatible facial representations generated from eligible gallery photographs; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "returning photographs that the system determines may contain a matching face."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A facial embedding is a mathematical representation used by the matching system. It is not intended to be used by EveBash to independently determine a person's legal identity."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Find You results are probabilistic. The system may:"
+          },
+          {
+            "kind": "bullet",
+            "text": "return incorrect matches;"
+          },
+          {
+            "kind": "bullet",
+            "text": "fail to return a correct match; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "produce different results depending on image quality, lighting, angle, obstruction, and other technical factors."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Find You should therefore not be treated as definitive proof of identity."
+          },
+          {
+            "kind": "heading",
+            "text": "4.1 Purpose of Find You Processing"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Facial processing associated with Find You is intended to help authorized users locate their own or otherwise lawfully searchable photographs within eligible EveBash event galleries."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not intend Find You to be used for general public facial identification, surveillance, stalking, law-enforcement identification, or unrelated profiling."
+          },
+          {
+            "kind": "heading",
+            "text": "4.2 Consent and Availability"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where applicable law requires consent or another lawful basis for facial processing, EveBash will implement appropriate notices, controls, or consent mechanisms."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Find You may therefore be unavailable or subject to additional requirements depending on jurisdiction, age, gallery settings, event-host settings, applicable law, or other privacy considerations."
+          },
+          {
+            "kind": "heading",
+            "text": "4.3 Facial Data Retention"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash retains facial representations only for as long as reasonably necessary for the purpose for which they were created, subject to applicable legal, security, dispute-resolution, and technical requirements."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where deletion is required or requested and applicable, EveBash will delete or de-identify eligible facial-processing data according to its applicable retention procedures."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Find You sends the submitted selfie through our backend to Modal for facial matching. Facial representations generated from gallery photographs are stored with gallery media records in Supabase. Matching compares the submitted face with representations from eligible galleries and returns possible matches."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The matching process handles the submitted selfie and its query representation during processing; this does not imply that uploaded gallery photographs, stored gallery representations, operational logs, or provider backups are immediately erased. Contact support@evebash.com to request removal of your image or facial-processing data, identifying the event or gallery where possible. Do not submit identity documents or additional selfies unless specifically requested through an appropriate verification process."
+          }
+        ]
+      },
+      {
+        "title": "5. Information About People Appearing in Event Media",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Photographs and videos uploaded to EveBash may contain people who did not personally upload the content or create an EveBash account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Event organizers, photographers, businesses, and other users uploading media are responsible for ensuring they have the rights, permissions, consents, or other lawful basis required to upload and share that media."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If you believe your personal information or image appears on EveBash without appropriate authorization, you may contact: support@evebash.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may investigate appropriate privacy, safety, or legal requests and may restrict or remove content where required or appropriate."
+          }
+        ]
+      },
+      {
+        "title": "6. Gallery and Access Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may process information relating to how galleries are configured and accessed. This may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery identifiers;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event identifiers;"
+          },
+          {
+            "kind": "bullet",
+            "text": "invitations;"
+          },
+          {
+            "kind": "bullet",
+            "text": "guest access;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access permissions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "sharing settings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "private/public settings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access links;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication status; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "activity necessary to maintain gallery security."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This information helps EveBash ensure that restricted content is available only to users who are authorized to access it."
+          }
+        ]
+      },
+      {
+        "title": "7. Comments, Likes and Interactions",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash provides social or interaction features, we may process information such as likes, reactions, comments, media interactions, gallery interactions, and related account identifiers."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Some interactions may be visible to event organizers or other authorized gallery participants depending on the feature and privacy settings."
+          }
+        ]
+      },
+      {
+        "title": "8. EB Business Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Users creating profiles through EB Business or related business features may provide information including:"
+          },
+          {
+            "kind": "bullet",
+            "text": "business name;"
+          },
+          {
+            "kind": "bullet",
+            "text": "contact information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business description;"
+          },
+          {
+            "kind": "bullet",
+            "text": "service categories;"
+          },
+          {
+            "kind": "bullet",
+            "text": "location;"
+          },
+          {
+            "kind": "bullet",
+            "text": "portfolio photographs or videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business logo;"
+          },
+          {
+            "kind": "bullet",
+            "text": "website or social links;"
+          },
+          {
+            "kind": "bullet",
+            "text": "pricing or service information; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other information intentionally published as part of the business profile."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Information designated for a public business profile may be visible to other EveBash users or visitors. Users should avoid publishing information they do not want to make publicly available."
+          }
+        ]
+      },
+      {
+        "title": "9. EB Network Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If you use EB Network, EveBash may process information necessary to enable professional discovery, networking, inquiries, recommendations, listings, or related functionality."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Information intentionally published through a public or discoverable profile may be visible to other users according to your applicable settings."
+          }
+        ]
+      },
+      {
+        "title": "10. Payment and Subscription Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "When you purchase an EveBash subscription or paid service, we may process information including:"
+          },
+          {
+            "kind": "bullet",
+            "text": "selected plan;"
+          },
+          {
+            "kind": "bullet",
+            "text": "transaction identifier;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment status;"
+          },
+          {
+            "kind": "bullet",
+            "text": "amount;"
+          },
+          {
+            "kind": "bullet",
+            "text": "currency;"
+          },
+          {
+            "kind": "bullet",
+            "text": "invoice information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "subscription status;"
+          },
+          {
+            "kind": "bullet",
+            "text": "renewal information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment timestamps; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "refund or dispute status."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Payments may be processed through third-party payment providers such as Razorpay."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not intend to store full payment-card numbers, UPI credentials, banking passwords, CVVs, or similar sensitive payment credentials when those credentials are collected and processed directly by the payment provider."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Payment providers process payment information according to their own terms and privacy practices."
+          }
+        ]
+      },
+      {
+        "title": "11. Technical and Usage Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "When you use EveBash, certain technical information may be processed automatically. This may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "IP address;"
+          },
+          {
+            "kind": "bullet",
+            "text": "browser type;"
+          },
+          {
+            "kind": "bullet",
+            "text": "operating system;"
+          },
+          {
+            "kind": "bullet",
+            "text": "device type;"
+          },
+          {
+            "kind": "bullet",
+            "text": "application version;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "timestamps;"
+          },
+          {
+            "kind": "bullet",
+            "text": "error logs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "security events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "session information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "network information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "pages or features accessed;"
+          },
+          {
+            "kind": "bullet",
+            "text": "performance information; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "diagnostic information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This information helps us operate, secure, troubleshoot, monitor, and improve the Services."
+          }
+        ]
+      },
+      {
+        "title": "12. Cookies and Similar Technologies",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may use cookies, local storage, session storage, SDKs, or similar technologies where necessary to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "maintain authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "preserve sessions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "remember preferences;"
+          },
+          {
+            "kind": "bullet",
+            "text": "secure accounts;"
+          },
+          {
+            "kind": "bullet",
+            "text": "prevent abuse;"
+          },
+          {
+            "kind": "bullet",
+            "text": "measure performance;"
+          },
+          {
+            "kind": "bullet",
+            "text": "understand product usage; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "improve the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where required by applicable law, EveBash will provide appropriate controls or obtain consent before using non-essential cookies or similar technologies. Additional details may be provided through a separate Cookie Policy."
+          }
+        ]
+      },
+      {
+        "title": "13. How We Use Personal Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may process personal information to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "create and maintain accounts;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authenticate users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "manage events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "create and display galleries;"
+          },
+          {
+            "kind": "bullet",
+            "text": "store photographs and videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "process media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "deliver media to authorized users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "provide Find You where enabled;"
+          },
+          {
+            "kind": "bullet",
+            "text": "manage invitations and gallery access;"
+          },
+          {
+            "kind": "bullet",
+            "text": "enable comments, likes, and interactions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "operate EB Business and EB Network;"
+          },
+          {
+            "kind": "bullet",
+            "text": "process subscriptions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "confirm payments;"
+          },
+          {
+            "kind": "bullet",
+            "text": "communicate service information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "provide customer support;"
+          },
+          {
+            "kind": "bullet",
+            "text": "detect prohibited content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "prevent fraud and abuse;"
+          },
+          {
+            "kind": "bullet",
+            "text": "protect accounts and infrastructure;"
+          },
+          {
+            "kind": "bullet",
+            "text": "investigate security incidents;"
+          },
+          {
+            "kind": "bullet",
+            "text": "enforce our Terms and policies;"
+          },
+          {
+            "kind": "bullet",
+            "text": "troubleshoot technical issues;"
+          },
+          {
+            "kind": "bullet",
+            "text": "maintain service reliability;"
+          },
+          {
+            "kind": "bullet",
+            "text": "understand and improve the Services; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "comply with applicable legal obligations."
+          },
+          {
+            "kind": "paragraph",
+            "text": "We seek to process personal information only for purposes connected with operating EveBash or for other purposes communicated to users as required by applicable law."
+          }
+        ]
+      },
+      {
+        "title": "14. How We Share Information",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not sell personal information. We may share or make information available in limited circumstances described below."
+          },
+          {
+            "kind": "heading",
+            "text": "Service Providers"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash relies on infrastructure and technology providers to operate the platform. Depending on the deployed architecture, these may include providers supporting:"
+          },
+          {
+            "kind": "bullet",
+            "text": "website hosting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "backend hosting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "database services;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "object storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content delivery;"
+          },
+          {
+            "kind": "bullet",
+            "text": "media processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "artificial-intelligence processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "background jobs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payments;"
+          },
+          {
+            "kind": "bullet",
+            "text": "email;"
+          },
+          {
+            "kind": "bullet",
+            "text": "analytics;"
+          },
+          {
+            "kind": "bullet",
+            "text": "monitoring; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "security."
+          },
+          {
+            "kind": "paragraph",
+            "text": "These providers may process limited information as necessary to perform services for EveBash."
+          },
+          {
+            "kind": "heading",
+            "text": "Other EveBash Users"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Information may be shared with other users when required by the feature being used. For example:"
+          },
+          {
+            "kind": "bullet",
+            "text": "event hosts may see event participants;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authorized guests may see gallery media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "comments may be visible to gallery participants;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business information may be publicly discoverable;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery owners may see relevant activity; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "Find You may return eligible photographs to an authorized user."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Visibility depends on the feature, event settings, account permissions, and applicable privacy controls."
+          },
+          {
+            "kind": "heading",
+            "text": "Legal and Safety Requirements"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may preserve, disclose, or provide information where reasonably necessary to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "comply with applicable law;"
+          },
+          {
+            "kind": "bullet",
+            "text": "respond to legally valid requests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "enforce legal rights;"
+          },
+          {
+            "kind": "bullet",
+            "text": "investigate fraud;"
+          },
+          {
+            "kind": "bullet",
+            "text": "address security incidents;"
+          },
+          {
+            "kind": "bullet",
+            "text": "protect users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "prevent serious harm; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "enforce EveBash policies."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where legally permitted and appropriate, EveBash will seek to protect user privacy when responding to such requests."
+          }
+        ]
+      },
+      {
+        "title": "15. Our Technology Providers",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash's infrastructure may use third-party providers for different technical purposes. Providers used for the relevant features include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "Vercel for web frontend hosting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Railway for backend services;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Supabase for database and authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Backblaze B2 for media storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Cloudflare for media delivery and caching;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Modal for specialized AI and video processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Upstash QStash for background-job delivery;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Razorpay for payment processing; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "Hostinger for business email services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The specific provider configuration may change as EveBash's infrastructure evolves. We may replace providers where appropriate without materially changing the purposes for which personal information is processed."
+          }
+        ]
+      },
+      {
+        "title": "16. International Processing and Data Transfers",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Some EveBash service providers may operate infrastructure in countries outside the location where a user resides. As a result, personal information may be processed or stored in other jurisdictions where permitted by applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where cross-border processing is subject to legal requirements or restrictions, EveBash will take steps reasonably required to comply with those requirements."
+          }
+        ]
+      },
+      {
+        "title": "17. Data Security",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash uses technical and organizational measures intended to protect personal information against unauthorized access, alteration, disclosure, loss, misuse, or destruction."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Depending on the system involved, measures may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access controls;"
+          },
+          {
+            "kind": "bullet",
+            "text": "private storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "encrypted network connections;"
+          },
+          {
+            "kind": "bullet",
+            "text": "secure API communication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "restricted server credentials;"
+          },
+          {
+            "kind": "bullet",
+            "text": "database security controls;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Row Level Security;"
+          },
+          {
+            "kind": "bullet",
+            "text": "temporary media-access mechanisms;"
+          },
+          {
+            "kind": "bullet",
+            "text": "logging;"
+          },
+          {
+            "kind": "bullet",
+            "text": "monitoring;"
+          },
+          {
+            "kind": "bullet",
+            "text": "rate limiting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "security updates; and"
+          },
+          {
+            "kind": "paragraph",
+            "text": "However, no online system can guarantee absolute security. Users are also responsible for protecting their account credentials and gallery-access information."
+          }
+        ]
+      },
+      {
+        "title": "18. Data Breaches and Security Incidents",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash becomes aware of a personal-data breach or security incident, we may investigate, contain, remediate, document, and provide notifications where required under applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users should promptly contact EveBash if they believe their account or information has been compromised."
+          }
+        ]
+      },
+      {
+        "title": "19. Data Retention",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash retains personal information only for as long as reasonably necessary for the purposes for which it is processed, subject to legal, security, contractual, accounting, fraud-prevention, dispute-resolution, and operational requirements."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Retention periods may vary according to the type of information. For example:"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Account information"
+          },
+          {
+            "kind": "paragraph",
+            "text": "May be retained while the account remains active and for an appropriate period after deletion where necessary."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Uploaded media"
+          },
+          {
+            "kind": "paragraph",
+            "text": "May be retained while associated events, galleries, subscriptions, or accounts remain active and according to applicable storage and deletion policies."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Payment records"
+          },
+          {
+            "kind": "paragraph",
+            "text": "May be retained for accounting, taxation, fraud prevention, disputes, and other legal obligations."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Security logs"
+          },
+          {
+            "kind": "paragraph",
+            "text": "May be retained for a reasonable period for security monitoring and investigation."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Facial representations"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Retained only for the period reasonably necessary to provide the relevant Find You functionality and satisfy applicable legal or security requirements."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Backups and caches"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Deleted information may remain temporarily in backups, caches, logs, or technical systems until those copies are overwritten or removed according to normal retention cycles."
+          }
+        ]
+      },
+      {
+        "title": "20. Account and Media Deletion",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "You can request deletion of your EveBash account and associated personal data. In the mobile app, open Settings and select Delete Account. On the website, sign in and open Profile to find Delete Account. Follow the identity-verification and confirmation steps displayed there."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If you cannot access your account or app, visit https://www.evebash.com/delete-account for a web-accessible request route. Requests may require reasonable verification that you own the account. Account deletion is distinct from signing out, uninstalling the app, or temporarily disabling access."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A deletion request covers the authentication account, profile, and associated personal data, including uploaded content. Records that must be kept for legal obligations, billing disputes, fraud prevention, or security are handled separately. Deletion may take additional time across storage, processors, backups and caches; contact support for the status and applicable retention information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Deleting an account does not automatically cancel a subscription billed by Apple or Google. Manage that subscription through the store that billed you. You can still request account deletion while a subscription is active."
+          }
+        ]
+      },
+      {
+        "title": "21. Your Privacy Rights",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Depending on applicable law and the circumstances of processing, you may have rights relating to your personal information. These may include the ability to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "request information about personal data being processed;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request access to eligible personal information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request correction of inaccurate information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request completion or updating of information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request deletion or erasure where applicable;"
+          },
+          {
+            "kind": "bullet",
+            "text": "withdraw consent where processing is based on consent;"
+          },
+          {
+            "kind": "bullet",
+            "text": "manage certain privacy choices;"
+          },
+          {
+            "kind": "bullet",
+            "text": "raise a grievance or complaint; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "exercise other rights available under applicable data-protection law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Requests may be subject to identity verification and applicable legal limitations. India's Digital Personal Data Protection framework provides rights relating to access, correction, erasure and grievance redressal, among other matters, as applicable when the relevant provisions are in force."
+          }
+        ]
+      },
+      {
+        "title": "22. Withdrawal of Consent",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Where EveBash relies on consent for a particular processing activity, you may withdraw that consent through the method provided by EveBash."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Withdrawal of consent does not necessarily affect processing that lawfully occurred before withdrawal. Withdrawing consent may make certain features unavailable where the relevant information is necessary to provide those features."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where required by applicable law, withdrawing consent should be reasonably accessible and comparable in ease to giving consent. India's notified DPDP framework specifically addresses mechanisms for withdrawal and exercising data rights."
+          }
+        ]
+      },
+      {
+        "title": "23. Children and Minors",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash events and galleries may contain photographs or videos of children."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Processing information relating to children requires particular care."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Event organizers and uploaders are responsible for ensuring they have appropriate authority or permission to upload and share content involving children."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where applicable law requires parental or guardian consent for processing a child's personal information or use of particular features, EveBash will require appropriate consent or restrict the relevant feature."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Find You or other facial-processing functionality involving children may be subject to additional restrictions or may be unavailable depending on applicable legal requirements and EveBash policy."
+          }
+        ]
+      },
+      {
+        "title": "24. Event Hosts and Privacy Responsibilities",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Event hosts and gallery owners control certain aspects of how content is uploaded, organized, and shared through their events."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Hosts should:"
+          },
+          {
+            "kind": "bullet",
+            "text": "invite only appropriate participants;"
+          },
+          {
+            "kind": "bullet",
+            "text": "manage gallery access responsibly;"
+          },
+          {
+            "kind": "bullet",
+            "text": "avoid publicly exposing private gallery credentials;"
+          },
+          {
+            "kind": "bullet",
+            "text": "ensure they have appropriate rights to uploaded media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "respect requests concerning personal content where applicable; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "configure gallery privacy settings appropriately."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash provides the platform infrastructure, while event organizers remain responsible for their own use of the Services and the content they choose to upload or share."
+          }
+        ]
+      },
+      {
+        "title": "25. Changes to This Privacy Policy",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may update this Privacy Policy as the Services, technology, or legal requirements change."
+          },
+          {
+            "kind": "paragraph",
+            "text": "When we update the policy, we will change the Last updated date."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For material changes, we may provide additional notice through:"
+          },
+          {
+            "kind": "bullet",
+            "text": "the EveBash website;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the application;"
+          },
+          {
+            "kind": "bullet",
+            "text": "email;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the user dashboard; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "another appropriate communication method."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where applicable law requires renewed consent, we will request it."
+          }
+        ]
+      },
+      {
+        "title": "26. Contact Us",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "For privacy questions, requests, complaints, account issues, or concerns about photographs or videos appearing on EveBash, contact:"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Email: support@evebash.com"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Website: evebash.com"
+          }
+        ]
+      },
+      {
+        "title": "27. Grievance and Privacy Requests",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Users may contact EveBash at: support@evebash.com for matters including:"
+          },
+          {
+            "kind": "bullet",
+            "text": "access requests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "correction requests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "deletion requests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "consent-related requests;"
+          },
+          {
+            "kind": "bullet",
+            "text": "privacy complaints;"
+          },
+          {
+            "kind": "bullet",
+            "text": "unauthorized media concerns;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Find You concerns; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other privacy questions."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may request reasonable information to verify the identity or authority of the person submitting a request before acting on it."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Additional grievance-redressal information will be provided where required by applicable law."
+          }
+        ]
+      },
+      {
+        "title": "28. Mobile Permissions and Notifications",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "These disclosures apply to EveBash on Android and iOS as well as corresponding website features. Camera access supports taking a selfie for Find You or capturing media where offered. Photo-library access supports selecting uploads and saving media. Files you submit are sent to our services for the gallery or matching feature you choose."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Foreground location access supports nearby business discovery and location-based features. Location may be used to calculate distances or find relevant listings. A business location that you publish on your business profile may be visible to others."
+          },
+          {
+            "kind": "paragraph",
+            "text": "When push notifications are enabled, the app registers a device notification token and associates it with your profile. Expo and the relevant Apple or Google notification services process the token and notification payload to deliver notifications. Depending on your settings, notifications may include event invitations, interactions, business updates, or marketing messages."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You can change camera, photo, location and notification permissions in your device settings. Refusing a permission can limit the feature that needs it. Revoking a device permission does not itself delete information already uploaded; use the deletion and privacy-request procedures above."
+          }
+        ]
+      },
+      {
+        "title": "29. Purchases Through App Stores",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Where an EveBash purchase is offered through Apple or Google, the store processes the payment under its own privacy terms. EveBash may receive purchase identifiers, receipts or purchase tokens, product information, payment status and subscription status to validate access, address billing issues and prevent fraud. Availability depends on the app version, region and purchase channel."
+          }
+        ]
+      }
+    ]
+  },
+  "terms-and-conditions": {
+    "title": "Terms & Conditions",
+    "lastUpdated": "September 28, 2026",
+    "description": "These Terms & Conditions govern your access to and use of EveBash websites, applications, accounts, galleries, event-management features, media-upload and sharing services, business features, subscriptions, find You features, and other services provided through EveBash. By creating an account, accessing EveBash, purchasing a plan, uploading content, creating or joining an event or gallery, or otherwise using the Services, you agree to these Terms & Conditions. If you do not agree to these Terms, you should not use the Services.",
+    "sections": [
+      {
+        "title": "1. About EveBash",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash is a digital event and media platform that enables users to create and manage events and galleries, upload and organize photographs and videos, share event media with authorized users or guests, discover event-related businesses and services where available, and use additional features offered by EveBash."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Certain features may vary according to the user's plan, location, device, account type, or availability."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may introduce, modify, replace, or discontinue features in accordance with these Terms."
+          }
+        ]
+      },
+      {
+        "title": "2. Eligibility",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "You may use EveBash only if you are legally capable of entering into a binding agreement under applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If you use EveBash on behalf of a company, organization, event organizer, photography business, or another legal entity, you represent that you have authority to accept these Terms on its behalf."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where additional consent is required for minors or other persons under applicable law, the account holder, organizer, uploader, or responsible adult must obtain the required consent before using EveBash in relation to those persons."
+          }
+        ]
+      },
+      {
+        "title": "3. User Accounts",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Certain EveBash Services require an account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You agree to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "provide accurate and reasonably current account information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "keep your login credentials secure;"
+          },
+          {
+            "kind": "bullet",
+            "text": "not knowingly allow unauthorized persons to use your account;"
+          },
+          {
+            "kind": "bullet",
+            "text": "promptly notify EveBash if you believe your account has been compromised; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "take reasonable responsibility for activities performed through your account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You must not impersonate another person or organization or create an account using information you are not authorized to use."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may require email verification, identity verification, additional authentication, or other reasonable security measures."
+          }
+        ]
+      },
+      {
+        "title": "4. Event Hosts and Organizers",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Users may be able to create events, galleries, invitations, access links, guest experiences, or other event-related resources."
+          },
+          {
+            "kind": "paragraph",
+            "text": "An event host or organizer is responsible for managing access to their event and determining who may access private galleries or other restricted content."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Event hosts must use reasonable care when sharing:"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery links;"
+          },
+          {
+            "kind": "bullet",
+            "text": "invitations;"
+          },
+          {
+            "kind": "bullet",
+            "text": "QR codes;"
+          },
+          {
+            "kind": "bullet",
+            "text": "access codes;"
+          },
+          {
+            "kind": "bullet",
+            "text": "passwords;"
+          },
+          {
+            "kind": "bullet",
+            "text": "guest credentials; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "other private access mechanisms."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash is not responsible for unauthorized access resulting from an organizer or authorized user voluntarily sharing private access information with another person, except to the extent responsibility cannot legally be excluded."
+          }
+        ]
+      },
+      {
+        "title": "5. Guests and Gallery Access",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Guests may receive access to event galleries or other content through invitations, links, QR codes, credentials, or other mechanisms."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Access to a gallery does not transfer ownership of its photographs, videos, or other content."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Guests must respect any restrictions imposed by the event organizer, content owner, photographer, or applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users must not attempt to bypass access controls or obtain access to galleries, events, accounts, media, or information they are not authorized to access."
+          }
+        ]
+      },
+      {
+        "title": "6. User Content",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "\"User Content\" includes photographs, videos, profile information, comments, captions, business information, event information, logos, text, files, and other material submitted, uploaded, created, or shared through EveBash."
+          },
+          {
+            "kind": "heading",
+            "text": "You retain ownership"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not claim ownership of your User Content."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Subject to the rights of photographers, creators, event organizers, guests, or other applicable rights holders, you retain the rights you have in the content you upload."
+          }
+        ]
+      },
+      {
+        "title": "7. Permission Granted to EveBash",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To operate the Services, you grant EveBash a limited, non-exclusive license to process User Content solely as reasonably necessary to provide, secure, maintain, improve, and operate the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This may include the technical right to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "upload and store content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "copy content for technical processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "display content to authorized users;"
+          },
+          {
+            "kind": "bullet",
+            "text": "deliver content through networks and content-delivery systems;"
+          },
+          {
+            "kind": "bullet",
+            "text": "resize photographs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "compress media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "create thumbnails and previews;"
+          },
+          {
+            "kind": "bullet",
+            "text": "transcode videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "generate streaming formats;"
+          },
+          {
+            "kind": "bullet",
+            "text": "extract technical metadata;"
+          },
+          {
+            "kind": "bullet",
+            "text": "perform security and moderation checks;"
+          },
+          {
+            "kind": "bullet",
+            "text": "perform authorized search, indexing, and matching operations;"
+          },
+          {
+            "kind": "bullet",
+            "text": "create technical backups or temporary processing copies; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "otherwise process content as necessary to provide features requested or enabled by users."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This license does not give EveBash ownership of your User Content."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash will not acquire the right to sell your photographs or videos merely because you uploaded them to the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The license exists for purposes connected with operating and providing EveBash and ends when the relevant content is deleted, subject to reasonable technical retention, backups, legal requirements, fraud prevention, dispute resolution, and other legitimate retention requirements described in EveBash policies."
+          }
+        ]
+      },
+      {
+        "title": "8. Your Responsibility for Uploaded Content",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "You are responsible for User Content you upload or make available through EveBash."
+          },
+          {
+            "kind": "paragraph",
+            "text": "By uploading content, you represent that you have the rights, permissions, licenses, or other lawful basis necessary to upload, process, store, display, and share that content through the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For example, depending on the circumstances, these rights may belong to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "you;"
+          },
+          {
+            "kind": "bullet",
+            "text": "a photographer;"
+          },
+          {
+            "kind": "bullet",
+            "text": "an event organizer;"
+          },
+          {
+            "kind": "bullet",
+            "text": "a client;"
+          },
+          {
+            "kind": "bullet",
+            "text": "an employer;"
+          },
+          {
+            "kind": "bullet",
+            "text": "another copyright owner; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "persons appearing in the media."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You must not knowingly upload content in a manner that infringes another person's intellectual-property, privacy, publicity, confidentiality, or other legal rights."
+          }
+        ]
+      },
+      {
+        "title": "9. Prohibited Content",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash must not be used to upload, store, distribute, promote, or facilitate content that is unlawful or prohibited under these Terms."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Prohibited content may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "child sexual abuse or exploitation material;"
+          },
+          {
+            "kind": "bullet",
+            "text": "sexual exploitation of minors;"
+          },
+          {
+            "kind": "bullet",
+            "text": "non-consensual intimate imagery;"
+          },
+          {
+            "kind": "bullet",
+            "text": "unlawful sexually explicit material;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content promoting or facilitating serious illegal activity;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content unlawfully threatening or harassing another person;"
+          },
+          {
+            "kind": "bullet",
+            "text": "material that unlawfully violates another person's privacy;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content that infringes copyrights, trademarks, or other intellectual-property rights;"
+          },
+          {
+            "kind": "bullet",
+            "text": "malicious software or files intended to damage systems;"
+          },
+          {
+            "kind": "bullet",
+            "text": "fraudulent or deceptive content intended to cause unlawful harm;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content prohibited by applicable law; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other content EveBash reasonably determines presents a serious legal, security, or safety risk."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may establish additional content standards through a separate Content Policy."
+          }
+        ]
+      },
+      {
+        "title": "10. Content Moderation",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may use a combination of:"
+          },
+          {
+            "kind": "bullet",
+            "text": "automated systems;"
+          },
+          {
+            "kind": "bullet",
+            "text": "technical detection systems;"
+          },
+          {
+            "kind": "bullet",
+            "text": "user reports;"
+          },
+          {
+            "kind": "bullet",
+            "text": "administrator review; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "manual review"
+          },
+          {
+            "kind": "paragraph",
+            "text": "to identify content or conduct that may violate these Terms or applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where reasonably appropriate, content may be classified as safe, restricted, requiring review, or prohibited."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may:"
+          },
+          {
+            "kind": "bullet",
+            "text": "restrict publication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "temporarily quarantine content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "limit access;"
+          },
+          {
+            "kind": "bullet",
+            "text": "remove content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "disable sharing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "request additional information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "suspend relevant features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "suspend an account; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "terminate an account"
+          },
+          {
+            "kind": "paragraph",
+            "text": "where reasonably necessary to enforce these Terms, protect users, maintain platform security, or comply with applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Automated systems may make mistakes. Where EveBash provides an appeal or review process, users may use that process to request reconsideration."
+          }
+        ]
+      },
+      {
+        "title": "11. Find You and Facial Matching",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may provide a feature referred to as Find You or a similar feature that helps an authorized user locate photographs in which they may appear."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where enabled, the feature may process a submitted photograph or facial image and create a mathematical representation or embedding used to compare the submitted face with faces detected in eligible gallery photographs."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The feature is intended to help users locate relevant media within authorized EveBash galleries."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Use of Find You is subject to EveBash's Privacy Policy and any additional notices or consent requirements presented when the feature is used."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users must not use Find You to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "identify or track people for unlawful purposes;"
+          },
+          {
+            "kind": "bullet",
+            "text": "stalk or harass another person;"
+          },
+          {
+            "kind": "bullet",
+            "text": "circumvent gallery-access restrictions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "conduct unauthorized surveillance; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "otherwise violate applicable law or another person's rights."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Availability of Find You may depend on the event, gallery, jurisdiction, account settings, consent requirements, and technical availability."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Facial matching is probabilistic and may produce incorrect matches or fail to identify relevant photographs."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users should therefore not treat Find You results as definitive proof of a person's identity or presence."
+          }
+        ]
+      },
+      {
+        "title": "12. Media Processing",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To provide digital-gallery functionality, EveBash may technically process uploaded images and videos."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Processing may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "image resizing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "thumbnail generation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "preview generation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "compression;"
+          },
+          {
+            "kind": "bullet",
+            "text": "format conversion;"
+          },
+          {
+            "kind": "bullet",
+            "text": "video transcoding;"
+          },
+          {
+            "kind": "bullet",
+            "text": "video thumbnail extraction;"
+          },
+          {
+            "kind": "bullet",
+            "text": "streaming preparation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "metadata extraction;"
+          },
+          {
+            "kind": "bullet",
+            "text": "duplicate or integrity checks;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content moderation; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "authorized facial processing where applicable."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Processing may be performed using EveBash infrastructure or third-party infrastructure providers acting in connection with the Services."
+          }
+        ]
+      },
+      {
+        "title": "13. Storage",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash plans may provide different storage allowances."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Storage limits may apply to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "photographs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "thumbnails;"
+          },
+          {
+            "kind": "bullet",
+            "text": "previews;"
+          },
+          {
+            "kind": "bullet",
+            "text": "derived media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event content; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other files associated with an account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The applicable storage allowance will be shown with the relevant plan or account."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users must not deliberately circumvent storage limitations."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If an account exceeds its permitted storage, EveBash may restrict additional uploads, request an upgrade, provide an opportunity to remove content, or take other reasonable action consistent with the applicable plan."
+          }
+        ]
+      },
+      {
+        "title": "14. Backups and Original Media",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash uses infrastructure and operational measures intended to provide reliable media storage and delivery."
+          },
+          {
+            "kind": "paragraph",
+            "text": "However, no online storage system can guarantee permanent or uninterrupted preservation of every file."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Unless EveBash expressly offers a separate guaranteed archival service, users should maintain their own copies of important original photographs, videos, and other irreplaceable media."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash should not be treated as the sole archival copy of irreplaceable media."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Nothing in this section excludes liability that cannot lawfully be excluded."
+          }
+        ]
+      },
+      {
+        "title": "15. Business Features and EB Business",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may allow businesses, photographers, event professionals, vendors, or service providers to create profiles or listings through features such as EB Business."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Businesses are responsible for the accuracy of information they publish, including descriptions, contact information, availability, pricing, services, portfolios, and other representations."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Unless expressly stated otherwise, listing a business on EveBash does not constitute EveBash's endorsement, certification, guarantee, or recommendation of that business."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Transactions or agreements between users and independently operated businesses may be subject to separate terms between those parties."
+          }
+        ]
+      },
+      {
+        "title": "16. EB Network",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may provide discovery, networking, marketplace-like, or professional connection features under EB Network or related services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users and businesses are responsible for independently evaluating persons or organizations they interact with through such features."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Unless EveBash expressly acts as a party to a transaction, EveBash is not automatically a party to agreements entered into directly between independent users or businesses."
+          }
+        ]
+      },
+      {
+        "title": "17. Plans and Subscriptions",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may offer free and paid plans."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Plans may differ according to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "number of events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "number of galleries;"
+          },
+          {
+            "kind": "bullet",
+            "text": "upload limits;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business listings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "media-processing features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Find You availability;"
+          },
+          {
+            "kind": "bullet",
+            "text": "collaboration features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "administrative features; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other product limits."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The specific limits and benefits applicable to a plan will be shown at the time of purchase or subscription."
+          }
+        ]
+      },
+      {
+        "title": "18. Pricing",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Prices may vary by plan, billing period, location, taxes, promotional offers, or other applicable factors."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may change future pricing, plan structures, or included features."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where required by law or applicable contractual commitments, users will receive appropriate notice before changes affecting an existing paid subscription take effect."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A pricing change will not retroactively alter a completed purchase unless permitted by law or agreed with the user."
+          }
+        ]
+      },
+      {
+        "title": "19. Payments",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Payments may be processed using third-party payment providers such as Razorpay or other providers selected by EveBash."
+          },
+          {
+            "kind": "paragraph",
+            "text": "By making a payment, you may also be subject to the payment provider's applicable terms and privacy practices."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not require users to provide payment-card credentials directly to EveBash where those credentials are securely collected by the payment provider."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A plan or paid feature may not be activated until EveBash receives reliable confirmation that payment has been successfully completed."
+          }
+        ]
+      },
+      {
+        "title": "20. Taxes",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Prices may include or exclude GST or other applicable taxes as indicated during purchase."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users are responsible for taxes, duties, or charges applicable to their purchase where required by law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash will collect, report, or remit taxes where legally required."
+          }
+        ]
+      },
+      {
+        "title": "21. Renewals and Recurring Payments",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash offers automatically renewing subscriptions, the applicable billing period, renewal terms, price, and cancellation method will be disclosed before purchase."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where recurring payment authorization is used, users authorize the applicable payment provider to process payments in accordance with the subscription selected."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users may cancel recurring subscriptions according to the cancellation options made available by EveBash and applicable law."
+          }
+        ]
+      },
+      {
+        "title": "22. Cancellations and Refunds",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Cancellation and refund eligibility may depend on the purchased plan, billing arrangement, amount of service already consumed, applicable promotional terms, and applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Detailed cancellation and refund rules may be provided in a separate Cancellation & Refund Policy."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Nothing in these Terms limits refund or cancellation rights that users are entitled to under applicable law."
+          }
+        ]
+      },
+      {
+        "title": "23. Plan Expiration and Downgrades",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "When a paid subscription expires, is cancelled, or is downgraded, some features may become unavailable."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If stored content exceeds the allowance of the new plan, EveBash may temporarily restrict new uploads or certain account functionality."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where reasonably practical, EveBash may provide users an opportunity to upgrade, renew, download eligible content, or reduce storage usage before content is permanently removed solely because of a plan change."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Specific retention periods may be communicated through the applicable plan or retention policy."
+          }
+        ]
+      },
+      {
+        "title": "24. Comments, Likes and Community Features",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Where EveBash permits comments, likes, reactions, or other community interactions, users must use those features responsibly."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users must not use community features for unlawful harassment, spam, impersonation, abuse, fraud, or other prohibited conduct."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Event organizers may be provided tools to moderate interactions within their galleries or events."
+          }
+        ]
+      },
+      {
+        "title": "25. EveBash Intellectual Property",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "The EveBash platform, excluding User Content, may include proprietary:"
+          },
+          {
+            "kind": "bullet",
+            "text": "software;"
+          },
+          {
+            "kind": "bullet",
+            "text": "source code;"
+          },
+          {
+            "kind": "bullet",
+            "text": "designs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "interfaces;"
+          },
+          {
+            "kind": "bullet",
+            "text": "graphics;"
+          },
+          {
+            "kind": "bullet",
+            "text": "logos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "trademarks;"
+          },
+          {
+            "kind": "bullet",
+            "text": "branding;"
+          },
+          {
+            "kind": "bullet",
+            "text": "documentation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "templates; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other intellectual property."
+          },
+          {
+            "kind": "paragraph",
+            "text": "These materials are owned by EveBash or its applicable licensors and are protected by applicable intellectual-property laws."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Using EveBash does not transfer ownership of EveBash intellectual property to you."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You may not copy, sell, license, reverse engineer, redistribute, or exploit protected EveBash materials except where permitted by law or expressly authorized by EveBash."
+          }
+        ]
+      },
+      {
+        "title": "26. Copyright and Intellectual-Property Complaints",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash respects intellectual-property rights."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If you believe content available through EveBash infringes rights you own or are authorized to enforce, you may submit a complaint through EveBash's designated contact process."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A complaint should provide sufficient information to identify:"
+          },
+          {
+            "kind": "bullet",
+            "text": "the protected work or right;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the allegedly infringing content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "where the content appears;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the complainant;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the basis of the complaint; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "appropriate contact information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may remove or restrict disputed content where required or reasonably appropriate while reviewing a complaint."
+          }
+        ]
+      },
+      {
+        "title": "27. Privacy",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Use of EveBash is also governed by the EveBash Privacy Policy."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The Privacy Policy explains matters including:"
+          },
+          {
+            "kind": "bullet",
+            "text": "information EveBash collects;"
+          },
+          {
+            "kind": "bullet",
+            "text": "account information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication data;"
+          },
+          {
+            "kind": "bullet",
+            "text": "uploaded media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "device and technical information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "cookies and similar technologies;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment-related information;"
+          },
+          {
+            "kind": "bullet",
+            "text": "media-processing activities;"
+          },
+          {
+            "kind": "bullet",
+            "text": "facial processing where applicable;"
+          },
+          {
+            "kind": "bullet",
+            "text": "service providers;"
+          },
+          {
+            "kind": "bullet",
+            "text": "data retention;"
+          },
+          {
+            "kind": "bullet",
+            "text": "user rights; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "data-security practices."
+          },
+          {
+            "kind": "paragraph",
+            "text": "These Terms and the Privacy Policy should be read together."
+          }
+        ]
+      },
+      {
+        "title": "28. Security",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may implement technical and organizational measures intended to protect accounts, media, and other information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users also play an important role in security."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You must not:"
+          },
+          {
+            "kind": "bullet",
+            "text": "attempt unauthorized access;"
+          },
+          {
+            "kind": "bullet",
+            "text": "probe or attack EveBash systems without authorization;"
+          },
+          {
+            "kind": "bullet",
+            "text": "distribute malware;"
+          },
+          {
+            "kind": "bullet",
+            "text": "interfere with the Services;"
+          },
+          {
+            "kind": "bullet",
+            "text": "exploit vulnerabilities;"
+          },
+          {
+            "kind": "bullet",
+            "text": "bypass usage restrictions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "scrape protected information unlawfully;"
+          },
+          {
+            "kind": "bullet",
+            "text": "abuse APIs; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "use automated systems in a manner that materially harms the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Security vulnerabilities should be reported responsibly through EveBash's designated contact channel."
+          }
+        ]
+      },
+      {
+        "title": "29. Third-Party Services",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may rely on third-party infrastructure and service providers for functions such as:"
+          },
+          {
+            "kind": "bullet",
+            "text": "hosting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "databases;"
+          },
+          {
+            "kind": "bullet",
+            "text": "authentication;"
+          },
+          {
+            "kind": "bullet",
+            "text": "media storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "content delivery;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payments;"
+          },
+          {
+            "kind": "bullet",
+            "text": "email;"
+          },
+          {
+            "kind": "bullet",
+            "text": "analytics;"
+          },
+          {
+            "kind": "bullet",
+            "text": "background processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "artificial intelligence;"
+          },
+          {
+            "kind": "bullet",
+            "text": "video processing; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "security."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The availability of some EveBash features may therefore depend partly on third-party systems."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where applicable, users may also be subject to third-party terms when directly interacting with those services."
+          }
+        ]
+      },
+      {
+        "title": "30. Service Availability",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash aims to provide reliable Services but does not guarantee that every feature will be available continuously or without interruption."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Temporary disruption may occur because of:"
+          },
+          {
+            "kind": "bullet",
+            "text": "maintenance;"
+          },
+          {
+            "kind": "bullet",
+            "text": "updates;"
+          },
+          {
+            "kind": "bullet",
+            "text": "infrastructure failures;"
+          },
+          {
+            "kind": "bullet",
+            "text": "network outages;"
+          },
+          {
+            "kind": "bullet",
+            "text": "security incidents;"
+          },
+          {
+            "kind": "bullet",
+            "text": "third-party service interruptions;"
+          },
+          {
+            "kind": "bullet",
+            "text": "force majeure events; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "circumstances beyond reasonable control."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may perform maintenance or temporarily restrict features where reasonably necessary for security, stability, or legal compliance."
+          }
+        ]
+      },
+      {
+        "title": "31. Service Changes",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may update, improve, redesign, replace, or discontinue features."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Changes may be made to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "improve performance;"
+          },
+          {
+            "kind": "bullet",
+            "text": "add functionality;"
+          },
+          {
+            "kind": "bullet",
+            "text": "address security issues;"
+          },
+          {
+            "kind": "bullet",
+            "text": "comply with law;"
+          },
+          {
+            "kind": "bullet",
+            "text": "improve user experience;"
+          },
+          {
+            "kind": "bullet",
+            "text": "respond to infrastructure changes; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "maintain the viability of the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where a material change significantly affects an existing paid service, EveBash will provide notice where required by applicable law."
+          }
+        ]
+      },
+      {
+        "title": "32. Suspension",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may temporarily suspend an account or feature where reasonably necessary because of:"
+          },
+          {
+            "kind": "bullet",
+            "text": "serious or repeated violations of these Terms;"
+          },
+          {
+            "kind": "bullet",
+            "text": "prohibited content;"
+          },
+          {
+            "kind": "bullet",
+            "text": "fraudulent activity;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment issues;"
+          },
+          {
+            "kind": "bullet",
+            "text": "security risks;"
+          },
+          {
+            "kind": "bullet",
+            "text": "unauthorized access;"
+          },
+          {
+            "kind": "bullet",
+            "text": "abuse of infrastructure;"
+          },
+          {
+            "kind": "bullet",
+            "text": "legal requirements; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "risks to EveBash or other users."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where appropriate and legally permitted, EveBash may provide notice or an opportunity to resolve the issue."
+          }
+        ]
+      },
+      {
+        "title": "33. Account Termination",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Users may terminate their EveBash account using the available account-deletion process or by contacting EveBash where appropriate."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may terminate accounts for serious or repeated violations of these Terms or where legally required."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Termination may result in loss of access to events, galleries, business listings, subscriptions, or other account features."
+          }
+        ]
+      },
+      {
+        "title": "34. Data Deletion and Retention",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Deleting an account or media does not necessarily result in instantaneous deletion from every technical system."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Some information may remain temporarily in:"
+          },
+          {
+            "kind": "bullet",
+            "text": "backups;"
+          },
+          {
+            "kind": "bullet",
+            "text": "caches;"
+          },
+          {
+            "kind": "bullet",
+            "text": "processing systems;"
+          },
+          {
+            "kind": "bullet",
+            "text": "logs; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "security records."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Certain information may also be retained where reasonably necessary for:"
+          },
+          {
+            "kind": "bullet",
+            "text": "legal obligations;"
+          },
+          {
+            "kind": "bullet",
+            "text": "tax/accounting requirements;"
+          },
+          {
+            "kind": "bullet",
+            "text": "fraud prevention;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment disputes;"
+          },
+          {
+            "kind": "bullet",
+            "text": "security;"
+          },
+          {
+            "kind": "bullet",
+            "text": "enforcing agreements; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "resolving disputes."
+          },
+          {
+            "kind": "paragraph",
+            "text": "See the EveBash Privacy Policy for information about personal data."
+          }
+        ]
+      },
+      {
+        "title": "35. Disclaimer of Warranties",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To the extent permitted by applicable law, EveBash is provided on an \"as available\" basis."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not guarantee that:"
+          },
+          {
+            "kind": "bullet",
+            "text": "the Services will always be uninterrupted;"
+          },
+          {
+            "kind": "bullet",
+            "text": "every feature will always be available;"
+          },
+          {
+            "kind": "bullet",
+            "text": "all software will be entirely error-free;"
+          },
+          {
+            "kind": "bullet",
+            "text": "every uploaded file can always be recovered;"
+          },
+          {
+            "kind": "bullet",
+            "text": "automated moderation will identify every prohibited item;"
+          },
+          {
+            "kind": "bullet",
+            "text": "facial matching will always produce correct results; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "third-party services will remain continuously available."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Nothing in these Terms excludes warranties or rights that cannot legally be excluded."
+          }
+        ]
+      },
+      {
+        "title": "36. Limitation of Liability",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To the maximum extent permitted by applicable law, EveBash will not be liable for indirect, incidental, special, consequential, or similar losses arising from use of the Services where such liability may lawfully be limited."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This may include loss resulting from unauthorized sharing by users, interruption of third-party infrastructure, loss of business opportunity, or loss of data where the loss was outside EveBash's reasonable control."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Nothing in these Terms limits liability that cannot legally be limited or excluded under applicable law."
+          }
+        ]
+      },
+      {
+        "title": "37. Indemnification",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To the extent permitted by applicable law, users may be responsible for claims, losses, or reasonable costs resulting from their unlawful use of EveBash, violation of these Terms, infringement of another person's rights, or User Content they were not legally authorized to upload or distribute."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Any indemnification obligation is subject to applicable law and mandatory consumer rights."
+          }
+        ]
+      },
+      {
+        "title": "38. Governing Law",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "These Terms will be governed by the laws of India, subject to any mandatory rights or legal protections that apply to users under applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Disputes may be brought before courts or other dispute-resolution bodies with jurisdiction under applicable law. Nothing in these Terms removes mandatory consumer remedies."
+          }
+        ]
+      },
+      {
+        "title": "39. Changes to These Terms",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may update these Terms from time to time."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The \"Last updated\" date will indicate when the Terms were most recently revised."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For material changes, EveBash may provide additional notice through the website, application, email, account dashboard, or another appropriate method where required."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Continued use after revised Terms become effective constitutes acceptance to the extent permitted by applicable law."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where explicit consent is legally required, EveBash will request it."
+          }
+        ]
+      },
+      {
+        "title": "40. Severability",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If any provision of these Terms is found to be unlawful, invalid, or unenforceable, the remaining provisions will continue to apply to the extent permitted by law."
+          }
+        ]
+      },
+      {
+        "title": "41. No Waiver",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash does not immediately enforce a provision of these Terms, that does not necessarily waive EveBash's right to enforce it later."
+          }
+        ]
+      },
+      {
+        "title": "42. Entire Agreement",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "These Terms, together with applicable EveBash policies and any additional terms expressly agreed for a particular service, constitute the agreement governing use of the Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Relevant policies may include the:"
+          },
+          {
+            "kind": "bullet",
+            "text": "Privacy Policy;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Content Policy;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Cancellation & Refund Policy;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Cookie Policy; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "applicable plan or subscription terms."
+          }
+        ]
+      },
+      {
+        "title": "43. Contact EveBash",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Questions about these Terms or the EveBash Services may be sent to:"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Support: support@evebash.com"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Website: evebash.com"
+          }
+        ]
+      },
+      {
+        "title": "44. Android, iOS and Store Purchases",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "These Terms apply to the EveBash website and Android and iOS applications. Features, plans and purchase options may differ by platform, app version or region. Only purchase options actually shown in the applicable product are available; references to store purchases do not promise that in-app purchasing is currently offered."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For purchases offered through the Apple App Store or Google Play, the applicable store payment and subscription terms also apply. The purchase screen identifies the price, billing period, renewal conditions and any trial terms before you confirm. Manage a store-billed subscription through that store. Website purchases follow the checkout terms displayed on the website."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Cancellation, refund requests and account deletion are separate processes. The Cancellation & Refund Policy explains the applicable purchase channels. Mandatory consumer rights continue to apply regardless of the purchase channel."
+          }
+        ]
+      }
+    ]
+  },
+  "cancellation-refund-policy": {
+    "title": "Cancellation & Refund Policy",
+    "lastUpdated": "September 28, 2026",
+    "description": "This Cancellation & Refund Policy explains how cancellations, subscription renewals, plan upgrades, plan downgrades, failed payments, duplicate charges, refund requests, and related billing matters are handled for EveBash Services. This Policy should be read together with the EveBash Terms & Conditions and Privacy Policy. Where applicable law provides consumers with additional cancellation, refund, or grievance rights, those rights will continue to apply.",
+    "sections": [
+      {
+        "title": "Purchase Channel: Website, Apple or Google",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "This policy applies across the EveBash website, Android app and iOS app. Check your receipt to identify who billed you. The website-payment procedures below apply to purchases made directly from EveBash, including supported Razorpay transactions. They do not replace the procedures of Apple or Google for purchases billed by those stores."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For an Apple-billed purchase, use https://reportaproblem.apple.com to request a refund and https://apps.apple.com/account/subscriptions to manage or cancel a subscription. Apple handles refund requests under its applicable rules and your statutory rights."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For a Google Play-billed purchase, manage subscriptions at https://play.google.com/store/account/subscriptions and follow the refund instructions at https://support.google.com/googleplay/answer/2479637. Responsibility for handling a request depends on Google Play rules, the purchase and applicable law; contact EveBash support if those instructions direct you to the developer."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Uninstalling EveBash or deleting an EveBash account does not itself cancel a store-billed subscription. Cancellation generally stops future renewals; it does not by itself establish entitlement to a refund for the current period. Any refund rights required by law remain available."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If a store-billed option is not offered in your app or region, that purchase channel is unavailable. These provisions do not create a new purchase option or change the billing method of an existing purchase."
+          }
+        ]
+      },
+      {
+        "title": "1. EveBash Plans",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may offer:"
+          },
+          {
+            "kind": "bullet",
+            "text": "free plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "monthly paid plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "annual paid plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "promotional plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage-based plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business plans;"
+          },
+          {
+            "kind": "bullet",
+            "text": "event-related plans; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other paid features or add-ons."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Each plan may have different limits relating to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "number of events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery creation;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business listings;"
+          },
+          {
+            "kind": "bullet",
+            "text": "uploads;"
+          },
+          {
+            "kind": "bullet",
+            "text": "image/video features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "Find You functionality;"
+          },
+          {
+            "kind": "bullet",
+            "text": "collaboration;"
+          },
+          {
+            "kind": "bullet",
+            "text": "downloads;"
+          },
+          {
+            "kind": "bullet",
+            "text": "analytics; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other EveBash Services."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The applicable price, billing period, plan limits, and included features will be displayed before purchase."
+          }
+        ]
+      },
+      {
+        "title": "2. Cancelling a Paid Plan",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "You may cancel or stop renewal of an eligible EveBash paid plan through your account settings where this option is available."
+          },
+          {
+            "kind": "paragraph",
+            "text": "You may also request assistance by contacting: support@evebash.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Cancellation generally prevents the next renewal charge."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Unless otherwise stated for a specific plan, cancellation does not automatically terminate the remaining paid subscription period."
+          },
+          {
+            "kind": "paragraph",
+            "text": "For example, if you purchase a monthly plan and cancel halfway through the billing month, you may continue using eligible paid features until the end of that paid billing period."
+          },
+          {
+            "kind": "paragraph",
+            "text": "After the paid period ends, your account may:"
+          },
+          {
+            "kind": "bullet",
+            "text": "move to the applicable free plan;"
+          },
+          {
+            "kind": "bullet",
+            "text": "move to another plan you selected;"
+          },
+          {
+            "kind": "bullet",
+            "text": "lose access to certain paid features; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "become subject to lower storage or usage limits."
+          }
+        ]
+      },
+      {
+        "title": "3. Automatic Renewal",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Where an EveBash subscription is configured to renew automatically, the subscription will continue for the applicable billing period until cancelled."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Before purchasing an automatically renewing plan, EveBash will display the relevant billing frequency and renewal information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where supported by the payment provider, renewal payments may be processed using the payment authorization established when the subscription was created."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users should cancel before the next scheduled renewal if they do not want the subscription to renew."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where required by applicable law, EveBash will provide appropriate information or notice relating to recurring billing."
+          }
+        ]
+      },
+      {
+        "title": "4. Effect of Cancellation",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Cancelling a subscription does not necessarily delete:"
+          },
+          {
+            "kind": "bullet",
+            "text": "your EveBash account;"
+          },
+          {
+            "kind": "bullet",
+            "text": "your events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "your galleries;"
+          },
+          {
+            "kind": "bullet",
+            "text": "your photographs;"
+          },
+          {
+            "kind": "bullet",
+            "text": "your videos;"
+          },
+          {
+            "kind": "bullet",
+            "text": "your business profile; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "other account information."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Instead, cancellation normally affects the plan and features available after the active paid period ends."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Different rules may apply where a user separately requests account deletion. Account deletion is governed by EveBash's Privacy Policy and applicable data-retention rules."
+          }
+        ]
+      },
+      {
+        "title": "5. Plan Upgrades",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Users may upgrade to a higher EveBash plan where available."
+          },
+          {
+            "kind": "paragraph",
+            "text": "A plan upgrade may provide additional:"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage;"
+          },
+          {
+            "kind": "bullet",
+            "text": "events;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery capacity;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "media-processing features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "AI features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "collaboration features; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "other functionality."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where technically supported, an upgrade may take effect immediately after successful payment confirmation."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash will not rely solely on a frontend payment-success message. The upgrade may be activated only after EveBash receives reliable confirmation from the applicable payment provider."
+          }
+        ]
+      },
+      {
+        "title": "6. Upgrade Pricing",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "The amount charged for an upgrade may depend on the billing model used by EveBash."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Depending on the plan, EveBash may:"
+          },
+          {
+            "kind": "bullet",
+            "text": "charge the full price of the new plan;"
+          },
+          {
+            "kind": "bullet",
+            "text": "charge a prorated difference;"
+          },
+          {
+            "kind": "bullet",
+            "text": "apply an account credit;"
+          },
+          {
+            "kind": "bullet",
+            "text": "replace the existing billing period; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "schedule the higher plan for the next billing cycle."
+          },
+          {
+            "kind": "paragraph",
+            "text": "The applicable upgrade price and effective date should be displayed before the user confirms the upgrade. EveBash should not apply an undisclosed upgrade charge."
+          }
+        ]
+      },
+      {
+        "title": "7. Plan Downgrades",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "A downgrade normally moves an account from a higher plan to a lower plan."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Unless otherwise stated, EveBash intends to apply downgrades at the end of the current paid billing period rather than immediately."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This allows users to continue using storage and features they already paid for during the current period."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Example: If a user has a 500 GB plan valid until September 30 and schedules a downgrade to 100 GB on September 10, the 500 GB plan may remain active until September 30 and the 100 GB limit may begin on October 1."
+          }
+        ]
+      },
+      {
+        "title": "8. Storage After a Downgrade",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "This section is particularly important for EveBash because plans may include different storage limits."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If the amount of media stored in an account exceeds the storage allowance of the downgraded plan, EveBash may:"
+          },
+          {
+            "kind": "bullet",
+            "text": "temporarily restrict new uploads;"
+          },
+          {
+            "kind": "bullet",
+            "text": "restrict creation of additional media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "notify the account holder that storage exceeds the new limit;"
+          },
+          {
+            "kind": "bullet",
+            "text": "allow the user to remove or download eligible media;"
+          },
+          {
+            "kind": "bullet",
+            "text": "allow the user to upgrade again; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "apply another reasonable storage-management process."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash should not intentionally delete valuable user media immediately merely because a downgrade takes effect, unless a separate policy, notice, or legal requirement clearly provides otherwise."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where EveBash intends to delete content because an account remains above its storage allowance for an extended period, the user should receive reasonable notice where practicable before deletion. Contact support@evebash.com before downgrading if you need clarification about continued access, exporting media, or the deadline applicable to your account."
+          }
+        ]
+      },
+      {
+        "title": "9. Free Plan After Cancellation",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If a paid subscription expires or is cancelled and the account becomes eligible for the EveBash free plan, the account will become subject to the storage and feature limits of the free plan."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If existing usage exceeds those limits, certain functionality may be restricted until the user deletes eligible content, reduces usage, renews, upgrades, or otherwise brings the account within applicable limits."
+          }
+        ]
+      },
+      {
+        "title": "10. Refund Requests",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Refund eligibility is determined according to:"
+          },
+          {
+            "kind": "bullet",
+            "text": "applicable law;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the type of purchase;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment status;"
+          },
+          {
+            "kind": "bullet",
+            "text": "billing period;"
+          },
+          {
+            "kind": "bullet",
+            "text": "whether the service was successfully activated;"
+          },
+          {
+            "kind": "bullet",
+            "text": "usage of the plan;"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage or processing already consumed;"
+          },
+          {
+            "kind": "bullet",
+            "text": "duplicate or incorrect charges;"
+          },
+          {
+            "kind": "bullet",
+            "text": "technical issues attributable to EveBash;"
+          },
+          {
+            "kind": "bullet",
+            "text": "promotional terms; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "other relevant circumstances."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Submitting a refund request does not automatically mean the refund will be approved. EveBash will review eligible requests individually."
+          }
+        ]
+      },
+      {
+        "title": "11. Change-of-Mind Refunds",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Unless otherwise stated or required by applicable law, EveBash does not guarantee a full refund solely because a user changes their mind after a paid plan has been activated and substantially used."
+          },
+          {
+            "kind": "paragraph",
+            "text": "This is particularly relevant where EveBash has already provided:"
+          },
+          {
+            "kind": "bullet",
+            "text": "storage capacity;"
+          },
+          {
+            "kind": "bullet",
+            "text": "image/video processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "gallery hosting;"
+          },
+          {
+            "kind": "bullet",
+            "text": "AI processing;"
+          },
+          {
+            "kind": "bullet",
+            "text": "downloads;"
+          },
+          {
+            "kind": "bullet",
+            "text": "business features;"
+          },
+          {
+            "kind": "bullet",
+            "text": "paid event features; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "other resources associated with the purchased plan."
+          },
+          {
+            "kind": "paragraph",
+            "text": "However, EveBash may provide a refund, partial refund, credit, or other resolution at its discretion where appropriate and legally permitted."
+          }
+        ]
+      },
+      {
+        "title": "12. Unused Subscription Period",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Cancelling a subscription does not automatically entitle the user to a prorated refund for unused days remaining in the current billing period unless:"
+          },
+          {
+            "kind": "bullet",
+            "text": "EveBash expressly states otherwise;"
+          },
+          {
+            "kind": "bullet",
+            "text": "the relevant plan provides for prorated refunds;"
+          },
+          {
+            "kind": "bullet",
+            "text": "EveBash approves the refund;"
+          },
+          {
+            "kind": "bullet",
+            "text": "there was a qualifying technical or billing issue; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "applicable law requires a refund."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users will generally continue receiving the paid plan's eligible benefits until the end of the active billing period."
+          }
+        ]
+      },
+      {
+        "title": "13. Duplicate Payments",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If you believe you were charged more than once for the same purchase, contact: support@evebash.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Please provide information such as:"
+          },
+          {
+            "kind": "bullet",
+            "text": "EveBash account email;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment reference or transaction ID;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment date;"
+          },
+          {
+            "kind": "bullet",
+            "text": "amount charged; and"
+          },
+          {
+            "kind": "bullet",
+            "text": "any other information reasonably necessary to locate the transaction."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Do not send full debit/credit card numbers, CVVs, banking passwords, or UPI PINs."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If EveBash confirms that an unintended duplicate payment occurred, the duplicate transaction may be refunded or otherwise corrected."
+          }
+        ]
+      },
+      {
+        "title": "14. Failed Payments",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "A failed payment normally does not activate the purchased plan."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Possible reasons for payment failure may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "bank rejection;"
+          },
+          {
+            "kind": "bullet",
+            "text": "insufficient funds;"
+          },
+          {
+            "kind": "bullet",
+            "text": "expired payment authorization;"
+          },
+          {
+            "kind": "bullet",
+            "text": "network failure;"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment-gateway failure;"
+          },
+          {
+            "kind": "bullet",
+            "text": "interrupted checkout;"
+          },
+          {
+            "kind": "bullet",
+            "text": "UPI timeout;"
+          },
+          {
+            "kind": "bullet",
+            "text": "risk or fraud controls; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "another payment-provider issue."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If money appears to have been debited but EveBash has not received confirmed payment, users should contact support with the payment reference. In some cases, the payment provider or bank may automatically reverse a failed or incomplete transaction."
+          }
+        ]
+      },
+      {
+        "title": "15. Payment Successful but Plan Not Activated",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If payment succeeds but the EveBash plan does not update correctly, the user should contact: support@evebash.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash may verify Razorpay/payment-provider transaction status, signatures, webhooks, orders, and account records."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If successful payment is confirmed, EveBash may activate the correct plan, repair subscription state, apply account credit, or issue a refund."
+          }
+        ]
+      },
+      {
+        "title": "16. Payment Pending",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Some payment methods may remain in a pending state before final confirmation. While a payment remains pending, EveBash may delay activation of the paid plan until confirmed successful."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If payment later fails, the plan will not be activated. If payment succeeds, the plan will be activated."
+          }
+        ]
+      },
+      {
+        "title": "17. Refunds for Technical Problems",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "A refund, account credit, plan extension, or other remedy may be considered where a significant EveBash technical problem prevented the user from receiving the paid service."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Relevant circumstances may include:"
+          },
+          {
+            "kind": "bullet",
+            "text": "payment succeeded but plan could not be activated;"
+          },
+          {
+            "kind": "bullet",
+            "text": "significant paid functionality remained unavailable due to an EveBash issue;"
+          },
+          {
+            "kind": "bullet",
+            "text": "a billing error occurred; or"
+          },
+          {
+            "kind": "bullet",
+            "text": "an incorrect plan was charged due to a system error."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Minor interruptions, scheduled maintenance, temporary third-party outages, or issues caused by the user's own device/network do not automatically qualify for a refund."
+          }
+        ]
+      },
+      {
+        "title": "18. Partial Refunds and Credits",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Where appropriate, EveBash may offer full refunds, partial refunds, account credits, subscription extensions, or plan adjustments based on unavailability duration, affected features, amount paid, and applicable law."
+          }
+        ]
+      },
+      {
+        "title": "19. Refund Method",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Approved refunds will ordinarily be returned through the original payment method where technically possible."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Users generally cannot request that a refund be sent to an unrelated bank account, UPI ID, card, wallet, or another person's account unless legally required."
+          }
+        ]
+      },
+      {
+        "title": "20. Refund Processing Time",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "After EveBash approves and initiates a refund, processing time depends on payment gateways, banks, card networks, or UPI providers. EveBash does not control third-party processing times."
+          }
+        ]
+      },
+      {
+        "title": "21. Razorpay and Other Payment Providers",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may use payment providers such as Razorpay to process payments. Payment providers operate their own infrastructure and terms. A payment provider's role does not remove EveBash's obligations to address legitimate billing complaints."
+          }
+        ]
+      },
+      {
+        "title": "22. Chargebacks and Payment Disputes",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If a user disputes a payment with their bank or payment provider, EveBash may provide information necessary to respond. Where a payment is reversed or charged back, EveBash may temporarily restrict the paid service while unresolved."
+          }
+        ]
+      },
+      {
+        "title": "23. Fraudulent or Abusive Refund Requests",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may refuse refund requests that appear to involve fraud, intentional abuse, repeated misuse of refund processes, or false payment claims, subject to law."
+          }
+        ]
+      },
+      {
+        "title": "24. Promotional and Discounted Plans",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Promotional offers may have specific eligibility, expiration, upgrade, cancellation, or refund rules disclosed before purchase."
+          }
+        ]
+      },
+      {
+        "title": "25. Add-Ons and One-Time Purchases",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may offer paid add-ons or one-time purchases (extra storage, extra events, premium processing). Refund and cancellation rules for one-time purchases may differ from recurring subscriptions."
+          }
+        ]
+      },
+      {
+        "title": "26. Taxes and Fees",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Approved refunds may include or exclude applicable taxes depending on tax law, invoice treatment, and gateway rules."
+          }
+        ]
+      },
+      {
+        "title": "27. Account Termination by EveBash",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash terminates a paid account for a serious violation of Terms, refund eligibility depends on the reason, remaining period, and service consumed. Termination for prohibited/fraudulent activity does not guarantee a refund."
+          }
+        ]
+      },
+      {
+        "title": "28. Discontinuation of an EveBash Service",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If EveBash permanently discontinues a paid service before subscription end, EveBash may provide migration, credit, extension, or refund remedies where required or reasonable."
+          }
+        ]
+      },
+      {
+        "title": "29. How to Request a Refund",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "To request review of a payment or refund issue, contact: support@evebash.com."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Include: registered email, payment/order reference, purchase date, plan, amount, brief explanation, and screenshots. Do not send sensitive credentials."
+          }
+        ]
+      },
+      {
+        "title": "30. Review of Refund Requests",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash reviews refund requests based on gateway status, billing records, account activity, activation, storage/processing usage, and incident logs."
+          }
+        ]
+      },
+      {
+        "title": "31. Grievances",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If a billing/refund issue has not been resolved appropriately, submit a grievance to: support@evebash.com under applicable Indian consumer-protection principles."
+          }
+        ]
+      },
+      {
+        "title": "32. Changes to This Policy",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash may update this Cancellation & Refund Policy as subscription models, payment systems, or legal requirements change. Revisions will update the Last updated date."
+          }
+        ]
+      },
+      {
+        "title": "33. Contact Us",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "For cancellation, billing, payment, or refund questions, contact:"
+          },
+          {
+            "kind": "paragraph",
+            "text": "EveBash"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Email: support@evebash.com"
+          },
+          {
+            "kind": "paragraph",
+            "text": "Website: evebash.com"
+          }
+        ]
+      }
+    ]
+  },
+  "digital-service-delivery-policy": {
+    "title": "Digital Service Delivery Policy",
+    "lastUpdated": "September 28, 2026",
+    "description": "EveBash provides digital services and does not sell or ship physical products. Therefore, physical shipping, courier delivery, shipping charges, and delivery tracking do not apply to purchases made directly from EveBash.",
+    "sections": [
+      {
+        "title": "1. Digital Activation",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "After successful payment confirmation, eligible subscriptions, storage limits, features, or other digital services are activated electronically on the user's EveBash account."
+          }
+        ]
+      },
+      {
+        "title": "2. Activation Timelines",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "In most cases, activation occurs shortly after successful payment confirmation. In some circumstances, activation may be delayed because of payment verification, technical processing, security checks, payment-gateway delays, or temporary service issues."
+          }
+        ]
+      },
+      {
+        "title": "3. Activation Assistance",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "If payment has been successfully completed but the purchased plan or feature is not activated, users may contact support@evebash.com with their payment or order reference for assistance."
+          }
+        ]
+      },
+      {
+        "title": "4. Address Requirements",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "EveBash does not require a physical delivery address for delivery of its digital services unless address information is separately required for billing, taxation, identity/business verification, or another lawful purpose."
+          }
+        ]
+      },
+      {
+        "title": "5. Cancellations and Refunds",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "Questions regarding cancellations or refunds are governed by the EveBash Cancellation & Refund Policy."
+          }
+        ]
+      },
+      {
+        "title": "6. Contact Us",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "For delivery or activation-related assistance, contact support@evebash.com."
+          }
+        ]
+      },
+      {
+        "title": "7. Mobile and Cross-Platform Access",
+        "blocks": [
+          {
+            "kind": "paragraph",
+            "text": "The service is delivered digitally on supported EveBash platforms. Availability of individual features can differ between the website, Android and iOS apps. Use the EveBash account associated with your purchase when checking access; do not assume that a second account or a different store account inherits a purchase."
+          },
+          {
+            "kind": "paragraph",
+            "text": "Where Apple or Google purchases are supported, activation depends on confirmation and validation of the store transaction. If your app provides Restore Purchases, use it for an eligible previous purchase. Otherwise contact support with your order reference and the account used for the purchase. Do not send passwords, payment credentials or full card details."
+          },
+          {
+            "kind": "paragraph",
+            "text": "If access is missing after payment, contact support before purchasing the same entitlement again. Refund requests follow the purchase-channel procedures at https://www.evebash.com/cancellation-refund-policy."
+          }
+        ]
+      }
+    ]
+  }
+}

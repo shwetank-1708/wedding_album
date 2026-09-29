@@ -29,7 +29,7 @@ export function TemplatePolaroid({ event, children }: TemplatePolaroidProps) {
                         <div className="absolute -top-5 left-1/2 h-9 w-28 -translate-x-1/2 rotate-2 bg-[#ead7ad]/90 shadow-sm sm:-top-6 sm:h-10 sm:w-32" />
 
                         {event.coverImage ? (
-                            <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e7dcc9] grayscale-[16%] sepia-[24%]">
+                            <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e7dcc9]">
                                 <Image src={event.coverImage} alt={event.title} fill className="object-cover" priority />
                             </div>
                         ) : (

@@ -142,7 +142,7 @@ export function TemplateHero({ event, children }: TemplateHeroProps) {
           {/* Scrolling indicator */}
           <ScrollReveal direction="up" delay={0.6} className="mt-4">
             <button onClick={scrollToContent} className="animate-bounce flex flex-col items-center gap-2">
-              <span className="text-[8px] uppercase tracking-[0.3em] text-[#ca9c69]/70 font-semibold">Scroll Down</span>
+              <span className="text-xs uppercase tracking-[0.3em] text-[#dfbd94] font-semibold">Scroll Down</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-[#ca9c69]/60">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>

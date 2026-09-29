@@ -1,3 +1,5 @@
+import { VIEWER_TEMPLATE_PALETTES, SPORTS_VIEWER_PALETTES } from '../constants/viewerPalettes';
+import { galleryActionText } from '../constants/galleryContrast';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Pressable, ScrollView, KeyboardAvoidingView, Platform, Alert, Share, TextInput, Keyboard, Modal, ActivityIndicator, StyleSheet, StatusBar as RNStatusBar, useWindowDimensions, type GestureResponderEvent, type NativeSyntheticEvent } from 'react-native';
 import { Image as ExpoImage, type ImageLoadEventData } from 'expo-image';
@@ -29,19 +31,7 @@ interface PhotoViewerProps {
   onRotatePhoto?: (photo: any, direction: 'left' | 'right') => Promise<void> | void;
 }
 
-type ViewerPalette = {
-  background: string;
-  panel: string;
-  text: string;
-  muted: string;
-  accent: string;
-  tileBg: string;
-  overlay: string[];
-  controlBg: string;
-  controlText: string;
-  frameBorder: string;
-  radius?: number;
-};
+
 
 type LucideIconProps = {
   size?: number;
@@ -149,55 +139,6 @@ function LucideDownloadIcon({ size = 20, color, strokeWidth = 2 }: LucideIconPro
   );
 }
 
-const VIEWER_TEMPLATE_PALETTES: Record<string, ViewerPalette> = {
-  royal: { background: '#033026', panel: 'rgba(2,35,28,0.94)', text: '#fcfbf7', muted: '#a3b899', accent: '#ca9c69', tileBg: '#02231c', overlay: ['rgba(3,48,38,0.1)', 'rgba(3,48,38,0.78)', '#02231c'], controlBg: 'rgba(2,35,28,0.84)', controlText: '#fcfbf7', frameBorder: 'rgba(202,156,105,0.62)', radius: 18 },
-  classic: { background: '#F7F2EB', panel: 'rgba(255,255,255,0.96)', text: '#2C352E', muted: '#6E7B6C', accent: '#8B9A6E', tileBg: '#ffffff', overlay: ['rgba(247,242,235,0.95)', 'rgba(234,226,214,0.92)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#2C352E', frameBorder: 'rgba(139,154,110,0.42)', radius: 2 },
-  hero: { background: '#000000', panel: 'rgba(9,9,11,0.94)', text: '#ffffff', muted: '#94a3b8', accent: '#ca9c69', tileBg: '#09090b', overlay: ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.96)'], controlBg: 'rgba(0,0,0,0.56)', controlText: '#ffffff', frameBorder: 'rgba(202,156,105,0.48)', radius: 12 },
-  ethereal: { background: '#F8FAFC', panel: 'rgba(238,242,246,0.96)', text: '#1E293B', muted: '#64748B', accent: '#4A6984', tileBg: '#ffffff', overlay: ['rgba(248,250,252,0.9)', 'rgba(226,232,240,0.94)'], controlBg: 'rgba(255,255,255,0.88)', controlText: '#1E293B', frameBorder: 'rgba(74,105,132,0.36)', radius: 2 },
-  scrapbook: { background: '#f8f5f0', panel: 'rgba(255,253,249,0.96)', text: '#263331', muted: '#74827d', accent: '#d9826b', tileBg: '#fffdf9', overlay: ['rgba(248,245,240,0.92)', 'rgba(217,130,107,0.14)', '#f8f5f0'], controlBg: 'rgba(255,253,249,0.9)', controlText: '#263331', frameBorder: 'rgba(217,130,107,0.42)', radius: 18 },
-  neon: { background: '#070611', panel: 'rgba(18,16,35,0.94)', text: '#f8f7ff', muted: '#b9b1d9', accent: '#ff3df2', tileBg: '#111020', overlay: ['rgba(7,6,17,0.92)', 'rgba(102,232,255,0.16)', 'rgba(255,61,242,0.1)'], controlBg: 'rgba(18,16,35,0.82)', controlText: '#f8f7ff', frameBorder: 'rgba(102,232,255,0.58)', radius: 20 },
-  pastel: { background: '#fff7f4', panel: 'rgba(255,253,251,0.96)', text: '#4d4542', muted: '#9a8583', accent: '#c9768b', tileBg: '#fffdfb', overlay: ['rgba(255,247,244,0.94)', 'rgba(213,180,220,0.24)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#4d4542', frameBorder: 'rgba(201,118,139,0.36)', radius: 24 },
-  pop: { background: '#ffe84a', panel: 'rgba(255,253,243,0.96)', text: '#231f20', muted: '#5b4b3d', accent: '#ef2b3a', tileBg: '#ffffff', overlay: ['rgba(255,232,74,0.94)', 'rgba(0,128,255,0.14)'], controlBg: 'rgba(255,253,243,0.92)', controlText: '#231f20', frameBorder: 'rgba(35,31,32,0.46)', radius: 18 },
-  golden_years: { background: '#fbf4e6', panel: 'rgba(255,251,242,0.96)', text: '#3f2f22', muted: '#8b765e', accent: '#c99a2e', tileBg: '#fffaf0', overlay: ['rgba(251,244,230,0.94)', 'rgba(201,154,46,0.16)'], controlBg: 'rgba(255,251,242,0.9)', controlText: '#3f2f22', frameBorder: 'rgba(201,154,46,0.44)', radius: 20 },
-  vintage: { background: '#0F0E0B', panel: 'rgba(28,24,18,0.96)', text: '#F2E7D2', muted: '#C7A96B', accent: '#B89145', tileBg: '#15130F', overlay: ['rgba(15,14,11,0.92)', 'rgba(184,145,69,0.12)'], controlBg: 'rgba(28,24,18,0.84)', controlText: '#F2E7D2', frameBorder: 'rgba(184,145,69,0.5)', radius: 2 },
-  rose: { background: '#fff9f5', panel: 'rgba(255,252,247,0.96)', text: '#562733', muted: '#9a6c74', accent: '#b76578', tileBg: '#fffdfa', overlay: ['rgba(255,249,245,0.94)', 'rgba(183,101,120,0.16)'], controlBg: 'rgba(255,252,247,0.9)', controlText: '#562733', frameBorder: 'rgba(183,101,120,0.38)', radius: 28 },
-  minimal_love: { background: '#f7efe4', panel: 'rgba(255,250,242,0.96)', text: '#3b2618', muted: '#8a7461', accent: '#6d4b34', tileBg: '#fffaf2', overlay: ['rgba(247,239,228,0.94)', 'rgba(109,75,52,0.12)'], controlBg: 'rgba(255,250,242,0.9)', controlText: '#3b2618', frameBorder: 'rgba(109,75,52,0.34)', radius: 24 },
-  bohemian: { background: '#f3e8d3', panel: 'rgba(250,245,234,0.96)', text: '#38241b', muted: '#7d6457', accent: '#73863a', tileBg: '#fffdf9', overlay: ['rgba(243,232,211,0.94)', 'rgba(115,134,58,0.16)'], controlBg: 'rgba(243,232,211,0.9)', controlText: '#38241b', frameBorder: 'rgba(115,134,58,0.42)', radius: 22 },
-  diamond: { background: '#f0f9ff', panel: 'rgba(255,255,255,0.96)', text: '#0c4a6e', muted: '#0369a1', accent: '#0284c7', tileBg: '#ffffff', overlay: ['rgba(240,249,255,0.94)', 'rgba(2,132,199,0.14)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#0c4a6e', frameBorder: 'rgba(2,132,199,0.36)', radius: 15 },
-  blush: { background: '#f5dfdb', panel: 'rgba(255,255,255,0.96)', text: '#2b0d17', muted: '#8c5c56', accent: '#d89c8a', tileBg: '#ffffff', overlay: ['rgba(245,223,219,0.94)', 'rgba(216,156,138,0.14)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#2b0d17', frameBorder: 'rgba(216,156,138,0.38)', radius: 22 },
-  garden: { background: '#e4ebe3', panel: 'rgba(253,251,247,0.96)', text: '#222e23', muted: '#536855', accent: '#7a9a6b', tileBg: '#ffffff', overlay: ['rgba(228,235,227,0.94)', 'rgba(122,154,107,0.14)'], controlBg: 'rgba(253,251,247,0.9)', controlText: '#222e23', frameBorder: 'rgba(122,154,107,0.36)', radius: 22 },
-  midnight_glam: { background: '#1A1035', panel: 'rgba(58,32,96,0.94)', text: '#F4F0FD', muted: '#9689C9', accent: '#6B5BBF', tileBg: '#3A2060', overlay: ['rgba(26,16,53,0.94)', 'rgba(107,91,191,0.16)'], controlBg: 'rgba(58,32,96,0.84)', controlText: '#F4F0FD', frameBorder: 'rgba(168,158,223,0.48)', radius: 16 },
-  cinematic: { background: '#0f0f12', panel: 'rgba(28,28,32,0.94)', text: '#ffffff', muted: '#a0a0aa', accent: '#e62b3a', tileBg: '#1c1c20', overlay: ['rgba(15,15,18,0.94)', 'rgba(230,43,58,0.12)'], controlBg: 'rgba(28,28,32,0.84)', controlText: '#ffffff', frameBorder: 'rgba(230,43,58,0.45)', radius: 6 },
-  modern_lounge: { background: '#F0F4F8', panel: 'rgba(255,255,255,0.96)', text: '#0D1117', muted: '#3D5F8A', accent: '#3D5F8A', tileBg: '#ffffff', overlay: ['rgba(240,244,248,0.94)', 'rgba(61,95,138,0.14)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#0D1117', frameBorder: 'rgba(61,95,138,0.36)', radius: 16 },
-  elegant_night: { background: '#111111', panel: 'rgba(26,26,26,0.94)', text: '#ffffff', muted: '#cccccc', accent: '#ffffff', tileBg: '#111111', overlay: ['rgba(17,17,17,0.94)', 'rgba(255,255,255,0.08)'], controlBg: 'rgba(26,26,26,0.84)', controlText: '#ffffff', frameBorder: 'rgba(255,255,255,0.32)', radius: 2 },
-  museum: { background: '#0D1117', panel: '#121820', text: '#A7B7C9', muted: '#798FAF', accent: '#3D5F8A', tileBg: '#1C2430', overlay: ['rgba(13,17,23,0.94)', 'rgba(61,95,138,0.16)'], controlBg: 'rgba(18,24,32,0.9)', controlText: '#A7B7C9', frameBorder: 'rgba(61,95,138,0.4)', radius: 22 },
-  brutalist: { background: '#171914', panel: '#272921', text: '#E6DFD3', muted: '#988B71', accent: '#988B71', tileBg: '#3B3C32', overlay: ['rgba(23,25,20,0.94)', 'rgba(152,139,113,0.14)'], controlBg: 'rgba(39,41,33,0.9)', controlText: '#988B71', frameBorder: 'rgba(152,139,113,0.4)', radius: 14 },
-  tech_sleek: { background: '#040c1a', panel: '#0a182b', text: '#f0f8ff', muted: '#7ba4cc', accent: '#00a2ff', tileBg: '#0e233d', overlay: ['rgba(4,12,26,0.94)', 'rgba(0,162,255,0.14)'], controlBg: 'rgba(10,24,43,0.9)', controlText: '#f0f8ff', frameBorder: 'rgba(0,162,255,0.5)', radius: 14 },
-  executive: { background: '#08111f', panel: 'rgba(245,237,220,0.96)', text: '#f5eddc', muted: '#d4b474', accent: '#d4b474', tileBg: '#f5eddc', overlay: ['rgba(8,17,31,0.94)', 'rgba(212,180,116,0.14)'], controlBg: 'rgba(8,17,31,0.84)', controlText: '#f5eddc', frameBorder: 'rgba(212,180,116,0.5)', radius: 18 },
-  polaroid: { background: '#f8f3e7', panel: 'rgba(255,250,240,0.96)', text: '#1f2937', muted: '#78716c', accent: '#b45309', tileBg: '#ffffff', overlay: ['rgba(248,243,231,0.94)', 'rgba(180,83,9,0.12)'], controlBg: 'rgba(255,250,240,0.9)', controlText: '#1f2937', frameBorder: 'rgba(180,83,9,0.38)', radius: 2 },
-  editorial: { background: '#fafaf9', panel: 'rgba(255,255,255,0.96)', text: '#111827', muted: '#374151', accent: '#111827', tileBg: '#e7e5e4', overlay: ['rgba(250,250,249,0.94)', 'rgba(17,24,39,0.1)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#111827', frameBorder: 'rgba(17,24,39,0.32)', radius: 2 },
-  vibrant: { background: '#f5f3ff', panel: 'rgba(255,255,255,0.96)', text: '#4c1d95', muted: '#7c3aed', accent: '#8b5cf6', tileBg: '#ffffff', overlay: ['rgba(245,243,255,0.94)', 'rgba(139,92,246,0.16)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#4c1d95', frameBorder: 'rgba(139,92,246,0.4)', radius: 15 },
-  zen: { background: '#f5f5f4', panel: 'rgba(255,255,255,0.96)', text: '#44403c', muted: '#78716c', accent: '#57534e', tileBg: '#ffffff', overlay: ['rgba(245,245,244,0.94)', 'rgba(87,83,78,0.1)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#44403c', frameBorder: 'rgba(87,83,78,0.32)', radius: 28 },
-  cyber_tech: { background: '#08080a', panel: '#131318', text: '#ffffff', muted: '#9ca3af', accent: '#3af0d8', tileBg: '#131318', overlay: ['rgba(8,8,10,0.94)', 'rgba(58,240,216,0.14)'], controlBg: 'rgba(19,19,24,0.84)', controlText: '#ffffff', frameBorder: 'rgba(58,240,216,0.54)', radius: 12 },
-  retro_arcade: { background: '#ffc200', panel: 'rgba(18,18,18,0.96)', text: '#121212', muted: '#4b5563', accent: '#ffc200', tileBg: '#121218', overlay: ['rgba(255,194,0,0.94)', 'rgba(18,18,18,0.16)'], controlBg: 'rgba(18,18,18,0.9)', controlText: '#ffc200', frameBorder: 'rgba(255,194,0,0.44)', radius: 12 },
-  academic_editorial: { background: '#FCFAF7', panel: 'rgba(255,255,255,0.96)', text: '#1C1C1E', muted: '#636E72', accent: '#800020', tileBg: '#FFFFFF', overlay: ['rgba(252,250,247,0.94)', 'rgba(128,0,32,0.1)'], controlBg: 'rgba(255,255,255,0.9)', controlText: '#1C1C1E', frameBorder: 'rgba(128,0,32,0.34)', radius: 2 },
-  neon_carnival: { background: '#06030a', panel: 'rgba(15,9,24,0.94)', text: '#faf5ff', muted: '#d8b4fe', accent: '#d946ef', tileBg: '#0b0612', overlay: ['rgba(6,3,10,0.94)', 'rgba(217,70,239,0.14)'], controlBg: 'rgba(15,9,24,0.84)', controlText: '#faf5ff', frameBorder: 'rgba(217,70,239,0.54)', radius: 24 },
-};
-
-const SPORTS_VIEWER_PALETTES: Record<string, ViewerPalette> = {
-  bohemian: { ...VIEWER_TEMPLATE_PALETTES.bohemian, background: '#2f1b12', text: '#f3e8d3', muted: '#7d6457', accent: '#73863a', frameBorder: 'rgba(115,134,58,0.44)' },
-  diamond: { background: '#060a12', panel: 'rgba(10,18,32,0.94)', text: '#eef2f7', muted: '#b9d8f2', accent: '#7dd3fc', tileBg: '#0a1220', overlay: ['rgba(6,10,18,0.94)', 'rgba(96,165,250,0.2)'], controlBg: 'rgba(10,18,32,0.84)', controlText: '#eef2f7', frameBorder: 'rgba(125,211,252,0.52)', radius: 15 },
-  blush: { ...VIEWER_TEMPLATE_PALETTES.blush, background: '#230a12', text: '#f8e9e7', muted: '#c4a5a0', accent: '#d89c8a', frameBorder: 'rgba(216,156,138,0.44)' },
-  garden: { ...VIEWER_TEMPLATE_PALETTES.garden, background: '#3f4f40', text: '#f0f5ef', muted: '#a1b39e', accent: '#7a9a6b', frameBorder: 'rgba(122,154,107,0.4)' },
-  midnight_glam: { background: '#1A1035', panel: 'rgba(58,32,96,0.94)', text: '#F4F0FD', muted: '#9689C9', accent: '#6B5BBF', tileBg: '#3A2060', overlay: ['rgba(26,16,53,0.94)', 'rgba(107,91,191,0.16)'], controlBg: 'rgba(58,32,96,0.84)', controlText: '#F4F0FD', frameBorder: 'rgba(168,158,223,0.52)', radius: 16 },
-  cinematic: VIEWER_TEMPLATE_PALETTES.cinematic,
-  modern_lounge: { background: '#0D1117', panel: 'rgba(28,36,48,0.94)', text: '#A7B7C9', muted: '#798FAF', accent: '#3D5F8A', tileBg: '#1C2430', overlay: ['rgba(13,17,23,0.94)', 'rgba(61,95,138,0.16)'], controlBg: 'rgba(28,36,48,0.84)', controlText: '#A7B7C9', frameBorder: 'rgba(61,95,138,0.48)', radius: 16 },
-  elegant_night: { background: '#07101f', panel: 'rgba(12,23,42,0.94)', text: '#f5eddc', muted: '#d4b474', accent: '#d4b474', tileBg: '#0b1628', overlay: ['rgba(7,16,31,0.94)', 'rgba(212,180,116,0.16)'], controlBg: 'rgba(12,23,42,0.84)', controlText: '#f5eddc', frameBorder: 'rgba(212,180,116,0.5)', radius: 2 },
-  polaroid: { ...VIEWER_TEMPLATE_PALETTES.polaroid, background: '#f7efe1', accent: '#b45309' },
-  editorial: VIEWER_TEMPLATE_PALETTES.editorial,
-  vibrant: { background: '#08111f', panel: 'rgba(15,23,42,0.94)', text: '#f8fafc', muted: '#cbd5e1', accent: '#f97316', tileBg: '#101010', overlay: ['rgba(8,17,31,0.94)', 'rgba(249,115,22,0.18)'], controlBg: 'rgba(15,23,42,0.84)', controlText: '#f8fafc', frameBorder: 'rgba(249,115,22,0.5)', radius: 15 },
-  zen: { ...VIEWER_TEMPLATE_PALETTES.zen, background: '#f1eee6', accent: '#66785f', frameBorder: 'rgba(102,120,95,0.36)' },
-};
 
 function ViewerVideo({
   uri,
@@ -1160,17 +1101,19 @@ export default function PhotoViewer({
           {comments.length === 0 ? (
             <View style={[styles.emptyGuestbook, hostGuestbook && localStyles.hostEmptyGuestbook]}>
               <View style={[styles.emptyGuestbookIcon, hostGuestbook && localStyles.hostEmptyGuestbookIcon]}>
-                <IconSymbol name="bubble.right" size={hostGuestbook ? 24 : 30} color="#78716c" />
+                <IconSymbol name="bubble.right" size={hostGuestbook ? 24 : 30} color={viewerTheme.muted} />
               </View>
               <Text style={[
                 styles.emptyGuestbookTitle,
                 hostGuestbook && localStyles.hostEmptyGuestbookTitle,
-                selectedTemplate.useSerif && { fontFamily: Fonts.serif, fontStyle: 'italic', fontSize: hostGuestbook ? 16 : 18 }
+                selectedTemplate.useSerif && { fontFamily: Fonts.serif, fontStyle: 'italic', fontSize: hostGuestbook ? 16 : 18 },
+                { color: viewerTheme.text }
               ]}>No whispers yet...</Text>
               <Text style={[
                 styles.emptyGuestbookText,
                 hostGuestbook && localStyles.hostEmptyGuestbookText,
-                selectedTemplate.useSerif && { fontFamily: Fonts.serif, fontStyle: 'italic' }
+                selectedTemplate.useSerif && { fontFamily: Fonts.serif, fontStyle: 'italic' },
+                { color: viewerTheme.muted }
               ]}>Write the first beautiful word.</Text>
             </View>
           ) : (
@@ -1203,27 +1146,30 @@ export default function PhotoViewer({
                       <View style={styles.commentRow}>
                         <Text style={[
                           styles.commentName,
-                          selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text }
+                          selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text },
+                          { color: viewerTheme.text }
                         ]} numberOfLines={1}>{commentName}</Text>
-                        <Text style={styles.commentTime}>
+                        <Text style={[styles.commentTime, { color: viewerTheme.muted }]}>
                           {comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
                         </Text>
                       </View>
                       <View style={[
                         styles.commentBubble,
-                        selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' }
+                        selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' },
+                        { backgroundColor: 'transparent', borderColor: viewerTheme.frameBorder, borderWidth: 1 }
                       ]}>
                         <Text style={[
                           styles.commentText,
-                          selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif }
+                          selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif },
+                          { color: viewerTheme.text }
                         ]}>{comment.text}</Text>
                         <View style={styles.commentActions}>
                           <TouchableOpacity onPress={() => setReplyingTo(comment)}>
-                            <Text style={styles.replyBtnText}>REPLY</Text>
+                            <Text style={[styles.replyBtnText, { color: viewerTheme.text }]}>REPLY</Text>
                           </TouchableOpacity>
                           {comment.userId === viewerIdentity.id && (
                             <TouchableOpacity onPress={() => handleDeleteComment(comment.id)}>
-                              <Text style={styles.deleteBtnText}>DELETE</Text>
+                              <Text style={[styles.deleteBtnText, { color: viewerTheme.text }]}>DELETE</Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -1259,23 +1205,26 @@ export default function PhotoViewer({
                             <View style={styles.commentRow}>
                               <Text style={[
                                 styles.replyName,
-                                selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text }
+                                selectedTemplate.id === 'royal' && { fontFamily: Fonts.serif, color: selectedTemplate.text },
+                                { color: viewerTheme.text }
                               ]} numberOfLines={1}>{replyName}</Text>
-                              <Text style={styles.commentTime}>
+                              <Text style={[styles.commentTime, { color: viewerTheme.muted }]}>
                                 {reply.createdAt ? new Date(reply.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
                               </Text>
                             </View>
                             <View style={[
                               styles.replyBubble,
-                              selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' }
+                              selectedTemplate.id === 'royal' && { borderWidth: 1, borderColor: 'rgba(212,175,55,0.15)', backgroundColor: 'rgba(212,175,55,0.04)' },
+                              { backgroundColor: 'transparent', borderColor: viewerTheme.frameBorder, borderWidth: 1 }
                             ]}>
                               <Text style={[
                                 styles.replyText,
-                                selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif }
+                                selectedTemplate.id === 'royal' && { color: selectedTemplate.text, fontFamily: Fonts.serif },
+                                { color: viewerTheme.text }
                               ]}>{reply.text}</Text>
                               {reply.userId === viewerIdentity.id && (
                                 <TouchableOpacity onPress={() => handleDeleteComment(reply.id)}>
-                                  <Text style={[styles.deleteBtnText, styles.replyDeleteText]}>DELETE</Text>
+                                  <Text style={[styles.deleteBtnText, styles.replyDeleteText, { color: viewerTheme.text }]}>DELETE</Text>
                                 </TouchableOpacity>
                               )}
                             </View>
@@ -1301,14 +1250,15 @@ export default function PhotoViewer({
           )}
           <View style={styles.commentInputRow}>
             <TextInput
-              style={styles.commentInput}
+              style={[styles.commentInput, { backgroundColor: viewerTheme.panel, color: viewerTheme.text, borderWidth: 1, borderColor: viewerTheme.frameBorder }]}
+              accessibilityLabel={replyingTo ? "Write a reply" : "Write a comment"}
               placeholder={replyingTo ? "Write a reply..." : "Share a wish..."}
-              placeholderTextColor="#78716c"
+              placeholderTextColor={viewerTheme.muted}
               value={newComment}
               onChangeText={setNewComment}
             />
-            <TouchableOpacity style={[styles.commentSendBtn, (!newComment.trim() || isCommenting) && styles.commentSendBtnDisabled]} onPress={handleAddComment} disabled={!newComment.trim() || isCommenting}>
-              <IconSymbol name="paperplane.fill" size={18} color="#ffffff" />
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Send comment" style={[styles.commentSendBtn, { backgroundColor: viewerTheme.accent }, (!newComment.trim() || isCommenting) && styles.commentSendBtnDisabled]} onPress={handleAddComment} disabled={!newComment.trim() || isCommenting}>
+              <IconSymbol name="paperplane.fill" size={18} color={galleryActionText(viewerTheme.accent)} />
             </TouchableOpacity>
           </View>
         </View>

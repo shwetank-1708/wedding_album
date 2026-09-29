@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { onPhotoInteractions, toggleLike } from "@/lib/database";
 import { useAuth } from "@/context/AuthContext";
@@ -139,21 +139,23 @@ function PhotoCard({
         }
     };
 
+    const reducedMotion = useReducedMotion();
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6, delay: index * 0.05, ease: "easeOut" }}
+            transition={{ duration: reducedMotion ? 0 : 0.4, delay: reducedMotion ? 0 : Math.min(index, 5) * 0.04, ease: "easeOut" }}
             onClick={() => onViewPhoto(photo)}
             className={cn(
-                "break-inside-avoid overflow-hidden group relative mb-4 shadow-md hover:shadow-xl transition-all duration-500 bg-white border border-stone-150 rounded-2xl cursor-pointer flex flex-col",
+                "gallery-media-card break-inside-avoid overflow-hidden group relative mb-4 shadow-md hover:shadow-xl transition-all duration-500 bg-white border border-stone-150 rounded-2xl cursor-pointer flex flex-col",
                 itemClassName
             )}
         >
-            <div className="relative w-full overflow-hidden">
+            <button type="button" aria-label={`Open ${isVideo ? "video" : "photo"}: ${photo.alt || photo.filename || "Event memory"}`} className="relative block w-full overflow-hidden text-left">
                 {isVideo ? (
-                    <div className="relative aspect-[4/5] w-full bg-slate-950 overflow-hidden">
+                    <div className="relative aspect-[4/5] w-full bg-slate-950 overflow-hidden" style={{ aspectRatio: photo.width && photo.height ? `${photo.width} / ${photo.height}` : "16 / 9" }}>
                         {photo.thumbnailUrl ? (
                             <img
                                 src={photo.thumbnailUrl}
@@ -191,16 +193,17 @@ function PhotoCard({
                         Image unavailable
                     </div>
                 )}
-            </div>
+            </button>
 
             {/* Bottom Instagram-style Bar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-stone-50/70 border-t border-stone-100">
+            <div className="gallery-card-actions flex items-center justify-between px-4 py-3 bg-stone-50/70 border-t border-stone-100">
                 <div className="flex items-center space-x-4">
                     {/* Like Option */}
                     <button
                         onClick={handleToggleLike}
                         className="flex items-center space-x-1.5 group/like"
-                        aria-label="Like photo"
+                        aria-label={isLiked ? "Unlike photo" : "Like photo"}
+                        aria-pressed={isLiked}
                     >
                         <Heart
                             size={19}
@@ -217,7 +220,7 @@ function PhotoCard({
                     </button>
 
                     {/* Comment Option */}
-                    <div
+                    <button type="button"
                         className="flex items-center space-x-1.5 group/comment"
                         aria-label="Comments"
                     >
@@ -228,7 +231,7 @@ function PhotoCard({
                         <span className="text-xs font-bold text-stone-600 tracking-wider">
                             {commentsCount}
                         </span>
-                    </div>
+                    </button>
                 </div>
 
                 {/* Save (Download) Option */}
@@ -293,8 +296,8 @@ export function MasonryGrid({
     const resolvedPageFlipTheme = pageFlipTheme || getPageFlipThemeForTemplateId(templateId);
 
     return (
-        <div className={cn("container mx-auto px-4 py-8", className)}>
-            <div className={cn("columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4", gridClassName)}>
+        <div className={cn("gallery-masonry container mx-auto px-4 py-8", templateId === "royal" && "royal-masonry", className)} style={{ "--gallery-count": Math.max(1, photos.length), "--royal-count": Math.max(1, photos.length <= 3 ? photos.length : Math.ceil(photos.length / 2)) } as React.CSSProperties}>
+            <div className={cn("columns-1 sm:columns-2 md:columns-3 gap-4", gridClassName)}>
                 {photos.map((photo, index) => (
                     <PhotoCard
                         key={photo.id}

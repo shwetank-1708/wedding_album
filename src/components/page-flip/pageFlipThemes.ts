@@ -177,6 +177,8 @@ export function getPageFlipThemeConfig(theme: PageFlipTheme): PageFlipThemeConfi
   const transition = themeTransitionMap[theme] || themeTransitionMap.default;
   return {
     ...visualConfig,
+    controlClass: `${visualConfig.controlClass} viewer-themed-control`,
+    pageClass: `${visualConfig.pageClass} viewer-themed-page`,
     layout,
     transition,
     showPersistentThumbnails: layout === "bottom-filmstrip",

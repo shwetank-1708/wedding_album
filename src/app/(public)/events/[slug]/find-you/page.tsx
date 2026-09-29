@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import * as faceapi from "face-api.js";
 import { MasonryGrid } from "@/components/ui/MasonryGrid";
 import { getEventById, getSubEvents, Event } from "@/lib/database";
+import { getWebTemplateChrome } from "@/lib/webTemplateTheme";
 import { getApiUrl } from "@/lib/apiBase";
 
 type MatchedPhoto = {
@@ -29,6 +30,8 @@ type FaceSearchMatch = {
 };
 
 export default function FindYouPage({ params }: { params: Promise<{ slug: string }> }) {
+    const [templateId, setTemplateId] = useState("hero");
+    const theme = getWebTemplateChrome(templateId);
     const [subEvents, setSubEvents] = useState<Event[]>([]);
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -49,6 +52,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
         async function loadEventData() {
             const eventData = await getEventById(slug);
             if (!active || !eventData) return;
+            setTemplateId(eventData.templateId || "hero");
 
             const navRoot = eventData.parentId ? await getEventById(eventData.parentId) : eventData;
             if (!active) return;
@@ -167,16 +171,22 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
     };
 
     return (
-        <main className="min-h-screen bg-stone-50 pb-20">
+        <main className="event-template-shell themed-gallery-content find-you-gallery min-h-screen pb-20" style={{
+            background: theme.background, color: theme.text,
+            "--event-template-primary": theme.background, "--event-template-panel": theme.panel,
+            "--event-template-text": theme.text, "--event-template-muted": theme.muted,
+            "--event-template-accent": theme.accent, "--event-template-border": theme.border,
+            "--event-template-on-accent": theme.onAccent,
+        } as React.CSSProperties}>
             <section className="mx-auto max-w-6xl px-4 pt-32 pb-20 sm:px-6 lg:px-8">
                 <SectionHeader title="Find You" subtitle="AI-Powered Photo Search" />
 
                 <div className="max-w-2xl mx-auto text-center mb-12">
                     <p className="text-stone-600 mb-8">
-                        Upload a clear selfie, and our AI will magically find all your photos from this event.
+                        Upload a clear selfie to search for matching photos from this event.
                     </p>
 
-                    <div className="bg-white p-8 rounded-2xl shadow-xl border border-stone-100">
+                    <div data-gallery-panel className="bg-white p-5 sm:p-8 rounded-2xl shadow-xl border border-stone-100">
                         {/* Selfie preview */}
                         {selfieUrl && (
                             <div className="mb-6 flex justify-center">
@@ -191,7 +201,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
 
                         <div className="flex flex-col md:flex-row gap-4 justify-center">
                             {/* Option 1: Gallery Upload */}
-                            <button
+                            <button data-gallery-panel
                                 onClick={() => modelsLoaded && fileInputRef.current?.click()}
                                 disabled={!modelsLoaded || uploading || processing}
                                 className={`
@@ -207,7 +217,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
                             </button>
 
                             {/* Option 2: Camera Capture */}
-                            <button
+                            <button data-gallery-panel
                                 onClick={() => modelsLoaded && cameraInputRef.current?.click()}
                                 disabled={!modelsLoaded || uploading || processing}
                                 className={`
@@ -250,7 +260,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
                         {/* Status / Progress */}
                         {(uploading || processing || (statusMessage !== "AI Models Loaded. Ready." && modelsLoaded)) && (
                             <div className="mt-6">
-                                <p className={`font-medium ${uploading || processing ? "animate-pulse" : ""} ${matchedPhotos.length > 0 ? "text-green-700" : "text-royal-maroon"}`}>
+                                <p role="status" aria-live="polite" style={{ color: theme.text }} className={`font-medium ${uploading || processing ? "animate-pulse" : ""} ${matchedPhotos.length > 0 ? "text-green-700" : "text-royal-maroon"}`}>
                                     {statusMessage}
                                 </p>
                             </div>
@@ -262,7 +272,7 @@ export default function FindYouPage({ params }: { params: Promise<{ slug: string
                 {matchedPhotos.length > 0 && (
                     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <SectionHeader title="Your Photos" subtitle={`We found ${matchedPhotos.length} match${matchedPhotos.length === 1 ? "" : "es"} in this event`} />
-                        <MasonryGrid photos={matchedPhotos} />
+                        <MasonryGrid photos={matchedPhotos} templateId={templateId} />
                     </div>
                 )}
             </section>

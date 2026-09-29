@@ -12,7 +12,7 @@ interface TemplateBohemianProps {
 
 export function TemplateBohemian({ event, children }: TemplateBohemianProps) {
     return (
-        <div className="min-h-screen bg-[#f3e8d3] text-[#38241b] font-sans selection:bg-[#73863a]/30">
+        <div className="min-h-screen overflow-x-clip bg-[#f3e8d3] text-[#38241b] font-sans selection:bg-[#73863a]/30">
             {/* Texture Overlay */}
             <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0 mix-blend-multiply" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")' }}></div>
 
@@ -32,7 +32,7 @@ export function TemplateBohemian({ event, children }: TemplateBohemianProps) {
                     </ScrollReveal>
 
                     <ScrollReveal delay={0.2}>
-                        <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif text-[#38241b] mb-8 leading-tight">
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl break-words text-balance font-serif text-[#38241b] mb-8 leading-tight">
                             {event.title.toLowerCase()}
                         </h1>
                     </ScrollReveal>

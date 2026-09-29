@@ -1,3 +1,4 @@
+import { galleryActionText } from '../../constants/galleryContrast';
 import React, { useCallback, useEffect, useState } from 'react';
 import LoadingScreen from '@/components/LoadingScreen';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, TextInput, KeyboardAvoidingView, Platform, Alert, Share, Keyboard, useWindowDimensions, useColorScheme, BackHandler, PanResponder, Animated as RNAnimated, type ViewStyle } from 'react-native';
@@ -4879,7 +4880,9 @@ export default function EventDetailScreen() {
                               <TouchableOpacity
                                 key={item.id}
                                 style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: active ? MidnightColors.gold : 'transparent' }}
-                                onPress={() => setGalleryMediaTab(item.id)}
+                                accessibilityRole="tab"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => setGalleryMediaTab(item.id)}
                               >
                                 <Text style={{ color: active ? '#13191F' : '#cbd5e1', fontSize: 12, fontFamily: Fonts.inter.bold }}>
                                   {item.label}
@@ -6388,10 +6391,12 @@ export default function EventDetailScreen() {
                           borderRadius: 12,
                           backgroundColor: active ? activeBg : 'transparent',
                         }}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: active }}
                         onPress={() => setGalleryMediaTab(item.id)}
                       >
                         <Text style={{
-                          color: active ? '#ffffff' : (isSportsTemplate ? sportsTheme.muted : selectedTemplate.muted),
+                          color: active ? galleryActionText(activeBg) : (isSportsTemplate ? sportsTheme.muted : selectedTemplate.muted),
                           fontSize: 12,
                           fontFamily: Fonts.inter.bold,
                         }}>

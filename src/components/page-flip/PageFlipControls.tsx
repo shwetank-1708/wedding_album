@@ -56,37 +56,37 @@ export function PageFlipControls({
     <>
       <div className={cn("fixed right-4 top-4 z-[115] flex items-center gap-2 md:right-6 md:top-6", sidePanelOpen && "md:hidden")}>
         {showGridButton && (
-          <button type="button" className={buttonClass} onClick={onOpenGrid} aria-label="Open gallery grid">
+          <button type="button" className={buttonClass} onClick={onOpenGrid} aria-label="Open gallery grid" title="Open gallery grid">
             <Grid2X2 className="h-4 w-4" />
           </button>
         )}
         {showFullscreen && (
-          <button type="button" className={buttonClass} onClick={onToggleFullscreen} aria-label={fullscreen ? "Exit fullscreen" : "Open fullscreen"}>
+          <button type="button" className={buttonClass} onClick={onToggleFullscreen} aria-label={fullscreen ? "Exit fullscreen" : "Open fullscreen"} title={fullscreen ? "Exit fullscreen" : "Open fullscreen"}>
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         )}
-        <button type="button" className={buttonClass} onClick={onToggleSlideshow} aria-label={slideshow ? "Pause slideshow" : "Start slideshow"}>
+        <button type="button" className={buttonClass} onClick={onToggleSlideshow} aria-label={slideshow ? "Pause slideshow" : "Start slideshow"} title={slideshow ? "Pause slideshow" : "Start slideshow"}>
           {slideshow ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </button>
-        <button type="button" className={buttonClass} onClick={onToggleZoom} aria-label={zoomed ? "Reset zoom" : "Zoom media"}>
+        <button type="button" className={buttonClass} onClick={onToggleZoom} aria-label={zoomed ? "Reset zoom" : "Zoom media"} title={zoomed ? "Reset zoom" : "Zoom media"}>
           <Search className="h-4 w-4" />
         </button>
         {showDownload && (
-          <button type="button" className={buttonClass} onClick={onDownload} aria-label="Download original media">
+          <button type="button" className={buttonClass} onClick={onDownload} aria-label="Download original media" title="Download original media">
             <Download className="h-4 w-4" />
           </button>
         )}
-        <button type="button" className={buttonClass} onClick={onClose} aria-label="Close viewer">
+        <button type="button" className={buttonClass} onClick={onClose} aria-label="Close viewer" title="Close viewer">
           <X className="h-5 w-5" />
         </button>
       </div>
 
       {showArrows && (
         <>
-          <button type="button" className={cn(buttonClass, "fixed left-3 top-1/2 z-[110] h-12 w-12 -translate-y-1/2 md:left-7 md:h-14 md:w-14", sidePanelOpen && "md:left-8")} onClick={onPrev} disabled={!canPrev} aria-label="Previous media">
+          <button type="button" className={cn(buttonClass, "fixed left-3 top-1/2 z-[110] h-12 w-12 -translate-y-1/2 md:left-7 md:h-14 md:w-14", sidePanelOpen && "md:left-8")} onClick={onPrev} disabled={!canPrev} aria-label="Previous media" title="Previous media">
             <ChevronLeft className="h-7 w-7" />
           </button>
-          <button type="button" className={cn(buttonClass, "fixed right-3 top-1/2 z-[110] h-12 w-12 -translate-y-1/2 md:right-7 md:h-14 md:w-14", sidePanelOpen && "md:right-[452px]")} onClick={onNext} disabled={!canNext} aria-label="Next media">
+          <button type="button" className={cn(buttonClass, "fixed right-3 top-1/2 z-[110] h-12 w-12 -translate-y-1/2 md:right-7 md:h-14 md:w-14", sidePanelOpen && "md:right-[452px]")} onClick={onNext} disabled={!canNext} aria-label="Next media" title="Next media">
             <ChevronRight className="h-7 w-7" />
           </button>
         </>
